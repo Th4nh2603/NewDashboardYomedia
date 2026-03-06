@@ -1,0 +1,37 @@
+{
+  "ListBrands": [
+    { "id": "Enchantuer", "label": "Enchantuer" },
+    { "id": "Maxkleen", "label": "Maxkleen" },
+    { "id": "Romano", "label": "Romano" },
+    { "id": "Aiken", "label": "Aiken" }
+  ],
+  "ListYears": [
+    { "id": "2020", "label": "2020" },
+    { "id": "2021", "label": "2021" },
+    { "id": "2022", "label": "2022" },
+    { "id": "2023", "label": "2023" },
+    { "id": "2024", "label": "2024" },
+    { "id": "2025", "label": "2025" },
+    { "id": "2026", "label": "2026" }
+  ],
+  "ListMonth": [
+    { "id": "01", "label": "01" },
+    { "id": "02", "label": "02" },
+    { "id": "03", "label": "03" },
+    { "id": "04", "label": "04" },
+    { "id": "05", "label": "05" },
+    { "id": "06", "label": "06" },
+    { "id": "07", "label": "07" },
+    { "id": "08", "label": "08" },
+    { "id": "09", "label": "09" },
+    { "id": "10", "label": "10" },
+    { "id": "11", "label": "11" },
+    { "id": "12", "label": "12" }
+  ],
+  "ListProductCate": [
+    { "id": "laundry", "label": "Laundry" },
+    { "id": "personal-care", "label": "Personal Care" },
+    { "id": "home-care", "label": "Home Care" },
+    { "id": "others", "label": "Others" }
+  ]
+}
