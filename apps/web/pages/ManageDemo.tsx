@@ -13,10 +13,12 @@ type SftpStatus = {
   message: string;
 } | null;
 
+const BASE_REMOTE_PATH = '/script/demo';
+
 const ManageDemo: React.FC = () => {
   const [testingSftp, setTestingSftp] = React.useState(false);
   const [sftpStatus, setSftpStatus] = React.useState<SftpStatus>(null);
-  const [remotePath, setRemotePath] = React.useState<string>('/script/demo');
+  const [remotePath, setRemotePath] = React.useState<string>(BASE_REMOTE_PATH);
   const [entries, setEntries] = React.useState<
     { name: string; type: string; size: number; modifyTime?: number }[]
   >([]);
@@ -59,17 +61,42 @@ const ManageDemo: React.FC = () => {
     }
   };
 
-  const handleLoadDirectory = async () => {
+  const handleLoadDirectory = async (pathOverride?: string) => {
+    const targetPath = (pathOverride ?? remotePath) || '/';
+    setRemotePath(targetPath);
     setLoadingList(true);
     try {
       const baseUrl =
         import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
       const response = await fetch(
-        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(remotePath || '/')}`,
+        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(targetPath)}`,
       );
       const data = await response.json();
       if (response.ok && data.ok) {
-        setEntries(data.entries || []);
+        const list = (data.entries as typeof entries) ?? [];
+        const filtered = list.filter(
+          (e) => !e.name.startsWith(".") && !e.name.startsWith(".bash"),
+        );
+        const sorted = filtered.slice().sort((a, b) => {
+          const nameA = a.name.toLowerCase();
+          const nameB = b.name.toLowerCase();
+
+          const isDirA = a.type === 'd';
+          const isDirB = b.type === 'd';
+          const startsWithDigitA = /^[0-9]/.test(nameA);
+          const startsWithDigitB = /^[0-9]/.test(nameB);
+
+          // Đẩy các thư mục có tên bắt đầu bằng số (ví dụ 2019, 2020...)
+          // lên trước, sau đó mới đến các mục còn lại theo thứ tự A-Z.
+          const isNumericDirA = isDirA && startsWithDigitA;
+          const isNumericDirB = isDirB && startsWithDigitB;
+
+          if (isNumericDirA && !isNumericDirB) return -1;
+          if (!isNumericDirA && isNumericDirB) return 1;
+
+          return nameA.localeCompare(nameB);
+        });
+        setEntries(sorted);
       } else {
         setEntries([]);
         setSftpStatus({
@@ -91,7 +118,7 @@ const ManageDemo: React.FC = () => {
 
   React.useEffect(() => {
     // Load default directory on first mount
-    handleLoadDirectory();
+    handleLoadDirectory(remotePath);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,13 +181,24 @@ const ManageDemo: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-3">
           <input
             type="text"
-            value={remotePath}
-            onChange={(e) => setRemotePath(e.target.value)}
+            value={
+              remotePath.startsWith(BASE_REMOTE_PATH)
+                ? remotePath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, '')
+                : remotePath
+            }
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              const full =
+                raw === ''
+                  ? BASE_REMOTE_PATH
+                  : `${BASE_REMOTE_PATH}/${raw.replace(/^\/+/, '')}`;
+              setRemotePath(full);
+            }}
             className="flex-1 bg-[#020617] border border-white/5 rounded-2xl px-4 py-2.5 text-xs text-[#e5e7eb] outline-none focus:border-[#4cceac]/60 transition-colors"
-            placeholder="/media"
+            placeholder="2019/01/demo-name"
           />
           <button
-            onClick={handleLoadDirectory}
+            onClick={() => handleLoadDirectory()}
             disabled={loadingList}
             className="px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed"
           >
@@ -170,13 +208,13 @@ const ManageDemo: React.FC = () => {
 
         <div className="mt-2 rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
           <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80 backdrop-blur-sm">
-            <div className="col-span-5">Name</div>
+            <div className="col-span-6">Name</div>
             <div className="col-span-2 text-center">Type</div>
             <div className="col-span-2 text-right">Size</div>
-            <div className="col-span-2 text-right">Modified</div>
+            <div className="col-span-1 text-right">Modified</div>
             <div className="col-span-1 text-right">Actions</div>
           </div>
-          <div className="max-h-72 overflow-y-auto text-[12px] text-[#e5e7eb]">
+          <div className="max-h-[32rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
             {entries.length === 0 ? (
               <div className="px-4 py-4 text-center text-[#6b7280]">
                 No entries loaded. Choose a path and click <span className="text-[#4cceac] font-semibold">Load directory</span>.
@@ -204,14 +242,11 @@ const ManageDemo: React.FC = () => {
                         : remotePath;
                       const nextPath =
                         base === '/' ? `/${item.name}` : `${base}/${item.name}`;
-                      setRemotePath(nextPath);
-                      setTimeout(() => {
-                        handleLoadDirectory();
-                      }, 0);
+                      void handleLoadDirectory(nextPath);
                     }
                   }}
                 >
-                  <div className="col-span-5 truncate">{item.name}</div>
+                  <div className="col-span-6 truncate">{item.name}</div>
                   <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
                     {isDir ? (
                       <FolderIcon className="w-4 h-4" />
@@ -235,7 +270,7 @@ const ManageDemo: React.FC = () => {
                   <div className="col-span-2 text-right text-[#9ca3af]">
                     {isDir ? '-' : item.size}
                   </div>
-                  <div className="col-span-2 text-right text-[#6b7280]">
+                  <div className="col-span-1 text-right text-[#6b7280]">
                     {item.modifyTime
                       ? new Date(item.modifyTime).toLocaleDateString()
                       : '-'}

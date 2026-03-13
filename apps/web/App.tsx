@@ -12,6 +12,7 @@ import Vision from './pages/Vision';
 import Cinema from './pages/Cinema';
 import Live from './pages/Live';
 import History from './pages/History';
+import CreativeShowcase from './pages/CreativeShowcase';
 import ImageGenerator from './pages/ImageGenerator';
 import Login from './pages/Login';
 import BuildDemo from './pages/BuildDemo';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
                       <Route path="/chat" element={<Chat />} />
                       <Route path="/vision" element={<Vision />} />
                       <Route path="/image-generator" element={<ImageGenerator />} />
+                      <Route path="/creative-showcase" element={<CreativeShowcase />} />
                       <Route path="/manage-demo" element={<ManageDemo />} />
                       <Route path="/build-demo" element={<BuildDemo />} />
                       <Route path="/bar" element={<Bar />} />

@@ -1,0 +1,22 @@
+{
+  "roles": {
+    "admin": {
+      "canManageUsers": true,
+      "canManageDemos": true,
+      "canViewAnalytics": true,
+      "canUploadToSftp": true
+    },
+    "editor": {
+      "canManageUsers": false,
+      "canManageDemos": true,
+      "canViewAnalytics": true,
+      "canUploadToSftp": true
+    },
+    "user": {
+      "canManageUsers": false,
+      "canManageDemos": false,
+      "canViewAnalytics": true,
+      "canUploadToSftp": false
+    }
+  }
+}

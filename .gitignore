@@ -1,2 +1,8 @@
 node_modules
-*/.next
+**/.next
+dist
+**/dist
+.pnpm-store
+**/.pnpm-store
+.env
+*.env.local

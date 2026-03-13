@@ -1,26 +1,55 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { useAuth } from '../contexts/AuthContext';
-import { SparklesIcon, LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  SparklesIcon,
+  LockClosedIcon,
+  EnvelopeIcon,
+} from "@heroicons/react/24/outline";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const loginWithGoogle = useGoogleLogin({
+    scope: "openid profile email",
+    onSuccess: async (tokenResponse) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+        const profile = await res.json();
+
+        login({
+          name: profile.name,
+          email: profile.email,
+          picture: profile.picture,
+        });
+        navigate("/");
+      } catch {
+        window.alert("Google login failed. Please try again.");
+      }
+    },
+    onError: () => {
+      window.alert("Google login failed. Please try again.");
+    },
+  });
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
+
+    // Simulate API call for email/password
     setTimeout(() => {
-      login();
+      login({ name: email || "User", email, picture: undefined });
       setIsLoading(false);
-      navigate('/');
+      navigate("/");
     }, 1500);
   };
 
@@ -39,17 +68,21 @@ const Login: React.FC = () => {
         <div className="bg-[#1f2a40]/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/5 shadow-2xl">
           <div className="flex flex-col items-center mb-10">
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: [0, 10, -10, 0],
-                scale: [1, 1.1, 1]
+                scale: [1, 1.1, 1],
               }}
               transition={{ repeat: Infinity, duration: 5 }}
               className="w-16 h-16 bg-[#4cceac]/20 rounded-2xl flex items-center justify-center mb-6 border border-[#4cceac]/30"
             >
               <SparklesIcon className="w-8 h-8 text-[#4cceac]" />
             </motion.div>
-            <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">Welcome Back</h1>
-            <p className="text-[#a3a3a3] mt-2 font-medium">Sign in to Nova AI Suite</p>
+            <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">
+              Welcome Back
+            </h1>
+            <p className="text-[#a3a3a3] mt-2 font-medium">
+              Sign in to Nova AI Suite
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,10 +126,18 @@ const Login: React.FC = () => {
 
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-[#3d465d] bg-[#141b2d] text-[#4cceac] focus:ring-[#4cceac]/50" />
-                <span className="text-sm text-[#a3a3a3] group-hover:text-[#e0e0e0] transition-colors">Remember me</span>
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-[#3d465d] bg-[#141b2d] text-[#4cceac] focus:ring-[#4cceac]/50"
+                />
+                <span className="text-sm text-[#a3a3a3] group-hover:text-[#e0e0e0] transition-colors">
+                  Remember me
+                </span>
               </label>
-              <button type="button" className="text-sm text-[#4cceac] hover:text-[#3da58a] font-semibold transition-colors">
+              <button
+                type="button"
+                className="text-sm text-[#4cceac] hover:text-[#3da58a] font-semibold transition-colors"
+              >
                 Forgot password?
               </button>
             </div>
@@ -131,12 +172,7 @@ const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setIsLoading(true);
-                setTimeout(() => {
-                  login();
-                  setIsLoading(false);
-                  navigate('/');
-                }, 1000);
+                loginWithGoogle();
               }}
               className="w-full bg-white/5 hover:bg-white/10 text-[#e0e0e0] font-bold py-4 rounded-2xl transition-all border border-white/5 flex items-center justify-center gap-3"
             >
@@ -165,11 +201,13 @@ const Login: React.FC = () => {
           <div className="mt-10 text-center">
             <p className="text-[#a3a3a3] text-sm">
               Don't have an account?{" "}
-              <button className="text-[#4cceac] font-bold hover:underline">Create one</button>
+              <button className="text-[#4cceac] font-bold hover:underline">
+                Create one
+              </button>
             </p>
           </div>
         </div>
-        
+
         <p className="text-center text-[#3d465d] text-xs mt-8 font-medium uppercase tracking-widest">
           &copy; 2026 Nova AI Creative Suite
         </p>

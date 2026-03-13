@@ -10,10 +10,21 @@ export interface SftpConfig {
 export async function testSftpConnection(config: SftpConfig) {
   const client = new SftpClient();
 
-  const host = config.host ?? process.env.SFTP_HOST;
-  const port = config.port ?? Number(process.env.SFTP_PORT ?? 22);
-  const username = config.username ?? process.env.SFTP_USER;
-  const password = config.password ?? process.env.SFTP_PASSWORD;
+  const host =
+    config.host ??
+    process.env.SFTP_HOST ??
+    "upload.yomedia.vn";
+  const port =
+    config.port ??
+    Number(process.env.SFTP_PORT ?? 2122);
+  const username =
+    config.username ??
+    process.env.SFTP_USER ??
+    "www-demo";
+  const password =
+    config.password ??
+    process.env.SFTP_PASSWORD ??
+    "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -50,10 +61,21 @@ export async function listSftpDirectory(
 ) {
   const client = new SftpClient();
 
-  const host = config.host ?? process.env.SFTP_HOST;
-  const port = config.port ?? Number(process.env.SFTP_PORT ?? 22);
-  const username = config.username ?? process.env.SFTP_USER;
-  const password = config.password ?? process.env.SFTP_PASSWORD;
+  const host =
+    config.host ??
+    process.env.SFTP_HOST ??
+    "upload.yomedia.vn";
+  const port =
+    config.port ??
+    Number(process.env.SFTP_PORT ?? 2122);
+  const username =
+    config.username ??
+    process.env.SFTP_USER ??
+    "www-demo";
+  const password =
+    config.password ??
+    process.env.SFTP_PASSWORD ??
+    "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -67,14 +89,28 @@ export async function listSftpDirectory(
       password,
     });
 
-    const entries = await client.list(path || "/");
+    const entries = await client.list(path || "/") as { name: string; type: string; size: number; modifyTime?: number }[];
 
-    return entries.map((entry) => ({
-      name: entry.name,
-      type: entry.type,
-      size: entry.size,
-      modifyTime: entry.modifyTime,
-    }));
+    const normalized = entries
+      .filter(
+        (entry) =>
+          !entry.name.startsWith(".") && !entry.name.startsWith(".bash"),
+      )
+      .map((entry) => ({
+        name: entry.name,
+        type: entry.type,
+        size: entry.size,
+        modifyTime: entry.modifyTime,
+      }));
+
+    normalized.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      }),
+    );
+
+    return normalized;
   } finally {
     try {
       await client.end();
@@ -87,10 +123,21 @@ export async function listSftpDirectory(
 export async function readSftpFile(path: string, config: SftpConfig = {}) {
   const client = new SftpClient();
 
-  const host = config.host ?? process.env.SFTP_HOST;
-  const port = config.port ?? Number(process.env.SFTP_PORT ?? 22);
-  const username = config.username ?? process.env.SFTP_USER;
-  const password = config.password ?? process.env.SFTP_PASSWORD;
+  const host =
+    config.host ??
+    process.env.SFTP_HOST ??
+    "upload.yomedia.vn";
+  const port =
+    config.port ??
+    Number(process.env.SFTP_PORT ?? 2122);
+  const username =
+    config.username ??
+    process.env.SFTP_USER ??
+    "www-demo";
+  const password =
+    config.password ??
+    process.env.SFTP_PASSWORD ??
+    "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -123,10 +170,21 @@ export async function writeSftpFile(
 ) {
   const client = new SftpClient();
 
-  const host = config.host ?? process.env.SFTP_HOST;
-  const port = config.port ?? Number(process.env.SFTP_PORT ?? 22);
-  const username = config.username ?? process.env.SFTP_USER;
-  const password = config.password ?? process.env.SFTP_PASSWORD;
+  const host =
+    config.host ??
+    process.env.SFTP_HOST ??
+    "upload.yomedia.vn";
+  const port =
+    config.port ??
+    Number(process.env.SFTP_PORT ?? 2122);
+  const username =
+    config.username ??
+    process.env.SFTP_USER ??
+    "www-demo";
+  const password =
+    config.password ??
+    process.env.SFTP_PASSWORD ??
+    "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
