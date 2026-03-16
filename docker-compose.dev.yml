@@ -22,11 +22,11 @@ services:
     volumes:
       - ./apps/web:/app
     ports:
-      - "5173:5173"
+      - "3000:3000"
     depends_on:
       - server
     environment:
-      - VITE_SERVER_URL=http://server:3001
+      - VITE_SERVER_URL=http://localhost:3001
     command: >
       sh -c "
       corepack enable &&

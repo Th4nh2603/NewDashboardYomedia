@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Square3Stack3DIcon,
@@ -21,97 +21,41 @@ interface DemoItem {
   category: "Display" | "Video" | "Mobile";
 }
 
-const demoData: DemoItem[] = [
-  {
-    id: "1",
-    title: "Big Balloon Standard",
-    image: "https://picsum.photos/seed/demo1/800/600",
-    size: "300x250 <=> 800x500",
-    position: "Bottom Right",
-    fileType: "HTML5",
-    category: "Display",
-  },
-  {
-    id: "2",
-    title: "Big Balloon iTVC",
-    image: "https://picsum.photos/seed/demo2/800/600",
-    size: "300x250 <=> 800x500",
-    position: "Bottom Right",
-    fileType: "HTML5",
-    category: "Video",
-  },
-  {
-    id: "3",
-    title: "3D Box Display",
-    image: "https://picsum.photos/seed/demo3/800/600",
-    size: "300x250, 300x600",
-    position: "Flexible",
-    fileType: "HTML5",
-    category: "Display",
-  },
-  {
-    id: "4",
-    title: "In Stream Display",
-    image: "https://picsum.photos/seed/demo4/800/600",
-    size: "Ratio 16:9",
-    position: "By Player",
-    fileType: "Video",
-    category: "Video",
-  },
-  {
-    id: "5",
-    title: "In-read Video Display",
-    image: "https://picsum.photos/seed/demo5/800/600",
-    size: "Ratio 16:9",
-    position: "Flexible",
-    fileType: "Video",
-    category: "Video",
-  },
-  {
-    id: "6",
-    title: "Banner Standard",
-    image: "https://picsum.photos/seed/demo6/800/600",
-    size: "300x250, 300x600",
-    position: "Flexible",
-    fileType: "HTML5",
-    category: "Display",
-  },
-  {
-    id: "7",
-    title: "Mobile Interstitial",
-    image: "https://picsum.photos/seed/demo7/800/600",
-    size: "320x480",
-    position: "Full Screen",
-    fileType: "HTML5",
-    category: "Mobile",
-  },
-  {
-    id: "8",
-    title: "Parallax Scroll",
-    image: "https://picsum.photos/seed/demo8/800/600",
-    size: "Flexible",
-    position: "In-feed",
-    fileType: "HTML5",
-    category: "Display",
-  },
-  {
-    id: "9",
-    title: "Expandable Video",
-    image: "https://picsum.photos/seed/demo9/800/600",
-    size: "300x250 -> 600x400",
-    position: "Flexible",
-    fileType: "Video",
-    category: "Video",
-  },
-];
-
 const CreativeShowcase: React.FC = () => {
+  const [items, setItems] = useState<DemoItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"All" | "Display" | "Video" | "Mobile">(
     "All",
   );
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredData = demoData.filter((item) => {
+  useEffect(() => {
+    const fetchDemos = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const baseUrl =
+          (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
+        const res = await fetch(`${baseUrl}/api/creative-demos`);
+        const data = await res.json();
+        if (!res.ok || !data.ok || !Array.isArray(data.demos)) {
+          throw new Error(data.error || "Unable to load creative demos");
+        }
+        setItems(data.demos);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Unable to load creative demos",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchDemos();
+  }, []);
+
+  const filteredData = items.filter((item) => {
     const matchesFilter = filter === "All" || item.category === filter;
     const matchesSearch = item.title
       .toLowerCase()
@@ -168,6 +112,17 @@ const CreativeShowcase: React.FC = () => {
           <div className="absolute -bottom-4 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
         </header>
 
+        {error && (
+          <div className="mb-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+            {error}
+          </div>
+        )}
+
+        {loading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-sm text-[#a3a3a3]">
+            Loading creative demos...
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
           <AnimatePresence mode="popLayout">
             {filteredData.map((item, idx) => (
@@ -256,6 +211,7 @@ const CreativeShowcase: React.FC = () => {
             ))}
           </AnimatePresence>
         </div>
+        )}
 
         {filteredData.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">

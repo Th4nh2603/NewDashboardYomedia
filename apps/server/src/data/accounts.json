@@ -1,0 +1,45 @@
+{
+  "accounts": [
+    {
+      "id": "u_001",
+      "name": "Nguyen Tran Minh Thanh",
+      "email": "thanh.ntm@pinetech.vn",
+      "phone": "0902392603",
+      "role": "admin",
+      "status": "active"
+    },
+    {
+      "id": "u_002",
+      "name": "Nguyen Ho Thuy Tien",
+      "email": "tien.nht@pinetech.vn",
+      "phone": "0972719647",
+      "role": "adsop",
+      "status": "active"
+    },
+    {
+      "id": "u_003",
+      "name": "Le Vu Phuong Dung",
+      "email": "dung.lvp@pinetech.vn",
+      "phone": " 0919417739",
+      "role": "adsop",
+      "status": "active"
+    },
+    {
+      "id": "u_004",
+      "name": "Le Thi Mai Linh",
+      "email": "linh.ltm@pinetech.vn",
+      "phone": " 0979614993",
+      "role": "adsop",
+      "status": "active"
+    },
+    {
+      "id": "u_005",
+      "name": "Quan Huynh Anh",
+      "email": "anh.qha@pinetech.vn",
+      "phone": " 0939174589",
+      "role": "adsopmanager",
+      "status": "active"
+    }
+  ]
+}
+

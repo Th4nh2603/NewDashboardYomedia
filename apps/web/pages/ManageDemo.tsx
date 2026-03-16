@@ -7,6 +7,7 @@ import {
   GlobeAltIcon,
   QuestionMarkCircleIcon,
 } from '@heroicons/react/24/outline';
+import { useAuth } from '../contexts/AuthContext';
 
 type SftpStatus = {
   ok: boolean;
@@ -16,6 +17,9 @@ type SftpStatus = {
 const BASE_REMOTE_PATH = '/script/demo';
 
 const ManageDemo: React.FC = () => {
+  const { user } = useAuth();
+  const isAdsop =
+    user?.role === 'adsop' || user?.role === 'adsopmanager';
   const [testingSftp, setTestingSftp] = React.useState(false);
   const [sftpStatus, setSftpStatus] = React.useState<SftpStatus>(null);
   const [remotePath, setRemotePath] = React.useState<string>(BASE_REMOTE_PATH);
@@ -27,6 +31,13 @@ const ManageDemo: React.FC = () => {
   const [editorContent, setEditorContent] = React.useState<string>('');
   const [editorMode, setEditorMode] = React.useState<'view' | 'edit'>('view');
   const [savingFile, setSavingFile] = React.useState(false);
+
+  const buildRemoteRelativePath = (fullPath: string) => {
+    if (fullPath.startsWith(BASE_REMOTE_PATH)) {
+      return fullPath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, '');
+    }
+    return fullPath.replace(/^\/+/, '');
+  };
 
   const handleTestSftp = async () => {
     setTestingSftp(true);
@@ -116,6 +127,21 @@ const ManageDemo: React.FC = () => {
     }
   };
 
+  const handleOpenDemo = () => {
+    const relative = buildRemoteRelativePath(remotePath);
+    const baseUrl = 'https://demo.yomedia.vn';
+    const url = relative ? `${baseUrl}/${relative}` : baseUrl;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const getBrandColorClass = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.includes('enchanteur')) return 'text-yellow-300';
+    if (lower.includes('romano')) return 'text-green-300';
+    if (lower.includes('maxkleen')) return 'text-violet-300';
+    return 'text-[#e5e7eb]';
+  };
+
   React.useEffect(() => {
     // Load default directory on first mount
     handleLoadDirectory(remotePath);
@@ -182,9 +208,7 @@ const ManageDemo: React.FC = () => {
           <input
             type="text"
             value={
-              remotePath.startsWith(BASE_REMOTE_PATH)
-                ? remotePath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, '')
-                : remotePath
+              buildRemoteRelativePath(remotePath)
             }
             onChange={(e) => {
               const raw = e.target.value.trim();
@@ -198,11 +222,10 @@ const ManageDemo: React.FC = () => {
             placeholder="2019/01/demo-name"
           />
           <button
-            onClick={() => handleLoadDirectory()}
-            disabled={loadingList}
+            onClick={handleOpenDemo}
             className="px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loadingList ? 'Loading…' : 'Load directory'}
+            View demo
           </button>
         </div>
 
@@ -217,7 +240,7 @@ const ManageDemo: React.FC = () => {
           <div className="max-h-[32rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
             {entries.length === 0 ? (
               <div className="px-4 py-4 text-center text-[#6b7280]">
-                No entries loaded. Choose a path and click <span className="text-[#4cceac] font-semibold">Load directory</span>.
+                No entries loaded. Choose a path and click <span className="text-[#4cceac] font-semibold">View demo</span> to open the demo in a new tab.
               </div>
             ) : (
               entries.map((item) => {
@@ -246,7 +269,9 @@ const ManageDemo: React.FC = () => {
                     }
                   }}
                 >
-                  <div className="col-span-6 truncate">{item.name}</div>
+                  <div className={`col-span-6 truncate ${getBrandColorClass(item.name)}`}>
+                    {item.name}
+                  </div>
                   <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
                     {isDir ? (
                       <FolderIcon className="w-4 h-4" />
@@ -276,7 +301,7 @@ const ManageDemo: React.FC = () => {
                       : '-'}
                   </div>
                   <div className="col-span-1 flex items-center justify-end gap-1">
-                    {isViewableFile && (
+                    {isViewableFile && !isAdsop && (
                       <>
                         <button
                           type="button"

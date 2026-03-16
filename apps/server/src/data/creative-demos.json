@@ -1,0 +1,86 @@
+{
+  "demos": [
+    {
+      "id": "1",
+      "title": "Big Balloon Standard",
+      "image": "https://picsum.photos/seed/demo1/800/600",
+      "size": "300x250 <=> 800x500",
+      "position": "Bottom Right",
+      "fileType": "HTML5",
+      "category": "Display"
+    },
+    {
+      "id": "2",
+      "title": "Big Balloon iTVC",
+      "image": "https://picsum.photos/seed/demo2/800/600",
+      "size": "300x250 <=> 800x500",
+      "position": "Bottom Right",
+      "fileType": "HTML5",
+      "category": "Video"
+    },
+    {
+      "id": "3",
+      "title": "3D Box Display",
+      "image": "https://picsum.photos/seed/demo3/800/600",
+      "size": "300x250, 300x600",
+      "position": "Flexible",
+      "fileType": "HTML5",
+      "category": "Display"
+    },
+    {
+      "id": "4",
+      "title": "In Stream Display",
+      "image": "https://picsum.photos/seed/demo4/800/600",
+      "size": "Ratio 16:9",
+      "position": "By Player",
+      "fileType": "Video",
+      "category": "Video"
+    },
+    {
+      "id": "5",
+      "title": "In-read Video Display",
+      "image": "https://picsum.photos/seed/demo5/800/600",
+      "size": "Ratio 16:9",
+      "position": "Flexible",
+      "fileType": "Video",
+      "category": "Video"
+    },
+    {
+      "id": "6",
+      "title": "Banner Standard",
+      "image": "https://picsum.photos/seed/demo6/800/600",
+      "size": "300x250, 300x600",
+      "position": "Flexible",
+      "fileType": "HTML5",
+      "category": "Display"
+    },
+    {
+      "id": "7",
+      "title": "Mobile Interstitial",
+      "image": "https://picsum.photos/seed/demo7/800/600",
+      "size": "320x480",
+      "position": "Full Screen",
+      "fileType": "HTML5",
+      "category": "Mobile"
+    },
+    {
+      "id": "8",
+      "title": "Parallax Scroll",
+      "image": "https://picsum.photos/seed/demo8/800/600",
+      "size": "Flexible",
+      "position": "In-feed",
+      "fileType": "HTML5",
+      "category": "Display"
+    },
+    {
+      "id": "9",
+      "title": "Expandable Video",
+      "image": "https://picsum.photos/seed/demo9/800/600",
+      "size": "300x250 -> 600x400",
+      "position": "Flexible",
+      "fileType": "Video",
+      "category": "Video"
+    }
+  ]
+}
+
