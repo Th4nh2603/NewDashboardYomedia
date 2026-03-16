@@ -32,7 +32,7 @@ const History = () => {
     {
       id: '4',
       type: 'Copywriting',
-      prompt: '5 Google Search Ad headlines for "Nova Marketing Tools"',
+      prompt: '5 Google Search Ad headlines for "YomediaAI Marketing Tools"',
       model: 'Gemini 3 Pro',
       date: '2024-05-18',
       status: <span className="text-green-500 font-medium">Finalized</span>

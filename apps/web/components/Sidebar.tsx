@@ -96,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               <CommandLineIcon className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-black tracking-tighter text-white uppercase">
-              Nova<span className="text-[#4cceac]">AI</span>
+              Yomedia<span className="text-[#4cceac]">AI</span>
             </span>
           </motion.div>
         )}

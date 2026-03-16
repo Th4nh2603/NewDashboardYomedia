@@ -51,7 +51,7 @@ const VisionView = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       <header>
         <h2 className="text-3xl font-bold mb-2">Vision Studio</h2>
-        <p className="text-slate-400">Describe what you want to see, and let Nova's vision model bring it to life.</p>
+        <p className="text-slate-400">Describe what you want to see, and let YomediaAI's vision model bring it to life.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

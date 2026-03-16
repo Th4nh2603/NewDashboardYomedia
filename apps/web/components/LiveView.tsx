@@ -105,7 +105,7 @@ const LiveView = () => {
             scriptProcessor.connect(inputCtx.destination);
             setIsActive(true);
             setIsConnecting(false);
-            notify('Live session started. You can now speak to Nova.', 'info', 'Live Audio');
+            notify('Live session started. You can now speak to YomediaAI.', 'info', 'Live Audio');
           },
           onmessage: async (message: any) => {
             if (message.serverContent?.outputTranscription) {

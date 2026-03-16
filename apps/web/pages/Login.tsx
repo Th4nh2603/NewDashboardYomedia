@@ -81,7 +81,7 @@ const Login: React.FC = () => {
               Welcome Back
             </h1>
             <p className="text-[#a3a3a3] mt-2 font-medium">
-              Sign in to Nova AI Suite
+              Sign in to YomediaAI Suite
             </p>
           </div>
 
@@ -209,7 +209,7 @@ const Login: React.FC = () => {
         </div>
 
         <p className="text-center text-[#3d465d] text-xs mt-8 font-medium uppercase tracking-widest">
-          &copy; 2026 Nova AI Creative Suite
+          &copy; 2026 YomediaAI Creative Suite
         </p>
       </motion.div>
     </div>
