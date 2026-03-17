@@ -12,8 +12,16 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [rememberMe, setRememberMe] = useState(false);
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -36,12 +44,15 @@ const Login: React.FC = () => {
         return;
       }
 
-      login({
-        name: data.user.name || email || "User",
-        email: data.user.email || email,
-        picture: undefined,
-        role: data.user.role,
-      });
+      login(
+        {
+          name: data.user.name || email || "User",
+          email: data.user.email || email,
+          picture: undefined,
+          role: data.user.role,
+        },
+        { remember: rememberMe },
+      );
       navigate("/");
     } catch (err) {
       window.alert("Login failed. Please try again.");
@@ -126,6 +137,8 @@ const Login: React.FC = () => {
                 <input
                   type="checkbox"
                   className="w-4 h-4 rounded border-[#3d465d] bg-[#141b2d] text-[#4cceac] focus:ring-[#4cceac]/50"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 <span className="text-sm text-[#a3a3a3] group-hover:text-[#e0e0e0] transition-colors">
                   Remember me

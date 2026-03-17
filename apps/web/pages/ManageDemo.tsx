@@ -136,7 +136,8 @@ const ManageDemo: React.FC = () => {
 
   const getBrandColorClass = (name: string) => {
     const lower = name.toLowerCase();
-    if (lower.includes('enchanteur')) return 'text-yellow-300';
+    if (lower.includes('enchanteur') || lower.includes('enc'))
+      return 'text-yellow-300';
     if (lower.includes('romano')) return 'text-green-300';
     if (lower.includes('maxkleen')) return 'text-violet-300';
     return 'text-[#e5e7eb]';

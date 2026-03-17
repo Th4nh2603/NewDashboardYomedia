@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
   name: string;
@@ -10,7 +10,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+  login: (user: User, options?: { remember?: boolean }) => void;
   logout: () => void;
 }
 
@@ -22,8 +22,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const isAuthenticated = !!user;
 
-  const login = (userData: User) => setUser(userData);
-  const logout = () => setUser(null);
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("yomedia-auth-user");
+      if (stored) {
+        const parsed = JSON.parse(stored) as User;
+        if (parsed && parsed.email) {
+          setUser(parsed);
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const login = (userData: User, options?: { remember?: boolean }) => {
+    setUser(userData);
+    if (options?.remember) {
+      try {
+        window.localStorage.setItem("yomedia-auth-user", JSON.stringify(userData));
+      } catch {
+        // ignore storage errors
+      }
+    } else {
+      try {
+        window.localStorage.removeItem("yomedia-auth-user");
+      } catch {
+        // ignore storage errors
+      }
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    try {
+      window.localStorage.removeItem("yomedia-auth-user");
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
