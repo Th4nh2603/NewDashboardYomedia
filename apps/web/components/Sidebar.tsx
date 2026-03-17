@@ -32,6 +32,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   if (!user) return null; // Hoặc hiển thị nút Login
+
+  const displayRole =
+    user?.role === "adsop"
+      ? "Ad Operations Executive"
+      : user?.role === "adsopmanager"
+      ? "Deputy Head of Programmatic"
+      : user?.role || "Creative Director";
   const sections = [
     {
       title: null,
@@ -142,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 {user?.name || "User"}
               </h2>
               <p className="text-[#4cceac] text-[10px] font-black uppercase tracking-[0.2em] mt-1 opacity-80">
-                Creative Director
+                {displayRole}
               </p>
             </div>
           </motion.div>
@@ -164,6 +171,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             )}
             <div className="space-y-1.5">
               {section.items.map((item) => {
+                // Hide "Build Demo" for adsop roles
+                if (
+                  item.path === "/build-demo" &&
+                  (user?.role === "adsop" || user?.role === "adsopmanager")
+                ) {
+                  return null;
+                }
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
