@@ -3,6 +3,7 @@ import {
   testSftpConnection,
   listSftpDirectory,
   readSftpFile,
+  sftpPathExists,
   writeSftpFile,
 } from "../lib/sftpClient.js";
 
@@ -62,6 +63,23 @@ sftpRouter.get("/read", async (req: Request, res: Response) => {
     }
     const content = await readSftpFile(path);
     res.json({ ok: true, path, content });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown SFTP error";
+    res.status(500).json({ ok: false, error: message });
+  }
+});
+
+sftpRouter.get("/exists", async (req: Request, res: Response) => {
+  try {
+    const path = req.query.path as string | undefined;
+    if (!path) {
+      res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
+      return;
+    }
+
+    const result = await sftpPathExists(path);
+    res.json({ ok: true, path, ...result });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unknown SFTP error";

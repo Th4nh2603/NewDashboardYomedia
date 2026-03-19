@@ -18,6 +18,8 @@ import Login from './pages/Login';
 import BuildDemo from './pages/BuildDemo';
 import ManageDemo from './pages/ManageDemo';
 import Bar from './pages/Bar';
+import DocumentPage from './pages/Document';
+import AIGmail from './pages/AIGmail';
 
 const App: React.FC = () => {
   return (
@@ -36,12 +38,14 @@ const App: React.FC = () => {
                       <Route path="/vision" element={<Vision />} />
                       <Route path="/image-generator" element={<ImageGenerator />} />
                       <Route path="/creative-showcase" element={<CreativeShowcase />} />
+                      <Route path="/document" element={<DocumentPage />} />
                       <Route path="/manage-demo" element={<ManageDemo />} />
                       <Route path="/build-demo" element={<BuildDemo />} />
                       <Route path="/bar" element={<Bar />} />
                       <Route path="/cinema" element={<Cinema />} />
                       <Route path="/live" element={<Live />} />
                       <Route path="/history" element={<History />} />
+                      <Route path="/ai-gmail" element={<AIGmail />} />
                     </Routes>
                   </DashboardLayout>
                 </PrivateRoute>

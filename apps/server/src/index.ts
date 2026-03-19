@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { sftpRouter } from "./routes/sftp.js";
 import { uploadRouter } from "./routes/upload.js";
+import { ragRouter } from "./routes/rag.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -22,6 +23,7 @@ app.use(express.json({ limit: "50mb" }));
 
 app.use("/api/sftp", sftpRouter);
 app.use("/api/upload", uploadRouter);
+app.use("/api/rag", ragRouter);
 
 // Simple JSON-file-based data
 const __filename = fileURLToPath(import.meta.url);

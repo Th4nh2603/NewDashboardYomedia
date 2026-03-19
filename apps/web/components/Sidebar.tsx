@@ -52,6 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         { name: "Image Gen", path: "/image-generator", icon: PhotoIcon },
         { name: "Cinema AI", path: "/cinema", icon: PresentationChartLineIcon },
         { name: "Live Stream", path: "/live", icon: SparklesIcon },
+        { name: "AI Gmail", path: "/ai-gmail", icon: DocumentTextIcon },
       ],
     },
     {
@@ -64,6 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         },
         { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
         { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
+        { name: "Document Router", path: "/document", icon: DocumentTextIcon },
         { name: "Team Hub", path: "/manage-team", icon: IdentificationIcon },
         { name: "Contacts", path: "/contacts", icon: IdentificationIcon },
         { name: "Invoices", path: "/invoices", icon: DocumentTextIcon },
