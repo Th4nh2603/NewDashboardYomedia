@@ -10,21 +10,10 @@ export interface SftpConfig {
 export async function testSftpConnection(config: SftpConfig) {
   const client = new SftpClient();
 
-  const host =
-    config.host ??
-    process.env.SFTP_HOST ??
-    "upload.yomedia.vn";
-  const port =
-    config.port ??
-    Number(process.env.SFTP_PORT ?? 2122);
-  const username =
-    config.username ??
-    process.env.SFTP_USER ??
-    "www-demo";
-  const password =
-    config.password ??
-    process.env.SFTP_PASSWORD ??
-    "Ftp@dem0";
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -55,27 +44,13 @@ export async function testSftpConnection(config: SftpConfig) {
   }
 }
 
-export async function listSftpDirectory(
-  path: string,
-  config: SftpConfig = {},
-) {
+export async function listSftpDirectory(path: string, config: SftpConfig = {}) {
   const client = new SftpClient();
 
-  const host =
-    config.host ??
-    process.env.SFTP_HOST ??
-    "upload.yomedia.vn";
-  const port =
-    config.port ??
-    Number(process.env.SFTP_PORT ?? 2122);
-  const username =
-    config.username ??
-    process.env.SFTP_USER ??
-    "www-demo";
-  const password =
-    config.password ??
-    process.env.SFTP_PASSWORD ??
-    "Ftp@dem0";
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -89,7 +64,12 @@ export async function listSftpDirectory(
       password,
     });
 
-    const entries = await client.list(path || "/") as { name: string; type: string; size: number; modifyTime?: number }[];
+    const entries = (await client.list(path || "/")) as {
+      name: string;
+      type: string;
+      size: number;
+      modifyTime?: number;
+    }[];
 
     const normalized = entries
       .filter(
@@ -123,21 +103,10 @@ export async function listSftpDirectory(
 export async function readSftpFile(path: string, config: SftpConfig = {}) {
   const client = new SftpClient();
 
-  const host =
-    config.host ??
-    process.env.SFTP_HOST ??
-    "upload.yomedia.vn";
-  const port =
-    config.port ??
-    Number(process.env.SFTP_PORT ?? 2122);
-  const username =
-    config.username ??
-    process.env.SFTP_USER ??
-    "www-demo";
-  const password =
-    config.password ??
-    process.env.SFTP_PASSWORD ??
-    "Ftp@dem0";
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -170,21 +139,10 @@ export async function writeSftpFile(
 ) {
   const client = new SftpClient();
 
-  const host =
-    config.host ??
-    process.env.SFTP_HOST ??
-    "upload.yomedia.vn";
-  const port =
-    config.port ??
-    Number(process.env.SFTP_PORT ?? 2122);
-  const username =
-    config.username ??
-    process.env.SFTP_USER ??
-    "www-demo";
-  const password =
-    config.password ??
-    process.env.SFTP_PASSWORD ??
-    "Ftp@dem0";
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   if (!host || !username || !password) {
     throw new Error("Missing SFTP credentials (host/username/password).");
@@ -209,6 +167,98 @@ export async function writeSftpFile(
 
     const buffer = Buffer.from(content, "utf8");
     await client.put(buffer, path);
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
+export async function sftpPathExists(
+  targetPath: string,
+  config: SftpConfig = {},
+) {
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST_MEDIA;
+  const portRaw =
+    config.port ??
+    (process.env.SFTP_PORT_MEDIA
+      ? Number(process.env.SFTP_PORT_MEDIA)
+      : undefined);
+  const port = portRaw ?? 2122;
+  const username = config.username ?? process.env.SFTP_USER_MEDIA;
+  const password = config.password ?? process.env.SFTP_PASSWORD_MEDIA;
+
+  if (!host || !username || !password) {
+    throw new Error(
+      "Missing SFTP MEDIA credentials. Please set SFTP_HOST_MEDIA, SFTP_PORT_MEDIA, SFTP_USER_MEDIA, SFTP_PASSWORD_MEDIA in .env",
+    );
+  }
+
+  const rawPath = (targetPath || "").trim();
+  const normalizedInput = (rawPath || "/").replace(/\\+/g, "/");
+
+  // Always check under /media (treat input as relative to /media unless already absolute /media/*)
+  const MEDIA_ROOT = "media";
+  let checkedPath = normalizedInput;
+  if (checkedPath === "/") checkedPath = "";
+
+  if (checkedPath.startsWith(MEDIA_ROOT + "/") || checkedPath === MEDIA_ROOT) {
+    // keep as-is
+  } else if (checkedPath.startsWith("/")) {
+    checkedPath = `${MEDIA_ROOT}${checkedPath}`;
+  } else {
+    checkedPath = `${MEDIA_ROOT}/${checkedPath}`;
+  }
+
+  checkedPath = checkedPath.replace(/\/{2,}/g, "/");
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    // ssh2-sftp-client: exists() -> false | 'd' | '-' | 'l'
+    const existsType = (await (client as any).exists(checkedPath)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+
+    let hasIndexHtml: boolean | null = null;
+    let message: string | null = null;
+
+    if (existsType === "d") {
+      const dirPath = checkedPath.endsWith("/")
+        ? checkedPath
+        : `${checkedPath}/`;
+      const indexPath = `${dirPath}index.html`.replace(/\/{2,}/g, "/");
+      const indexExistsType = (await (client as any).exists(indexPath)) as
+        | false
+        | "d"
+        | "-"
+        | "l";
+      hasIndexHtml = indexExistsType === "-";
+      if (hasIndexHtml) {
+        message = "Banner có thể setup";
+      } else {
+        message = "Directory tồn tại nhưng không có file index.html";
+      }
+    }
+
+    return {
+      checkedPath,
+      exists: Boolean(existsType),
+      type: existsType === false ? null : existsType,
+      hasIndexHtml,
+      message,
+    };
   } finally {
     try {
       await client.end();

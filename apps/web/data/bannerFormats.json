@@ -1,0 +1,17 @@
+[
+  {
+    "keyword": "384x683",
+    "value": "inpage-mb",
+    "device": "mb"
+  },
+  {
+    "keyword": "480x270",
+    "value": "masthead-mb",
+    "device": "mb"
+  },
+  {
+    "keyword": "970x250",
+    "value": "masthead-pc",
+    "device": "pc"
+  }
+]
