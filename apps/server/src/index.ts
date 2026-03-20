@@ -41,7 +41,6 @@ type Account = {
 };
 
 let accountsCache: Account[] | null = null;
-let creativeDemosCache: any[] | null = null;
 
 function loadAccounts(): Account[] {
   if (!accountsCache) {
@@ -53,12 +52,9 @@ function loadAccounts(): Account[] {
 }
 
 function loadCreativeDemos() {
-  if (!creativeDemosCache) {
-    const raw = fs.readFileSync(creativeDemosPath, "utf8");
-    const parsed = JSON.parse(raw) as { demos: any[] };
-    creativeDemosCache = parsed.demos || [];
-  }
-  return creativeDemosCache;
+  const raw = fs.readFileSync(creativeDemosPath, "utf8");
+  const parsed = JSON.parse(raw) as { demos?: any[] };
+  return parsed.demos || [];
 }
 
 app.post("/api/login", (req, res) => {

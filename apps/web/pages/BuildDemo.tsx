@@ -101,6 +101,52 @@ const BuildDemo: React.FC = () => {
     health: "Optimal",
   });
 
+  const getItemLabelById = (list: any[], id: string) => {
+    const found = list.find((item: any) => item.id === id);
+    return String(found?.label ?? found?.id ?? id ?? "").trim();
+  };
+
+  const normalizePathToken = (value: string) =>
+    value
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/\/+/g, "-");
+
+  const getUploadedNameToken = () => {
+    const firstHtml = files.find((f) =>
+      ["text/html", "application/xhtml+xml"].includes(f.file.type),
+    );
+    const firstJs = files.find((f) =>
+      ["application/javascript", "text/javascript"].includes(f.file.type),
+    );
+    const picked = firstHtml ?? firstJs ?? files[0];
+    if (!picked) return "";
+    return normalizePathToken(picked.file.name.replace(/\.[^.]+$/, ""));
+  };
+
+  const buildRemoteSourcePath = () => {
+    const year = getItemLabelById(years, config.quality);
+    const month = getItemLabelById(months, config.mode).padStart(2, "0");
+    const brand = normalizePathToken(
+      getItemLabelById(brands, config.model).toLowerCase(),
+    );
+    const productCate = normalizePathToken(
+      getItemLabelById(productCates, config.productCate),
+    );
+    const season = normalizePathToken(config.season.toLowerCase());
+    const uploadName = getUploadedNameToken();
+
+    const segments = [year, month, brand, productCate, season];
+    if (uploadName) segments.push(uploadName);
+
+    return segments.filter(Boolean).join("/");
+  };
+
+  useEffect(() => {
+    setSourceUrl(buildRemoteSourcePath());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config, files]);
+
   // Simulate real-time metrics
   useEffect(() => {
     const interval = setInterval(() => {
@@ -400,17 +446,6 @@ const BuildDemo: React.FC = () => {
       setError({
         message:
           "No assets detected. Please upload files or provide a remote source URL.",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    // Validation: URL Format
-    if (sourceUrl && !sourceUrl.startsWith("http")) {
-      setError({
-        message:
-          "Invalid remote source URL. Ensure it starts with http:// or https://",
         type: "validation",
       });
       setIsProcessing(false);
@@ -794,6 +829,23 @@ const BuildDemo: React.FC = () => {
               <div className="absolute bottom-10 right-10 w-40 h-40 bg-indigo-500 rounded-full blur-[100px] opacity-20" />
             </div>
           </motion.div>
+          <div className="mt-8 space-y-3">
+            <div className="flex items-center gap-2 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                Remote Source URL (Optional)
+              </label>
+            </div>
+            <div className="relative group">
+              <input
+                type="text"
+                value={sourceUrl}
+                readOnly
+                placeholder="2026/03/romano/Laundry/winter/384x683"
+                className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-5 px-6 text-sm font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all placeholder-white/10 shadow-xl"
+              />
+            </div>
+          </div>
           {/* Configuration Section */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
@@ -926,24 +978,6 @@ const BuildDemo: React.FC = () => {
           </div>
           {/* Source & Output Section */}
           <div className="mt-10 space-y-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Remote Source URL (Optional)
-                </label>
-              </div>
-              <div className="relative group">
-                <input
-                  type="url"
-                  value={sourceUrl}
-                  onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="https://assets.example.com/bundle.zip"
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-5 px-6 text-sm font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all placeholder-white/10 shadow-xl"
-                />
-              </div>
-            </div>
-
             <AnimatePresence>
               {outputLink && (
                 <motion.div

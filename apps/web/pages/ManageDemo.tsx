@@ -9,7 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import brandColors from "../data/brandColors.json";
-import bannerFormats from "../data/bannerFormats.json";
+import rolePermissions from "../data/rolePermissions.json";
+import OpenDemoButton from "../components/OpenDemo";
 
 type SftpStatus = {
   ok: boolean;
@@ -18,9 +19,25 @@ type SftpStatus = {
 
 const BASE_REMOTE_PATH = "/script/demo";
 
+type RolePermissionConfig = Record<
+  string,
+  {
+    manageDemo?: {
+      canUseFileActionButtons?: boolean;
+    };
+  }
+>;
+
 const ManageDemo: React.FC = () => {
   const { user } = useAuth();
-  const isAdsop = user?.role === "adsop" || user?.role === "adsopmanager";
+  const normalizedRole = (user?.role || "").toLowerCase();
+  const permissions = rolePermissions as RolePermissionConfig;
+  const defaultManageDemoPerms = permissions.default?.manageDemo;
+  const roleManageDemoPerms = permissions[normalizedRole]?.manageDemo;
+  const canUseFileActionButtons =
+    roleManageDemoPerms?.canUseFileActionButtons ??
+    defaultManageDemoPerms?.canUseFileActionButtons ??
+    true;
   const [testingSftp, setTestingSftp] = React.useState(false);
   const [sftpStatus, setSftpStatus] = React.useState<SftpStatus>(null);
   const [remotePath, setRemotePath] = React.useState<string>(BASE_REMOTE_PATH);
@@ -32,19 +49,6 @@ const ManageDemo: React.FC = () => {
   const [editorContent, setEditorContent] = React.useState<string>("");
   const [editorMode, setEditorMode] = React.useState<"view" | "edit">("view");
   const [savingFile, setSavingFile] = React.useState(false);
-
-  const getFormatConfig = (path: string) => {
-    const mapping = bannerFormats as {
-      keyword: string;
-      value: string;
-      device?: "mb" | "pc";
-    }[];
-    const found = mapping.find((item) => path.includes(item.keyword));
-    return {
-      format: found?.value ?? "inpage-mb",
-      device: found?.device ?? "mb",
-    };
-  };
 
   const getParentPath = () => {
     const trimmed = remotePath.endsWith("/")
@@ -162,28 +166,32 @@ const ManageDemo: React.FC = () => {
     }
   };
 
-  const handleOpenDemo = () => {
-    const relative = buildRemoteRelativePath(remotePath);
-    const bannerPath = relative
-      ? `${relative.replace(/\/+$/, "")}/index.html`
-      : "index.html";
-
-    const { format: formatParam, device } = getFormatConfig(bannerPath);
-    const isPcFormat = device === "pc";
-    const previewBase = `https://demo.yomedia.vn/yomedia/site/id${
-      isPcFormat ? "pc" : "mb"
-    }/index.html`;
-    const url = `${previewBase}?f=${formatParam}&b=${bannerPath}&l=lt&c=demo`;
-
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   const handleOpenBanner = () => {
     const relative = buildRemoteRelativePath(remotePath);
     const baseUrl = "https://demo.yomedia.vn";
     const url = relative ? `${baseUrl}/${relative}` : baseUrl;
     window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  const buildEntryFullPath = React.useCallback(
+    (entryName: string) => {
+      const base = remotePath.endsWith("/")
+        ? remotePath.slice(0, -1)
+        : remotePath;
+      return base === "/" ? `/${entryName}` : `${base}/${entryName}`;
+    },
+    [remotePath],
+  );
+
+  const openRemoteMedia = React.useCallback(
+    (fullPath: string) => {
+      const relative = buildRemoteRelativePath(fullPath);
+      const baseUrl = "https://demo.yomedia.vn";
+      const url = relative ? `${baseUrl}/${encodeURI(relative)}` : baseUrl;
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [buildRemoteRelativePath],
+  );
 
   const getBrandColorClass = (name: string) => {
     const lower = name.toLowerCase();
@@ -264,12 +272,10 @@ const ManageDemo: React.FC = () => {
           >
             Banner
           </button>
-          <button
-            onClick={handleOpenDemo}
-            className="px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            demo
-          </button>
+          <OpenDemoButton
+            remotePath={remotePath}
+            baseRemotePath={BASE_REMOTE_PATH}
+          />
         </div>
 
         <div className="mt-2 rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
@@ -290,11 +296,14 @@ const ManageDemo: React.FC = () => {
             ) : (
               entries.map((item) => {
                 const isDir = item.type === "d";
+                const fullPath = buildEntryFullPath(item.name);
                 const isViewableFile =
                   !isDir &&
                   (item.name.endsWith(".html") ||
                     item.name.endsWith(".htm") ||
                     item.name.endsWith(".js"));
+                const isVideoFile =
+                  !isDir && /\.(mp4|webm|mov|m4v|ogg)$/i.test(item.name);
                 const ext = isDir
                   ? ""
                   : (item.name.split(".").pop()?.toLowerCase() ?? "");
@@ -305,14 +314,11 @@ const ManageDemo: React.FC = () => {
                     className="px-4 py-2 grid grid-cols-12 border-t border-[#020617] hover:bg-white/5 cursor-pointer transition-colors"
                     onDoubleClick={() => {
                       if (isDir) {
-                        const base = remotePath.endsWith("/")
-                          ? remotePath.slice(0, -1)
-                          : remotePath;
-                        const nextPath =
-                          base === "/"
-                            ? `/${item.name}`
-                            : `${base}/${item.name}`;
-                        void handleLoadDirectory(nextPath);
+                        void handleLoadDirectory(fullPath);
+                        return;
+                      }
+                      if (isVideoFile) {
+                        openRemoteMedia(fullPath);
                       }
                     }}
                   >
@@ -350,7 +356,7 @@ const ManageDemo: React.FC = () => {
                         : "-"}
                     </div>
                     <div className="col-span-1 flex items-center justify-end gap-1">
-                      {isViewableFile && !isAdsop && (
+                      {isViewableFile && canUseFileActionButtons && (
                         <>
                           <button
                             type="button"
