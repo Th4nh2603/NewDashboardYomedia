@@ -2,85 +2,187 @@
   "demos": [
     {
       "id": "1",
-      "title": "Big Balloon Standard",
+      "title": "Display Masthead",
       "image": "https://picsum.photos/seed/demo1/800/600",
-      "size": "300x250 <=> 800x500",
-      "position": "Bottom Right",
+      "size": "970x250",
+      "position": "Top Center",
       "fileType": "HTML5",
-      "category": "Display"
+      "category": "Display",
+      "value": "masthead-pc"
     },
     {
       "id": "2",
-      "title": "Big Balloon iTVC",
+      "title": "Display Masthead iTVC",
       "image": "https://picsum.photos/seed/demo2/800/600",
-      "size": "300x250 <=> 800x500",
-      "position": "Bottom Right",
+      "size": "970x250",
+      "position": "Top Center",
       "fileType": "HTML5",
-      "category": "Video"
+      "category": "Display",
+      "value": "masthead-pc-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
     },
     {
       "id": "3",
-      "title": "3D Box Display",
+      "title": "Display Balloon",
       "image": "https://picsum.photos/seed/demo3/800/600",
-      "size": "300x250, 300x600",
-      "position": "Flexible",
+      "size": "500x300",
+      "position": "Bottom Right Fixed",
       "fileType": "HTML5",
-      "category": "Display"
+      "category": "Display",
+      "value": "balloon-pc"
     },
     {
       "id": "4",
-      "title": "In Stream Display",
-      "image": "https://picsum.photos/seed/demo4/800/600",
-      "size": "Ratio 16:9",
-      "position": "By Player",
-      "fileType": "Video",
-      "category": "Video"
+      "title": "Display Balloon iTVC",
+      "image": "https://picsum.photos/seed/demo3/800/600",
+      "size": "500x300",
+      "position": "Bottom Right Fixed",
+      "fileType": "HTML5",
+      "category": "Display",
+      "value": "balloon-pc-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
     },
     {
       "id": "5",
-      "title": "In-read Video Display",
+      "title": "Display Balloon",
       "image": "https://picsum.photos/seed/demo5/800/600",
-      "size": "Ratio 16:9",
-      "position": "Flexible",
-      "fileType": "Video",
-      "category": "Video"
+      "size": "475x325",
+      "position": "Bottom Right Fixed",
+      "fileType": "HTML5",
+      "category": "Display",
+      "value": "balloon-pc"
     },
     {
       "id": "6",
-      "title": "Banner Standard",
+      "title": "Display Balloon iTVC",
       "image": "https://picsum.photos/seed/demo6/800/600",
-      "size": "300x250, 300x600",
-      "position": "Flexible",
+      "size": "475x325",
+      "position": "Bottom Right Fixed",
       "fileType": "HTML5",
-      "category": "Display"
+      "category": "Display",
+      "value": "balloon-pc-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
     },
     {
       "id": "7",
-      "title": "Mobile Interstitial",
-      "image": "https://picsum.photos/seed/demo7/800/600",
-      "size": "320x480",
-      "position": "Full Screen",
+      "title": "Display In Image",
+      "image": "https://picsum.photos/seed/demo4/800/600",
+      "size": "600x125",
+      "position": "In Image",
       "fileType": "HTML5",
-      "category": "Mobile"
+      "category": "Display",
+      "value": "in-image-pc"
     },
     {
       "id": "8",
-      "title": "Parallax Scroll",
-      "image": "https://picsum.photos/seed/demo8/800/600",
-      "size": "Flexible",
-      "position": "In-feed",
+      "title": "Display In Image Takeover",
+      "image": "https://picsum.photos/seed/demo5/800/600",
+      "size": "600x125",
+      "position": "In Image",
       "fileType": "HTML5",
-      "category": "Display"
+      "category": "Display",
+      "value": "in-image-takeover-pc"
     },
     {
       "id": "9",
-      "title": "Expandable Video",
-      "image": "https://picsum.photos/seed/demo9/800/600",
-      "size": "300x250 -> 600x400",
-      "position": "Flexible",
-      "fileType": "Video",
-      "category": "Video"
+      "title": "Display In Image Takeover iTVC",
+      "image": "https://picsum.photos/seed/demo6/800/600",
+      "size": "600x125",
+      "position": "In Image",
+      "fileType": "HTML5",
+      "category": "Display",
+      "value": "in-image-takeover-pc-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
+    },
+    {
+      "id": "10",
+      "title": "Display In Image Carousel",
+      "image": "https://picsum.photos/seed/demo10/800/600",
+      "size": "600x125",
+      "position": "In Image",
+      "fileType": "HTML5",
+      "category": "Display",
+      "value": "in-image-carousel-pc"
+    },
+    {
+      "id": "11",
+      "title": "Display In Image Carousel iTVC",
+      "image": "https://picsum.photos/seed/demo11/800/600",
+      "size": "600x125",
+      "position": "In Image",
+      "fileType": "HTML5",
+      "category": "Display",
+      "value": "in-image-carousel-pc-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
+    },
+    {
+      "id": "12",
+      "title": "Moblie Masthead",
+      "image": "https://picsum.photos/seed/demo12/800/600",
+      "size": "480x270",
+      "position": "Top Center",
+      "fileType": "HTML5",
+      "category": "Mobile ",
+      "value": "masthead-mb"
+    },
+    {
+      "id": "13",
+      "title": "Moblie Masthead iTVC",
+      "image": "https://picsum.photos/seed/demo13/800/600",
+      "size": "480x270",
+      "position": "Top Center",
+      "fileType": "HTML5",
+      "category": "Mobile",
+      "value": "masthead-mb-itvc",
+      "video": {
+        "filesize": "4MB",
+        "duration": "30s",
+        "resolution": "640x360",
+        "framerate": "30fps",
+        "bitrate": "1000kbps",
+        "codec": "H.264",
+        "format": "MP4"
+      }
     }
   ]
 }
-
