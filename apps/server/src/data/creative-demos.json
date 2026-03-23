@@ -382,12 +382,12 @@
       "title": "Display Masthead (Billboard) iTVC",
       "image": "https://picsum.photos/seed/demo87/800/600",
       "size": ["970x250"],
-      "position": "-",
+      "position": "Top Center",
       "fileType": "HTML5",
       "category": "Display",
       "value": "display-masthead-billboard-itvc",
       "video": "mp4",
-      "source": "",
+      "source": "yomedia/app/template/data/0030/banner",
       "status": "active"
     },
     {
