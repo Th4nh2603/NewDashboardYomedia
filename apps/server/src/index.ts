@@ -92,7 +92,9 @@ app.post("/api/login", (req, res) => {
 });
 
 app.get("/api/creative-demos", (_req, res) => {
-  const demos = loadCreativeDemos();
+  const demos = loadCreativeDemos().filter(
+    (d) => String(d?.status ?? "").toLowerCase() === "active",
+  );
   return res.json({ ok: true, demos });
 });
 

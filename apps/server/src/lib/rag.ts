@@ -1,5 +1,6 @@
 import { readFile, readdir } from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
@@ -12,6 +13,9 @@ type RagSingleton = {
 };
 
 let singletonPromise: Promise<RagSingleton> | null = null;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
   const entries = await readdir(folderAbs, { withFileTypes: true });
@@ -38,6 +42,17 @@ async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
   return docs;
 }
 
+async function loadJsonDoc(jsonAbsPath: string, sourceName: string): Promise<Document[]> {
+  const raw = await readFile(jsonAbsPath, "utf8");
+  const content = JSON.stringify(JSON.parse(raw), null, 2);
+  return [
+    new Document({
+      pageContent: content,
+      metadata: { source: sourceName },
+    }),
+  ];
+}
+
 async function getRagSingleton(): Promise<RagSingleton> {
   if (singletonPromise) return singletonPromise;
 
@@ -48,7 +63,14 @@ async function getRagSingleton(): Promise<RagSingleton> {
     }
 
     const docsFolder = path.join(process.cwd(), "rag", "docs");
-    const docs = await loadDocsFromFolder(docsFolder);
+    const creativeDemosPath = path.join(__dirname, "..", "data", "creative-demos.json");
+
+    const [docsFromFolder, docsFromCreativeDemos] = await Promise.all([
+      loadDocsFromFolder(docsFolder),
+      loadJsonDoc(creativeDemosPath, "creative-demos.json"),
+    ]);
+
+    const docs = [...docsFromFolder, ...docsFromCreativeDemos];
     if (docs.length === 0) {
       throw new Error(`No RAG docs found in ${docsFolder}`);
     }
