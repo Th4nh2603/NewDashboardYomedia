@@ -1,17 +1,26 @@
 import React from "react";
 
 type OpenDemoButtonProps = {
+  /** Relative path (folder) trên CDN/SFTP; dùng để suy ra `b=.../index.html` và đoán size (vd 384x683). */
   remotePath: string;
+  /** Truyền trực tiếp query param b=... nếu đã có sẵn */
+  bannerPath?: string;
+  /** Truyền trực tiếp query param f=... nếu đã có sẵn */
+  formatValue?: string;
   baseRemotePath?: string;
   className?: string;
   label?: string;
+  disabled?: boolean;
 };
 
 const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   remotePath,
+  bannerPath,
+  formatValue,
   baseRemotePath = "/script/demo",
   className = "px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed",
   label = "demo",
+  disabled = false,
 }) => {
   const buildRemoteRelativePath = React.useCallback(
     (fullPath: string) => {
@@ -58,9 +67,26 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
       return { format: "inpage-mb", device: "mb" as const };
     }
 
-    const found = (data.demos as Array<{ size?: unknown; value?: string }>).find(
-      (item) => sizeMatches(item.size, size) && Boolean(item.value),
-    );
+    const found = (
+      data.demos as Array<{
+        size?: unknown;
+        value?: string;
+      }>
+    ).find((item) => {
+      const sizes: unknown[] = [];
+      const raw = item.size;
+      if (Array.isArray(raw)) {
+        raw.forEach((x) => {
+          if (x !== undefined && x !== null && String(x).trim() !== "")
+            sizes.push(x);
+        });
+      } else if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+        sizes.push(raw);
+      }
+      return (
+        sizes.some((s) => sizeMatches(s, size)) && Boolean(item.value)
+      );
+    });
 
     const format = found?.value || fallbackFormatBySize(size);
     const device = format.includes("-pc") ? "pc" : "mb";
@@ -68,24 +94,50 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   }, []);
 
   const handleOpenDemo = React.useCallback(async () => {
-    const relative = buildRemoteRelativePath(remotePath);
-    const bannerPath = relative
-      ? `${relative.replace(/\/+$/, "")}/index.html`
+    const hasPath = Boolean((bannerPath ?? remotePath).trim());
+    if (disabled || !hasPath) return;
+
+    const relative = buildRemoteRelativePath(remotePath.trim());
+    const computedBannerPath = bannerPath?.trim()
+      ? bannerPath.trim().replace(/^\/+/, "")
+      : relative
+      ? /\.html?$/i.test(relative)
+        ? relative.replace(/\/+$/, "")
+        : `${relative.replace(/\/+$/, "")}/index.html`
       : "index.html";
 
-    const size = extractSizeFromPath(relative);
-    const { format: formatParam, device } = await getFormatFromApi(size);
+    const size = extractSizeFromPath(computedBannerPath);
+    const resolved = formatValue?.trim()
+      ? {
+          format: formatValue.trim(),
+          device: formatValue.includes("-pc") ? ("pc" as const) : ("mb" as const),
+        }
+      : await getFormatFromApi(size);
+    const { format: formatParam, device } = resolved;
     const isPcFormat = device === "pc";
     const previewBase = `https://demo.yomedia.vn/yomedia/site/id${
       isPcFormat ? "pc" : "mb"
     }/index.html`;
-    const url = `${previewBase}?f=${formatParam}&b=${bannerPath}&l=lt&c=demo`;
+    const url = `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
 
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [buildRemoteRelativePath, extractSizeFromPath, getFormatFromApi, remotePath]);
+  }, [
+    buildRemoteRelativePath,
+    disabled,
+    extractSizeFromPath,
+    getFormatFromApi,
+    bannerPath,
+    formatValue,
+    remotePath,
+  ]);
 
   return (
-    <button type="button" onClick={handleOpenDemo} className={className}>
+    <button
+      type="button"
+      onClick={handleOpenDemo}
+      disabled={disabled || !(bannerPath ?? remotePath).trim()}
+      className={className}
+    >
       {label}
     </button>
   );

@@ -1,22 +1,17 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import JSZip from "jszip";
 import {
   CloudArrowUpIcon,
   PhotoIcon,
   XMarkIcon,
-  CheckCircleIcon,
-  CpuChipIcon,
   BoltIcon,
   SignalIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
-  ArrowDownTrayIcon,
   ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
+import OpenDemoButton from "../components/OpenDemo";
 import demoConfig from "../data/demoConfig.json";
-import defaultImages from "../data/defaultImages.json";
-import scriptReplacements from "../data/scriptReplacements.json";
 
 interface ErrorState {
   message: string;
@@ -82,18 +77,9 @@ const BuildDemo: React.FC = () => {
     season: seasons[0] ?? "Spring",
   });
   const [sourceUrl, setSourceUrl] = useState("");
-  const [outputLink, setOutputLink] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
-  const [sendStatus, setSendStatus] = useState<
-    "idle" | "sending" | "success" | "error"
-  >("idle");
   const [sendError, setSendError] = useState<string | null>(null);
-  const [lastSentFileName, setLastSentFileName] = useState<string | null>(null);
-  /** Nội dung file HTML/JS đã replace khi bấm Generate (bootstrap callback support: → yomedia) */
-  const [replacedContent, setReplacedContent] = useState<string | null>(null);
-  const [convertedImages, setConvertedImages] = useState<string[]>([]);
   const [metrics, setMetrics] = useState({
     gpu: 12,
     ram: 2.4,
@@ -226,93 +212,8 @@ const BuildDemo: React.FC = () => {
       img.src = objectUrl;
     });
 
-  const applyImagesToJs = (
-    content: string,
-    imagePayload: { name: string; base64: string }[],
-  ) => {
-    if (imagePayload.length === 0) {
-      return { processed: content, converted: [] as string[] };
-    }
-
-    const lines = content.split(/\r?\n/);
-    const converted: string[] = [];
-
-    for (const img of imagePayload) {
-      const pathInContent = `images/${img.name}`;
-      const encodedName = encodeURIComponent(img.name);
-      const encodedPathInContent = `images/${encodedName}`;
-      const isDefaultImage = (defaultImages as string[]).includes(
-        pathInContent,
-      );
-      const base64Only = img.base64.includes(",")
-        ? img.base64.split(",")[1]!
-        : img.base64;
-      const dataUrlPng = `data:image/png;base64,${base64Only}`;
-      const dataUrl = isDefaultImage ? dataUrlPng : img.base64;
-      let foundIndex = -1;
-
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-        const searchName = img.name;
-        const hasPathEncoded = line.includes(encodedPathInContent);
-        const hasPath = line.includes(pathInContent);
-        const hasName = line.includes(searchName);
-        if (!hasPathEncoded && !hasPath && !hasName) continue;
-
-        const idx = hasPathEncoded
-          ? line.indexOf(encodedPathInContent)
-          : hasPath
-            ? line.indexOf(pathInContent)
-            : line.indexOf(searchName);
-        const replaceLength = hasPathEncoded
-          ? encodedPathInContent.length
-          : hasPath
-            ? pathInContent.length
-            : searchName.length;
-        const afterNameIndex = idx + replaceLength;
-        const nextQuoteIndex = line.indexOf('"', afterNameIndex);
-        const suffix =
-          nextQuoteIndex === -1
-            ? line.slice(afterNameIndex)
-            : line.slice(nextQuoteIndex);
-        const suffixAfterQuote = suffix.startsWith('"')
-          ? suffix.slice(1)
-          : suffix;
-
-        if (isDefaultImage) {
-          line = line.slice(0, idx) + dataUrlPng + line.slice(afterNameIndex);
-          lines[i] = line;
-        } else {
-          lines[i] =
-            `{type:createjs.Types.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
-        }
-        foundIndex = i;
-        break;
-      }
-
-      if (foundIndex >= 0) {
-        converted.push(img.name);
-      }
-    }
-
-    return { processed: lines.join("\n"), converted };
-  };
-
   const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
   const TEXT_EXTS = [".html", ".htm", ".js"];
-
-  const applyScriptReplacements = (content: string) => {
-    let result = content;
-    (scriptReplacements as { name: string; base64: string }[]).forEach(
-      (item) => {
-        if (!item.name || !item.base64) return;
-        const escaped = item.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(escaped, "g");
-        result = result.replace(regex, item.base64);
-      },
-    );
-    return result;
-  };
 
   const handleFiles = async (newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -426,279 +327,7 @@ const BuildDemo: React.FC = () => {
     });
   };
 
-  const handleProcess = () => {
-    setError(null);
-    setIsProcessing(true);
-    setOutputLink(null);
-
-    // Require model selection
-    if (!config.model) {
-      setError({
-        message: "Please select a Model Intelligence before processing.",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    // Validation: Source
-    if (files.length === 0 && !sourceUrl) {
-      setError({
-        message:
-          "No assets detected. Please upload files or provide a remote source URL.",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
-
-    // Replace string khi Generate:
-    // Ưu tiên file JS đầu tiên; nếu không có thì dùng file HTML đầu tiên.
-    const firstJsFile = files.find((f) =>
-      ["application/javascript", "text/javascript"].includes(f.file.type),
-    );
-    const firstHtmlFile = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const firstHtmlJs = firstJsFile ?? firstHtmlFile;
-    const doReplaceAndSimulate = (contentToUse: string | null) => {
-      let processedContent = contentToUse;
-      if (processedContent !== null) {
-        const replaced = processedContent.replace(
-          /bootstrap callback support:/g,
-          "bootstrap callback support: yomedia ",
-        );
-        processedContent = replaced;
-      }
-
-      if (processedContent !== null && firstHtmlJs) {
-        // Chuẩn bị danh sách ảnh: lấy từ state files (đã có base64 từ client)
-        const imagePayload = files
-          .filter((f) => f.file.type.startsWith("image/") && f.imageBase64)
-          .map((f) => ({
-            name: f.imageBase64!.name,
-            base64: f.imageBase64!.base64,
-          }));
-
-        const { processed, converted } = applyImagesToJs(
-          processedContent,
-          imagePayload,
-        );
-        processedContent = applyScriptReplacements(processed);
-        setConvertedImages(converted);
-        // Lưu lại tên file JS đã xử lý để upload / download dùng đúng nội dung đã replace base64
-        if (firstJsFile) {
-          setLastSentFileName(firstJsFile.file.name);
-        } else {
-          setLastSentFileName(firstHtmlJs.file.name);
-        }
-      }
-
-      setReplacedContent(processedContent);
-
-      setTimeout(() => {
-        const shouldFail = Math.random() > 0.9; // 10% failure rate for demo
-        if (shouldFail) {
-          setIsProcessing(false);
-          setError({
-            message:
-              "Neural pipeline synthesis failed due to high cluster latency.",
-            type: "processing",
-            actionLabel: "Retry Synthesis",
-            action: handleProcess,
-          });
-        } else {
-          setIsProcessing(false);
-          setOutputLink(
-            `https://nova-ai.io/demo/${Math.random().toString(36).substring(7)}`,
-          );
-        }
-      }, 2000);
-    };
-    if (firstHtmlJs) {
-      const reader = new FileReader();
-      reader.onload = () => doReplaceAndSimulate(String(reader.result ?? ""));
-      reader.onerror = () => {
-        setIsProcessing(false);
-        setError({ message: "Failed to read file", type: "system" });
-      };
-      reader.readAsText(firstHtmlJs.file);
-    } else {
-      doReplaceAndSimulate(null);
-    }
-  };
-
-  const TEXT_FILE_TYPES = [
-    "text/html",
-    "application/xhtml+xml",
-    "application/javascript",
-    "text/javascript",
-  ];
-
   const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
-
-  /** Đường dẫn SFTP demo: year/month/brand/productCate/tên-file-html (vd: 2026/03/maxkleen/laundry/384x683) */
-  const getDemoSftpPath = (): string | null => {
-    const year = config.quality?.trim();
-    const month = config.mode?.trim();
-    const brand = config.model?.trim()?.toLowerCase();
-    const productCate = config.productCate?.trim()?.toLowerCase();
-    const firstHtml = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const htmlName = firstHtml
-      ? firstHtml.file.name.replace(/\.[^.]+$/, "").trim()
-      : "";
-    if (!year || !month || !brand || !productCate || !htmlName) return null;
-    return [year, month, brand, productCate, htmlName].join("/");
-  };
-
-  const handleUploadDemoToSftp = async () => {
-    const path = getDemoSftpPath();
-    if (!path) {
-      setSendError(
-        "Missing Year/Month/Brand/Product Category or HTML file for SFTP path.",
-      );
-      return;
-    }
-
-    const firstHtml = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const firstJs = files.find((f) =>
-      ["application/javascript", "text/javascript"].includes(f.file.type),
-    );
-
-    if (!firstHtml || !firstJs) {
-      setSendError("Need both one HTML file and one JS file to upload to SFTP.");
-      return;
-    }
-
-    const readFileAsText = (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result ?? ""));
-        r.onerror = () => reject(new Error("Read failed"));
-        r.readAsText(file);
-      });
-
-    try {
-      setSendStatus("sending");
-      setSendError(null);
-
-      const htmlPath = `${path}/${firstHtml.file.name}`;
-      const jsPath = `${path}/${firstJs.file.name}`;
-
-      const [htmlContentRaw, jsContentRaw] = await Promise.all([
-        readFileAsText(firstHtml.file),
-        readFileAsText(firstJs.file),
-      ]);
-
-      const jsContent =
-        replacedContent && firstJs.file.name === lastSentFileName
-          ? replacedContent
-          : jsContentRaw;
-      if (replacedContent && firstJs.file.name === lastSentFileName) {
-        console.log(
-          "[SFTP Upload] Using REPLACED JS content for",
-          firstJs.file.name,
-        );
-      } else {
-        console.log(
-          "[SFTP Upload] Using ORIGINAL JS content for",
-          firstJs.file.name,
-        );
-      }
-
-      const writeFileToSftp = async (filePath: string, content: string) => {
-        const res = await fetch(`${baseUrl}/api/sftp/write`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: filePath, content }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          throw new Error(
-            data?.error || `Failed to upload ${filePath} to SFTP.`,
-          );
-        }
-      };
-
-      await writeFileToSftp(htmlPath, htmlContentRaw);
-      await writeFileToSftp(jsPath, jsContent);
-
-      setSendStatus("success");
-      setSendError("Uploaded demo files to SFTP successfully.");
-    } catch (err) {
-      setSendStatus("error");
-      setSendError(
-        err instanceof Error
-          ? err.message
-          : "Failed to upload demo files to SFTP.",
-      );
-    } finally {
-      setTimeout(() => {
-        setSendStatus("idle");
-      }, 800);
-    }
-  };
-
-  const handleDownloadFromServer = async () => {
-    const htmlOrJsFiles = files.filter((f) =>
-      TEXT_FILE_TYPES.includes(f.file.type),
-    );
-    if (htmlOrJsFiles.length === 0) {
-      setSendError("No HTML or JS file to download.");
-      return;
-    }
-
-    const zip = new JSZip();
-    const processedName = lastSentFileName ?? null;
-
-    const readFileAsText = (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result ?? ""));
-        r.onerror = () => reject(new Error("Read failed"));
-        r.readAsText(file);
-      });
-
-    try {
-      for (const { file } of htmlOrJsFiles) {
-        const content =
-          replacedContent && file.name === processedName
-            ? replacedContent
-            : await readFileAsText(file);
-        if (
-          replacedContent &&
-          file.name === processedName &&
-          (file.type === "application/javascript" || file.type === "text/javascript")
-        ) {
-          console.log("[Replaced JS content]", file.name, "\n", content);
-        }
-        zip.file(file.name, content);
-      }
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const firstHtml = htmlOrJsFiles.find((f) =>
-        ["text/html", "application/xhtml+xml"].includes(f.file.type),
-      );
-      const zipBaseName = firstHtml
-        ? firstHtml.file.name.replace(/\.[^.]+$/, "")
-        : "bundle";
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${zipBaseName}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setSendError(null);
-    } catch (err) {
-      setSendError(
-        err instanceof Error ? err.message : "Failed to create zip.",
-      );
-    }
-  };
 
   return (
     <div className="max-w-full mx-auto">
@@ -976,124 +605,24 @@ const BuildDemo: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* Source & Output Section */}
-          <div className="mt-10 space-y-8">
-            <AnimatePresence>
-              {outputLink && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="p-6 bg-[#4cceac]/10 border border-[#4cceac]/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#4cceac] rounded-2xl flex items-center justify-center text-[#141b2d] shadow-lg shadow-[#4cceac]/20">
-                      <CheckCircleIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-[#e0e0e0]">
-                        Processing Complete
-                      </h4>
-                      <p className="text-xs text-[#4cceac] font-medium">
-                        Your demo is ready at the link below
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-[#141b2d] p-2 pl-4 rounded-xl border border-white/5 w-full md:w-auto">
-                    <span className="text-xs text-[#a3a3a3] truncate max-w-[200px]">
-                      {outputLink}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(outputLink);
-                        // Optional: Show toast
-                      }}
-                      className="bg-[#4cceac] text-[#141b2d] px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#3da58a] transition-colors"
-                    >
-                      Copy Link
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* Action Buttons */}
-          <div className="mt-12 flex gap-6">
+          <div className="mt-12 flex flex-wrap gap-6 items-center">
+            <OpenDemoButton
+              remotePath={sourceUrl.trim()}
+              disabled={!sourceUrl.trim()}
+              label="Demo"
+              className="flex-1 min-w-[200px] py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
+            />
             <button
-              onClick={handleProcess}
-              disabled={
-                !config.model ||
-                (files.length === 0 && !sourceUrl) ||
-                isProcessing
-              }
-              className="flex-1 bg-gradient-to-r from-[#4cceac] to-[#3da58a] hover:from-[#3da58a] hover:to-[#4cceac] disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:cursor-not-allowed text-[#141b2d] font-black py-5 rounded-3xl transition-all shadow-[0_20px_40px_rgba(76,206,172,0.15)] flex items-center justify-center gap-3 uppercase tracking-widest text-xs italic"
-            >
-              {isProcessing ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1,
-                      ease: "linear",
-                    }}
-                    className="w-5 h-5 border-2 border-[#141b2d] border-t-transparent rounded-full"
-                  />
-                  Synthesizing Pipeline...
-                </>
-              ) : (
-                <>
-                  <BoltIcon className="w-5 h-5" />
-                  Generate {files.length || (sourceUrl ? "Remote" : "0")}
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleDownloadFromServer}
-              disabled={
-                !files.some((f) => TEXT_FILE_TYPES.includes(f.file.type)) ||
-                sendStatus === "sending"
-              }
-              className="px-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center gap-2"
-              title="Tải zip chứa HTML + JS (tên zip theo file HTML)"
-            >
-              <ArrowDownTrayIcon className="w-5 h-5" />
-              Download
-            </button>
-            <button
-              onClick={handleUploadDemoToSftp}
-              disabled={
-                !getDemoSftpPath() ||
-                !replacedContent ||
-                !lastSentFileName ||
-                isProcessing ||
-                sendStatus === "sending"
-              }
-              className="px-10 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black rounded-3xl border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center gap-2"
-              title={
-                getDemoSftpPath()
-                  ? `Upload HTML & JS to SFTP: ${getDemoSftpPath()}`
-                  : "Cần Year/Month/Brand/Product Category và ít nhất 1 file HTML + 1 file JS"
-              }
-            >
-              <SignalIcon className="w-5 h-5" />
-              {sendStatus === "sending" ? "Uploading..." : "Demo"}
-            </button>
-            <button
+              type="button"
               onClick={() => {
                 setFiles([]);
                 setSourceUrl("");
-                setOutputLink(null);
                 setError(null);
-                setSendStatus("idle");
                 setSendError(null);
-                setLastSentFileName(null);
-                setReplacedContent(null);
                 setSelectedImage(null);
                 setSelectedTextFile(null);
                 setFilterType("all");
-                setConvertedImages([]);
 
                 // Gọi server xóa toàn bộ file đã upload
                 fetch(`${baseUrl}/api/upload`, { method: "DELETE" }).catch(
@@ -1102,8 +631,8 @@ const BuildDemo: React.FC = () => {
                   },
                 );
               }}
-              disabled={(files.length === 0 && !sourceUrl) || isProcessing}
-              className="px-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic"
+              disabled={files.length === 0 && !sourceUrl}
+              className="px-10 py-5 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
             >
               Reset
             </button>
@@ -1244,25 +773,6 @@ const BuildDemo: React.FC = () => {
                             >
                               <ClipboardDocumentIcon className="w-3 h-3" />
                             </button>
-                          )}
-                        {file.file.type.startsWith("image/") &&
-                          (convertedImages.includes(file.file.name) ||
-                            (file.imageBase64 &&
-                              convertedImages.includes(
-                                file.imageBase64.name,
-                              ))) && (
-                            <motion.div
-                              initial={{ scale: 0.6, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 20,
-                              }}
-                              className="bg-[#4cceac] text-[#141b2d] p-0.5 rounded-full shadow-[0_0_16px_rgba(76,206,172,0.9)]"
-                            >
-                              <CheckCircleIcon className="w-3 h-3" />
-                            </motion.div>
                           )}
                         <button
                           onClick={(e) => {

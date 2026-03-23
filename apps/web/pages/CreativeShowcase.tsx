@@ -2,26 +2,41 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Square3Stack3DIcon,
-  PlayIcon,
+  ArrowDownTrayIcon,
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
-  DevicePhoneMobileIcon,
-  ComputerDesktopIcon,
-  VideoCameraIcon,
   CommandLineIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
+import { useAuth } from "../contexts/AuthContext";
+import OpenDemoButton from "../components/OpenDemo";
+
+/** Hiển thị Size: phần tử đầu của mảng `size` (hoặc chuỗi). */
+function displayPrimarySize(item: { size?: string | string[] }): string {
+  const s = item.size;
+  if (Array.isArray(s) && s.length > 0) return String(s[0]).trim();
+  if (typeof s === "string" && s.trim() !== "") return s.trim();
+  return "-";
+}
 
 interface DemoItem {
   id: string;
   title: string;
   image: string;
-  size: string;
+  size?: string | string[];
   position: string;
   fileType: string;
+  value?: string;
+  /** mp4 nếu title có iTVC, ngược lại none */
+  video?: string;
+  source?: string;
+  status?: string;
   category: "Display" | "Video" | "Mobile";
 }
 
 const CreativeShowcase: React.FC = () => {
+  const { user } = useAuth();
+  const isAdsop = (user?.role || "").toLowerCase() === "adsop";
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,20 +44,68 @@ const CreativeShowcase: React.FC = () => {
     "All",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const baseUrl =
+    (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
+
+  const handleDownload = async (item: DemoItem) => {
+    if (!item.source || downloadingId) return;
+    setDownloadingId(item.id);
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(item.source)}`,
+      );
+      if (!res.ok) {
+        let message = "Download failed";
+        try {
+          const data = await res.json();
+          if (data?.error) message = String(data.error);
+        } catch {
+          // ignore json parse
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const contentDisposition = res.headers.get("content-disposition") || "";
+      const match = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
+      const fallbackName = `${item.id}.zip`;
+      const filename = match?.[1] || fallbackName;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Download failed";
+      setError(message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchDemos = async () => {
       setLoading(true);
       setError(null);
       try {
-        const baseUrl =
-          (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
         const res = await fetch(`${baseUrl}/api/creative-demos`);
         const data = await res.json();
         if (!res.ok || !data.ok || !Array.isArray(data.demos)) {
           throw new Error(data.error || "Unable to load creative demos");
         }
-        setItems(data.demos);
+        const sortedById = [...data.demos].sort((a: DemoItem, b: DemoItem) => {
+          const idA = Number(a.id);
+          const idB = Number(b.id);
+          if (Number.isNaN(idA) || Number.isNaN(idB)) {
+            return String(a.id).localeCompare(String(b.id));
+          }
+          return idA - idB;
+        });
+        setItems(sortedById);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Unable to load creative demos",
@@ -123,94 +186,122 @@ const CreativeShowcase: React.FC = () => {
             Loading creative demos...
           </div>
         ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
-          <AnimatePresence mode="popLayout">
-            {filteredData.map((item, idx) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="group relative bg-[#141b2d] rounded-[2.5rem] border border-white/5 overflow-hidden hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+            <AnimatePresence mode="popLayout">
+              {filteredData.map((item, idx) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                  className="group relative bg-[#141b2d] rounded-[2.5rem] border border-white/5 overflow-hidden hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
 
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                      {item.category}
-                    </span>
-                  </div>
-
-                  <div className="absolute inset-0 bg-[#4cceac]/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-[#4cceac] text-[#141b2d] px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-2xl shadow-[#4cceac]/40"
-                    >
-                      <PlayIcon className="w-4 h-4" />
-                      Launch Demo
-                    </motion.button>
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  <h3 className="text-xl font-black text-white mb-6 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
-                    {item.title}
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
-                        <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                          Size
-                        </span>
-                      </div>
-                      <span className="text-xs font-medium text-white">
-                        {item.size}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                        {item.category}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2">
-                        <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
-                        <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                          Position
-                        </span>
-                      </div>
-                      <span className="text-xs font-medium text-white">
-                        {item.position}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
-                        <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                          File Type
-                        </span>
-                      </div>
-                      <span className="text-xs font-medium text-white">
-                        {item.fileType}
-                      </span>
+                    <div className="absolute inset-0 bg-[#4cceac]/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                      <OpenDemoButton
+                        remotePath={item.source ?? ""}
+                        bannerPath={item.source ?? ""}
+                        formatValue={item.value}
+                        label="Launch Demo"
+                        disabled={!item.source || !item.value}
+                        className="bg-[#4cceac] text-[#141b2d] px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-2xl shadow-[#4cceac]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent to-[#4cceac]/5 pointer-events-none" />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                  <div className="p-8">
+                    <h3 className="text-xl font-black text-white mb-6 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
+                      {item.title}
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
+                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                            Size
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-white">
+                          {displayPrimarySize(item)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="flex items-center gap-2">
+                          <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
+                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                            Position
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-white">
+                          {item.position}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="flex items-center gap-2">
+                          <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
+                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                            File Type
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-white">
+                          {item.fileType}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <VideoCameraIcon className="w-4 h-4 text-[#a3a3a3]" />
+                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                            Video
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-white uppercase">
+                          {item.video === "mp4" ? "mp4" : (item.video ?? "none")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {!isAdsop && (
+                      <div className="mt-6">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleDownload(item);
+                          }}
+                          disabled={!item.source || downloadingId === item.id}
+                          className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                        >
+                          <ArrowDownTrayIcon className="w-4 h-4" />
+                          {downloadingId === item.id ? "Downloading..." : "Download"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent to-[#4cceac]/5 pointer-events-none" />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         )}
 
         {filteredData.length === 0 && (

@@ -5,6 +5,7 @@ import {
   readSftpFile,
   sftpPathExists,
   writeSftpFile,
+  downloadSftpDirectoryAsZip,
 } from "../lib/sftpClient.js";
 
 export const sftpRouter = Router();
@@ -96,6 +97,25 @@ sftpRouter.post("/write", async (req: Request, res: Response) => {
     }
     await writeSftpFile(body.path, body.content ?? "");
     res.json({ ok: true, path: body.path });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown SFTP error";
+    res.status(500).json({ ok: false, error: message });
+  }
+});
+
+sftpRouter.get("/download-directory", async (req: Request, res: Response) => {
+  try {
+    const path = req.query.path as string | undefined;
+    if (!path) {
+      res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
+      return;
+    }
+
+    const { zipBuffer, zipName } = await downloadSftpDirectoryAsZip(path);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+    res.send(zipBuffer);
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unknown SFTP error";

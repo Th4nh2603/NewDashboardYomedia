@@ -1,4 +1,5 @@
 import SftpClient from "ssh2-sftp-client";
+import JSZip from "jszip";
 
 export interface SftpConfig {
   host?: string;
@@ -258,6 +259,102 @@ export async function sftpPathExists(
       type: existsType === false ? null : existsType,
       hasIndexHtml,
       message,
+    };
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
+export async function downloadSftpDirectoryAsZip(
+  targetPath: string,
+  config: SftpConfig = {},
+) {
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  const normalizedPath = (targetPath || "")
+    .trim()
+    .replace(/\\+/g, "/")
+    .replace(/\/{2,}/g, "/")
+    .replace(/\/+$/, "");
+
+  if (!normalizedPath) {
+    throw new Error("Missing SFTP directory path.");
+  }
+
+  const zip = new JSZip();
+  let fileCount = 0;
+
+  const addDirectoryToZip = async (remoteDir: string, localPrefix: string) => {
+    const entries = (await client.list(remoteDir)) as {
+      name: string;
+      type: string;
+      size: number;
+    }[];
+
+    for (const entry of entries) {
+      if (!entry?.name || entry.name === "." || entry.name === "..") continue;
+      const remotePath = `${remoteDir}/${entry.name}`.replace(/\/{2,}/g, "/");
+      const zipPath = localPrefix ? `${localPrefix}/${entry.name}` : entry.name;
+
+      if (entry.type === "d") {
+        await addDirectoryToZip(remotePath, zipPath);
+        continue;
+      }
+
+      const data = await client.get(remotePath);
+      const buffer = Buffer.isBuffer(data) ? data : Buffer.from(String(data));
+      zip.file(zipPath, buffer);
+      fileCount += 1;
+    }
+  };
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    const existsType = (await (client as any).exists(normalizedPath)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+
+    if (!existsType) {
+      throw new Error(`Directory does not exist on SFTP: ${normalizedPath}`);
+    }
+
+    if (existsType !== "d") {
+      throw new Error(`Path is not a directory: ${normalizedPath}`);
+    }
+
+    const baseName = normalizedPath.split("/").filter(Boolean).pop() || "bundle";
+    await addDirectoryToZip(normalizedPath, "");
+    if (fileCount === 0) {
+      throw new Error(`No files found in directory: ${normalizedPath}`);
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+    return {
+      checkedPath: normalizedPath,
+      fileCount,
+      zipName: `${baseName}.zip`,
+      zipBuffer,
     };
   } finally {
     try {
