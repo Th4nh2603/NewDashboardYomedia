@@ -10,8 +10,9 @@ import {
   ArrowPathIcon,
   ClipboardDocumentIcon,
 } from "@heroicons/react/24/outline";
-import OpenDemoButton from "../components/OpenDemo";
 import demoConfig from "../data/demoConfig.json";
+import brandColors from "../data/brandColors.json";
+import { openYomediaDemoPreview } from "../components/OpenDemo";
 
 interface ErrorState {
   message: string;
@@ -41,11 +42,47 @@ const BuildDemo: React.FC = () => {
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
   const productCates = (demoConfig as any).ListProductCate ?? [];
+  const maxkleenProductCateIds = [
+    "softergent",
+    "thematic",
+    "colourcare",
+    "podrange",
+    "floorcleaner",
+    "lingeriewash",
+  ];
+  const enchantuerProductCateIds = [
+    "shower",
+    "naturalle-shower",
+    "naturalle-serum",
+    "scrub",
+    "deodorants",
+    "shampoo",
+  ];
+  const getProductCateOptionsByBrand = (brandId: string) => {
+    if (brandId?.toLowerCase() === "maxkleen") {
+      return productCates.filter((item: any) =>
+        maxkleenProductCateIds.includes(String(item?.id ?? "").toLowerCase()),
+      );
+    }
+    if (brandId?.toLowerCase() === "enchantuer") {
+      return productCates.filter((item: any) =>
+        enchantuerProductCateIds.includes(String(item?.id ?? "").toLowerCase()),
+      );
+    }
+    return productCates;
+  };
   const seasons = ["Spring", "Summer", "Autumn", "Winter"];
 
   const now = new Date();
   const currentYearLabel = String(now.getFullYear());
   const currentMonthLabel = String(now.getMonth() + 1).padStart(2, "0");
+  const getSeasonByMonth = (monthValue: string) => {
+    const month = Number.parseInt(monthValue, 10);
+    if (month >= 3 && month <= 5) return "Spring";
+    if (month >= 6 && month <= 8) return "Summer";
+    if (month >= 9 && month <= 11) return "Autumn";
+    return "Winter";
+  };
 
   const currentYearId =
     years.find(
@@ -60,6 +97,7 @@ const BuildDemo: React.FC = () => {
     )?.id ??
     months[0]?.id ??
     "standard";
+  const currentSeason = getSeasonByMonth(currentMonthLabel);
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -74,18 +112,25 @@ const BuildDemo: React.FC = () => {
     quality: currentYearId,
     mode: currentMonthId,
     productCate: productCates[0]?.id ?? "",
-    season: seasons[0] ?? "Spring",
+    season: currentSeason,
   });
   const [sourceUrl, setSourceUrl] = useState("");
+  const [directoryExists, setDirectoryExists] = useState(false);
+  const [checkingDirectory, setCheckingDirectory] = useState(false);
+  const [replacementName, setReplacementName] = useState("");
   const [error, setError] = useState<ErrorState | null>(null);
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [sendingToSftp, setSendingToSftp] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
   const [metrics, setMetrics] = useState({
     gpu: 12,
     ram: 2.4,
     latency: 18,
     health: "Optimal",
   });
+  const productCateOptions = getProductCateOptionsByBrand(config.model);
+  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 
   const getItemLabelById = (list: any[], id: string) => {
     const found = list.find((item: any) => item.id === id);
@@ -93,10 +138,7 @@ const BuildDemo: React.FC = () => {
   };
 
   const normalizePathToken = (value: string) =>
-    value
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/\/+/g, "-");
+    value.trim().replace(/\s+/g, "-").replace(/\/+/g, "-");
 
   const getUploadedNameToken = () => {
     const firstHtml = files.find((f) =>
@@ -110,6 +152,25 @@ const BuildDemo: React.FC = () => {
     return normalizePathToken(picked.file.name.replace(/\.[^.]+$/, ""));
   };
 
+  const getBrandColorClass = (name: string) => {
+    const lower = name.toLowerCase();
+    const match = (
+      brandColors as {
+        keyword: string;
+        className: string;
+        match?: "start" | "any";
+      }[]
+    ).find((item) => {
+      const kw = item.keyword.toLowerCase();
+      if (!kw) return false;
+      if (item.match === "start") {
+        return lower.startsWith(kw);
+      }
+      return lower.includes(kw);
+    });
+    return match?.className || "text-[#e5e7eb]";
+  };
+
   const buildRemoteSourcePath = () => {
     const year = getItemLabelById(years, config.quality);
     const month = getItemLabelById(months, config.mode).padStart(2, "0");
@@ -117,12 +178,14 @@ const BuildDemo: React.FC = () => {
       getItemLabelById(brands, config.model).toLowerCase(),
     );
     const productCate = normalizePathToken(
-      getItemLabelById(productCates, config.productCate),
+      getItemLabelById(productCates, config.productCate).toLowerCase(),
     );
     const season = normalizePathToken(config.season.toLowerCase());
-    const uploadName = getUploadedNameToken();
+    const uploadName = replacementName.trim()
+      ? normalizePathToken(replacementName.trim())
+      : getUploadedNameToken();
 
-    const segments = [year, month, brand, productCate, season];
+    const segments = [year, month, brand, productCate];
     if (uploadName) segments.push(uploadName);
 
     return segments.filter(Boolean).join("/");
@@ -131,7 +194,73 @@ const BuildDemo: React.FC = () => {
   useEffect(() => {
     setSourceUrl(buildRemoteSourcePath());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, files]);
+  }, [config, files, replacementName]);
+
+  useEffect(() => {
+    const targetPath = sourceUrl.trim();
+    if (!targetPath || files.length === 0) {
+      setDirectoryExists(false);
+      setCheckingDirectory(false);
+      return;
+    }
+
+    let cancelled = false;
+    const checkDirectory = async () => {
+      setCheckingDirectory(true);
+      try {
+        const res = await fetch(
+          `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(`/script/demo/${targetPath}`)}`,
+        );
+        const data = await res.json();
+        if (!cancelled) {
+          const exists = Boolean(
+            res.ok &&
+              data?.ok &&
+              data?.exists &&
+              (data?.kind === "directory" ||
+                data?.kind === "file" ||
+                data?.kind === "symlink"),
+          );
+          setDirectoryExists(exists);
+        }
+      } catch {
+        if (!cancelled) {
+          setDirectoryExists(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingDirectory(false);
+        }
+      }
+    };
+
+    void checkDirectory();
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceUrl, files.length, baseUrl]);
+
+  useEffect(() => {
+    const monthLabel = getItemLabelById(months, config.mode).padStart(2, "0");
+    const seasonByMonth = getSeasonByMonth(monthLabel);
+    setConfig((prev) =>
+      prev.season === seasonByMonth ? prev : { ...prev, season: seasonByMonth },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.mode]);
+
+  useEffect(() => {
+    if (
+      productCateOptions.length > 0 &&
+      !productCateOptions.some((item: any) => item.id === config.productCate)
+    ) {
+      setConfig((prev) => ({
+        ...prev,
+        productCate: productCateOptions[0].id,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.model]);
 
   // Simulate real-time metrics
   useEffect(() => {
@@ -327,7 +456,115 @@ const BuildDemo: React.FC = () => {
     });
   };
 
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const escapeRegExp = (value: string) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const replaceImagesToBase64 = (content: string) => {
+    const images = files
+      .filter((f) => f.imageBase64)
+      .map((f) => f.imageBase64!)
+      .filter(Boolean);
+    if (images.length === 0) return content;
+
+    let output = content;
+    images.forEach((img) => {
+      const escapedName = escapeRegExp(img.name);
+      output = output.replace(new RegExp(escapedName, "g"), img.base64);
+    });
+    return output;
+  };
+
+  const handleReplaceBase64AndUploadSftp = async () => {
+    setSendError(null);
+    setSendSuccess(null);
+
+    const targetPath = sourceUrl.trim();
+    if (!targetPath) {
+      setSendError("Missing remote source path.");
+      return;
+    }
+    if (files.length === 0) {
+      setSendError("Please upload files before sending to SFTP.");
+      return;
+    }
+
+    const textFiles = files.filter((f) => {
+      const ext = `.${f.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      return TEXT_EXTS.includes(ext);
+    });
+
+    if (textFiles.length === 0) {
+      setSendError("No HTML/JS files found to replace base64 and upload.");
+      return;
+    }
+
+    const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
+
+    try {
+      const checkRes = await fetch(
+        `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
+      );
+      const checkData = await checkRes.json();
+      if (!checkRes.ok || !checkData?.ok) {
+        setSendError(
+          checkData?.error ||
+            "Cannot verify remote path on SFTP. Check server connection.",
+        );
+        return;
+      }
+      if (checkData.exists) {
+        if (!replacementName.trim()) {
+          setSendError(
+            "Remote folder already exists on SFTP. Enter a replacement name above, then upload again.",
+          );
+          return;
+        }
+        setSendError(
+          "Target path still exists on SFTP. Choose a different replacement name.",
+        );
+        return;
+      }
+    } catch {
+      setSendError("Cannot verify remote path on SFTP (network error).");
+      return;
+    }
+
+    setSendingToSftp(true);
+    try {
+      for (const item of textFiles) {
+        const rawContent = await item.file.text();
+        const convertedContent = replaceImagesToBase64(rawContent);
+        const remoteFilePath =
+          `${remoteBase}/${item.file.name}`.replace(/\/{2,}/g, "/");
+
+        const res = await fetch(`${baseUrl}/api/sftp/write`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: remoteFilePath,
+            content: convertedContent,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `Upload failed for ${item.file.name}`);
+        }
+      }
+
+      setSendSuccess(
+        `Uploaded ${textFiles.length} file(s) to ${remoteBase} with base64 replacement.`,
+      );
+
+      await openYomediaDemoPreview({
+        remotePath: targetPath,
+        serverApiUrl: baseUrl,
+      });
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Upload to SFTP failed.");
+    } finally {
+      setSendingToSftp(false);
+    }
+  };
 
   return (
     <div className="max-w-full mx-auto">
@@ -475,6 +712,30 @@ const BuildDemo: React.FC = () => {
               />
             </div>
           </div>
+          {directoryExists && (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Directory Exists - Replacement Name
+                </label>
+              </div>
+              <div className="relative group">
+                <input
+                  type="text"
+                  value={replacementName}
+                  onChange={(e) => setReplacementName(e.target.value)}
+                  placeholder="Enter new folder/file token"
+                  className="w-full bg-[#141b2d] border border-amber-400/30 rounded-2xl py-4 px-5 text-sm font-medium text-white outline-none focus:border-amber-300 transition-all placeholder-white/20 shadow-xl"
+                />
+              </div>
+              <p className="text-[11px] text-amber-300/80">
+                Current path already exists on SFTP. Enter a new name to avoid
+                overwrite.
+                {checkingDirectory ? " Checking..." : ""}
+              </p>
+            </div>
+          )}
           {/* Configuration Section */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
@@ -487,16 +748,36 @@ const BuildDemo: React.FC = () => {
               <div className="relative group">
                 <select
                   value={config.model}
-                  onChange={(e) =>
-                    setConfig({ ...config, model: e.target.value })
-                  }
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                  onChange={(e) => {
+                    const nextModel = e.target.value;
+                    const nextProductCates =
+                      getProductCateOptionsByBrand(nextModel);
+                    setConfig({
+                      ...config,
+                      model: nextModel,
+                      productCate:
+                        nextProductCates.some(
+                          (item: any) => item.id === config.productCate,
+                        )
+                          ? config.productCate
+                          : (nextProductCates[0]?.id ?? ""),
+                    });
+                  }}
+                  className={`w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
+                    config.model
+                      ? getBrandColorClass(config.model)
+                      : "text-white"
+                  }`}
                 >
                   <option value="" disabled>
                     Select model...
                   </option>
                   {brands.map((item: any) => (
-                    <option key={item.id} value={item.id}>
+                    <option
+                      key={item.id}
+                      value={item.id}
+                      className={getBrandColorClass(item.label || item.id)}
+                    >
                       {item.label}
                     </option>
                   ))}
@@ -522,7 +803,7 @@ const BuildDemo: React.FC = () => {
                   }
                   className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
                 >
-                  {productCates.map((item: any) => (
+                  {productCateOptions.map((item: any) => (
                     <option key={item.id} value={item.id}>
                       {item.label}
                     </option>
@@ -544,6 +825,7 @@ const BuildDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig({ ...config, season: e.target.value })
                   }
+                  disabled
                   className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
                 >
                   {seasons.map((item) => (
@@ -607,12 +889,20 @@ const BuildDemo: React.FC = () => {
           </div>
           {/* Action Buttons */}
           <div className="mt-12 flex flex-wrap gap-6 items-center">
-            <OpenDemoButton
-              remotePath={sourceUrl.trim()}
-              disabled={!sourceUrl.trim()}
-              label="Demo"
+            <button
+              type="button"
+              onClick={handleReplaceBase64AndUploadSftp}
+              disabled={
+                !sourceUrl.trim() ||
+                files.length === 0 ||
+                sendingToSftp ||
+                checkingDirectory ||
+                (directoryExists && !replacementName.trim())
+              }
               className="flex-1 min-w-[200px] py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
-            />
+            >
+              {sendingToSftp ? "Uploading..." : "Replace base64 + Upload SFTP"}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -623,6 +913,10 @@ const BuildDemo: React.FC = () => {
                 setSelectedImage(null);
                 setSelectedTextFile(null);
                 setFilterType("all");
+                setReplacementName("");
+                setDirectoryExists(false);
+                setCheckingDirectory(false);
+                setSendSuccess(null);
 
                 // Gọi server xóa toàn bộ file đã upload
                 fetch(`${baseUrl}/api/upload`, { method: "DELETE" }).catch(
@@ -639,6 +933,11 @@ const BuildDemo: React.FC = () => {
           </div>
           {sendError && (
             <p className="mt-2 text-sm text-red-400 font-medium">{sendError}</p>
+          )}
+          {sendSuccess && (
+            <p className="mt-2 text-sm text-emerald-400 font-medium">
+              {sendSuccess}
+            </p>
           )}
         </div>
 

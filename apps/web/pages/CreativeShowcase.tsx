@@ -186,7 +186,7 @@ const CreativeShowcase: React.FC = () => {
             Loading creative demos...
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             <AnimatePresence mode="popLayout">
               {filteredData.map((item, idx) => (
                 <motion.div
@@ -196,9 +196,9 @@ const CreativeShowcase: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.4, delay: idx * 0.05 }}
-                  className="group relative bg-[#141b2d] rounded-[2.5rem] border border-white/5 overflow-hidden hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl"
+                  className="group relative bg-[#141b2d] rounded-[2rem] border border-white/5 overflow-hidden hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                  <div className="relative aspect-[16/10] overflow-hidden">
                     <img
                       src={item.image}
                       alt={item.title}
@@ -218,19 +218,22 @@ const CreativeShowcase: React.FC = () => {
                         remotePath={item.source ?? ""}
                         bannerPath={item.source ?? ""}
                         formatValue={item.value}
+                        forceDevice={
+                          item.category === "Display" ? "pc" : undefined
+                        }
                         label="Launch Demo"
                         disabled={!item.source || !item.value}
-                        className="bg-[#4cceac] text-[#141b2d] px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 shadow-2xl shadow-[#4cceac]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="bg-[#4cceac] text-[#141b2d] px-6 py-2.5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-2xl shadow-[#4cceac]/40 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
 
-                  <div className="p-8">
-                    <h3 className="text-xl font-black text-white mb-6 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
+                  <div className="p-6">
+                    <h3 className="text-lg font-black text-white mb-4 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
                       {item.title}
                     </h3>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between border-b border-white/5 pb-3">
                         <div className="flex items-center gap-2">
                           <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
@@ -275,23 +278,27 @@ const CreativeShowcase: React.FC = () => {
                           </span>
                         </div>
                         <span className="text-xs font-medium text-white uppercase">
-                          {item.video === "mp4" ? "mp4" : (item.video ?? "none")}
+                          {item.video === "mp4"
+                            ? "mp4"
+                            : (item.video ?? "none")}
                         </span>
                       </div>
                     </div>
 
                     {!isAdsop && (
-                      <div className="mt-6">
+                      <div className="mt-4">
                         <button
                           type="button"
                           onClick={() => {
                             void handleDownload(item);
                           }}
                           disabled={!item.source || downloadingId === item.id}
-                          className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                          className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                         >
                           <ArrowDownTrayIcon className="w-4 h-4" />
-                          {downloadingId === item.id ? "Downloading..." : "Download"}
+                          {downloadingId === item.id
+                            ? "Downloading..."
+                            : "Download"}
                         </button>
                       </div>
                     )}

@@ -74,12 +74,13 @@ sftpRouter.get("/read", async (req: Request, res: Response) => {
 sftpRouter.get("/exists", async (req: Request, res: Response) => {
   try {
     const path = req.query.path as string | undefined;
+    const scope = (req.query.scope as string | undefined) === "demo" ? "demo" : "media";
     if (!path) {
       res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
       return;
     }
 
-    const result = await sftpPathExists(path);
+    const result = await sftpPathExists(path, {}, { scope });
     res.json({ ok: true, path, ...result });
   } catch (error: unknown) {
     const message =
