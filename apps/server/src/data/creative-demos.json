@@ -276,7 +276,7 @@
     {
       "id": "0022",
       "title": "Display Masthead",
-      "image": "https://demo.yomedia.vn/yomedia/app/template/data/demo/0074/background/800x600.png",
+      "image": "https://picsum.photos/seed/demo101/800/600",
       "size": ["970x250"],
       "position": "Top Center",
       "fileType": "HTML5",
@@ -686,8 +686,8 @@
       "category": "Mobile",
       "value": "mobile-masthead-itvc",
       "video": "mp4",
-      "source": "",
-      "status": "inactive"
+      "source": "yomedia/app/template/data/0053/banner",
+      "status": "active"
     },
     {
       "id": "0054",

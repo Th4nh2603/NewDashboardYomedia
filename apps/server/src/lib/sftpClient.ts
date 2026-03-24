@@ -180,39 +180,59 @@ export async function writeSftpFile(
 export async function sftpPathExists(
   targetPath: string,
   config: SftpConfig = {},
+  options: { scope?: "media" | "demo" } = {},
 ) {
   const client = new SftpClient();
+  const scope = options.scope ?? "media";
 
-  const host = config.host ?? process.env.SFTP_HOST_MEDIA;
+  const host =
+    config.host ??
+    (scope === "demo" ? process.env.SFTP_HOST : process.env.SFTP_HOST_MEDIA);
   const portRaw =
     config.port ??
-    (process.env.SFTP_PORT_MEDIA
-      ? Number(process.env.SFTP_PORT_MEDIA)
-      : undefined);
+    (scope === "demo"
+      ? process.env.SFTP_PORT
+        ? Number(process.env.SFTP_PORT)
+        : undefined
+      : process.env.SFTP_PORT_MEDIA
+        ? Number(process.env.SFTP_PORT_MEDIA)
+        : undefined);
   const port = portRaw ?? 2122;
-  const username = config.username ?? process.env.SFTP_USER_MEDIA;
-  const password = config.password ?? process.env.SFTP_PASSWORD_MEDIA;
+  const username =
+    config.username ??
+    (scope === "demo" ? process.env.SFTP_USER : process.env.SFTP_USER_MEDIA);
+  const password =
+    config.password ??
+    (scope === "demo"
+      ? process.env.SFTP_PASSWORD
+      : process.env.SFTP_PASSWORD_MEDIA);
 
   if (!host || !username || !password) {
     throw new Error(
-      "Missing SFTP MEDIA credentials. Please set SFTP_HOST_MEDIA, SFTP_PORT_MEDIA, SFTP_USER_MEDIA, SFTP_PASSWORD_MEDIA in .env",
+      scope === "demo"
+        ? "Missing SFTP DEMO credentials. Please set SFTP_HOST, SFTP_PORT, SFTP_USER, SFTP_PASSWORD in .env"
+        : "Missing SFTP MEDIA credentials. Please set SFTP_HOST_MEDIA, SFTP_PORT_MEDIA, SFTP_USER_MEDIA, SFTP_PASSWORD_MEDIA in .env",
     );
   }
 
   const rawPath = (targetPath || "").trim();
   const normalizedInput = (rawPath || "/").replace(/\\+/g, "/");
 
-  // Always check under /media (treat input as relative to /media unless already absolute /media/*)
-  const MEDIA_ROOT = "media";
   let checkedPath = normalizedInput;
-  if (checkedPath === "/") checkedPath = "";
+  if (scope === "media") {
+    // Always check under /media (treat input as relative to /media unless already absolute /media/*)
+    const MEDIA_ROOT = "media";
+    if (checkedPath === "/") checkedPath = "";
 
-  if (checkedPath.startsWith(MEDIA_ROOT + "/") || checkedPath === MEDIA_ROOT) {
-    // keep as-is
-  } else if (checkedPath.startsWith("/")) {
-    checkedPath = `${MEDIA_ROOT}${checkedPath}`;
+    if (checkedPath.startsWith(MEDIA_ROOT + "/") || checkedPath === MEDIA_ROOT) {
+      // keep as-is
+    } else if (checkedPath.startsWith("/")) {
+      checkedPath = `${MEDIA_ROOT}${checkedPath}`;
+    } else {
+      checkedPath = `${MEDIA_ROOT}/${checkedPath}`;
+    }
   } else {
-    checkedPath = `${MEDIA_ROOT}/${checkedPath}`;
+    checkedPath = checkedPath.replace(/\/+$/, "");
   }
 
   checkedPath = checkedPath.replace(/\/{2,}/g, "/");
@@ -257,6 +277,14 @@ export async function sftpPathExists(
       checkedPath,
       exists: Boolean(existsType),
       type: existsType === false ? null : existsType,
+      kind:
+        existsType === "d"
+          ? ("directory" as const)
+          : existsType === "-"
+            ? ("file" as const)
+            : existsType === "l"
+              ? ("symlink" as const)
+              : null,
       hasIndexHtml,
       message,
     };

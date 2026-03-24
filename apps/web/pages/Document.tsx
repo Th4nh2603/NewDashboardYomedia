@@ -11,6 +11,16 @@ interface RouteInfo {
 
 const routes: RouteInfo[] = [
   {
+    path: "/login",
+    name: "Login",
+    group: "Auth",
+    description:
+      "Màn hình đăng nhập bằng Google OAuth, kiểm tra role và tạo phiên truy cập trước khi vào dashboard.",
+    usage:
+      "Dùng khi bắt đầu phiên làm việc hoặc khi token hết hạn. Nếu không đăng nhập, các route trong dashboard sẽ bị chặn bởi PrivateRoute.",
+    note: "Route public duy nhất; không nằm trong Sidebar.",
+  },
+  {
     path: "/",
     name: "Dashboard",
     group: "Core",
@@ -65,6 +75,15 @@ const routes: RouteInfo[] = [
       "Dùng micro để nói chuyện trực tiếp với AI, phù hợp demo khả năng tư vấn realtime, Q&A live trong workshop hoặc event nội bộ.",
   },
   {
+    path: "/ai-gmail",
+    name: "AI Gmail",
+    group: "AI Intelligence",
+    description:
+      "Trợ lý email thông minh: hỗ trợ đọc/tóm tắt nội dung, phân loại và gợi ý phản hồi nhanh.",
+    usage:
+      "Dùng cho các tác vụ xử lý email số lượng lớn hoặc cần trả lời nhanh theo ngữ cảnh chiến dịch.",
+  },
+  {
     path: "/creative-showcase",
     name: "Creative Showcase",
     group: "Data Management",
@@ -92,6 +111,15 @@ const routes: RouteInfo[] = [
       "Dùng khi cần onboard một demo creative mới: upload file HTML/JS/ảnh nguồn, điền thông tin mapping, để hệ thống render & deploy thành demo hoàn chỉnh sẵn sàng dùng trong showcase.",
   },
   {
+    path: "/documentation",
+    name: "Documentation",
+    group: "Data Management",
+    description:
+      "Trang hướng dẫn tính năng theo module (User Guide), phục vụ onboarding user mới và training nội bộ.",
+    usage:
+      "Dùng làm tài liệu tham chiếu khi cần hiểu nhanh khả năng của từng module trong hệ thống.",
+  },
+  {
     path: "/bar",
     name: "Performance (Bar)",
     group: "Analytics",
@@ -113,23 +141,25 @@ const routes: RouteInfo[] = [
 
 const DocumentPage: React.FC = () => {
   return (
-    <div className="max-w-5xl mx-auto pt-8 pb-12 space-y-8">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-3 bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+    <div className="max-w-6xl mx-auto pt-8 pb-12 space-y-8">
+      <header className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#141b2d]/70 backdrop-blur-xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-[#4cceac]/10 blur-3xl" />
+        <div className="absolute -bottom-12 -left-12 w-56 h-56 rounded-full bg-indigo-500/10 blur-3xl" />
+        <h1 className="relative text-3xl md:text-4xl font-black mb-3 bg-gradient-to-r from-white via-[#d7fff4] to-[#9ca3af] bg-clip-text text-transparent tracking-tight">
           Router Documentation
         </h1>
-        <p className="text-slate-600 dark:text-slate-300 text-sm md:text-base max-w-2xl">
+        <p className="relative text-[#a3a3a3] text-sm md:text-base max-w-2xl leading-relaxed">
           Trang này liệt kê toàn bộ các router (đường dẫn) đang dùng trong
           dashboard YomediaAI, kèm mô tả chức năng và gợi ý cách sử dụng cho
           team nội bộ.
         </p>
       </header>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+      <section className="space-y-4 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
+        <h2 className="text-xl font-black text-white tracking-tight">
           1. Cách truy cập router
         </h2>
-        <ul className="list-disc list-inside text-sm md:text-base text-slate-700 dark:text-slate-300 space-y-1">
+        <ul className="list-disc list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
           <li>
             <span className="font-semibold">Qua Sidebar</span>: mỗi mục trong
             sidebar được map 1–1 với một router (ví dụ: &quot;AI Chat&quot; →
@@ -161,43 +191,53 @@ const DocumentPage: React.FC = () => {
             </code>
             , nên cần login thành công mới truy cập được.
           </li>
+          <li>
+            <span className="font-semibold">Phân quyền theo role</span>: một số
+            menu được ẩn theo role (ví dụ{" "}
+            <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
+              /build-demo
+            </code>{" "}
+            có thể bị ẩn với adsop/adsopmanager), nhưng route vẫn tồn tại trong app.
+          </li>
         </ul>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+      <section className="space-y-4 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
+        <h2 className="text-xl font-black text-white tracking-tight">
           2. Danh sách router & chức năng
         </h2>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-sm">
-          <div className="grid grid-cols-12 px-4 py-3 text-[11px] md:text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-900">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220]/80 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+          <div className="grid grid-cols-12 px-4 py-3 text-[11px] md:text-xs font-black uppercase tracking-wide text-[#94a3b8] bg-[#0f172a]/90 border-b border-white/5">
             <div className="col-span-3 md:col-span-2">Router</div>
             <div className="hidden md:block md:col-span-2">Nhóm</div>
             <div className="col-span-9 md:col-span-8">Mô tả</div>
           </div>
-          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+          <div className="divide-y divide-white/5">
             {routes.map((route) => (
               <div
                 key={route.path}
-                className="grid grid-cols-12 px-4 py-3 text-xs md:text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors"
+                className="grid grid-cols-12 px-4 py-3 text-xs md:text-sm text-[#e5e7eb] hover:bg-white/5 transition-colors"
               >
                 <div className="col-span-3 md:col-span-2 flex flex-col">
-                  <span className="font-semibold">{route.name}</span>
-                  <code className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="font-bold text-white">{route.name}</span>
+                  <code className="text-[11px] text-[#7dd3fc] mt-0.5">
                     {route.path}
                   </code>
                 </div>
-                <div className="hidden md:flex md:col-span-2 items-center text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {route.group}
+                <div className="hidden md:flex md:col-span-2 items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-[#93c5fd] bg-[#1e3a8a]/30 border border-[#1e40af]/40 px-2 py-1 rounded-full">
+                    {route.group}
+                  </span>
                 </div>
                 <div className="col-span-9 md:col-span-8">
                   <p>{route.description}</p>
-                  <p className="mt-1 text-[11px] md:text-xs text-slate-600 dark:text-slate-400">
-                    <span className="font-semibold">Cách dùng nhanh:</span>{" "}
+                  <p className="mt-1 text-[11px] md:text-xs text-[#94a3b8]">
+                    <span className="font-semibold text-[#cbd5e1]">Cách dùng nhanh:</span>{" "}
                     {route.usage}
                   </p>
                   {route.note && (
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-[11px] text-[#fda4af]">
                       Ghi chú: {route.note}
                     </p>
                   )}
@@ -208,11 +248,11 @@ const DocumentPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+      <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
+        <h2 className="text-xl font-black text-white tracking-tight">
           3. Cách thêm router mới
         </h2>
-        <ol className="list-decimal list-inside text-sm md:text-base text-slate-700 dark:text-slate-300 space-y-1">
+        <ol className="list-decimal list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
           <li>
             Tạo file page mới trong thư mục{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
@@ -242,22 +282,52 @@ const DocumentPage: React.FC = () => {
         </ol>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-          4. API backend quan trọng (upload demo)
+      <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
+        <h2 className="text-xl font-black text-white tracking-tight">
+          4. API backend quan trọng theo chức năng
         </h2>
-        <p className="text-sm md:text-base text-slate-700 dark:text-slate-300">
-          Backend hiện có router upload chính phục vụ tính năng{" "}
-          <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
-            Build Demo
-          </code>
-          . Base URL (theo config server nội bộ):
-          <code className="ml-1 px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
-            /api/upload
-          </code>
-          .
-        </p>
-        <ul className="list-disc list-inside text-sm md:text-base text-slate-700 dark:text-slate-300 space-y-1">
+        <ul className="list-disc list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
+          <li>
+            <span className="font-semibold">RAG Chat</span>{" "}
+            <code className="text-xs">POST /api/rag/query</code>: nhận{" "}
+            <code className="text-xs">question</code>, trả về{" "}
+            <code className="text-xs">answer + sources</code>. Dùng cho trang{" "}
+            <code className="text-xs">/chat</code>.
+          </li>
+          <li>
+            <span className="font-semibold">Creative Demos</span>{" "}
+            <code className="text-xs">GET /api/creative-demos</code>: trả danh
+            sách demo theo dữ liệu server (đang lọc theo status active), dùng ở{" "}
+            <code className="text-xs">/creative-showcase</code> và logic match format.
+          </li>
+          <li>
+            <span className="font-semibold">SFTP Connect</span>{" "}
+            <code className="text-xs">GET /api/sftp/connect</code>: test kết
+            nối SFTP, dùng tại <code className="text-xs">/manage-demo</code>.
+          </li>
+          <li>
+            <span className="font-semibold">SFTP List</span>{" "}
+            <code className="text-xs">GET /api/sftp/list?path=...</code>: liệt
+            kê file/thư mục từ đường dẫn SFTP.
+          </li>
+          <li>
+            <span className="font-semibold">SFTP Read/Write</span>{" "}
+            <code className="text-xs">GET /api/sftp/read</code>,{" "}
+            <code className="text-xs">POST /api/sftp/write</code>: đọc/sửa file
+            trực tiếp trên SFTP.
+          </li>
+          <li>
+            <span className="font-semibold">SFTP Exists</span>{" "}
+            <code className="text-xs">GET /api/sftp/exists?path=...</code>: kiểm
+            tra thư mục có tồn tại hay không (được dùng trong Chat để check path).
+          </li>
+          <li>
+            <span className="font-semibold">SFTP Download Directory</span>{" "}
+            <code className="text-xs">
+              GET /api/sftp/download-directory?path=...
+            </code>
+            : tải toàn bộ thư mục thành file zip (nút Download ở showcase).
+          </li>
           <li>
             <span className="font-semibold">GET /api/upload</span>: trả về danh
             sách file HTML/JS đã upload sẵn để dùng trong pipeline build demo.
@@ -283,6 +353,19 @@ const DocumentPage: React.FC = () => {
             thường dùng khi cần dọn sạch môi trường test/demo.
           </li>
         </ul>
+      </section>
+
+      <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
+        <h2 className="text-xl font-black text-white tracking-tight">
+          5. Checklist khi thêm chức năng mới
+        </h2>
+        <ol className="list-decimal list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
+          <li>Thêm route trong App.tsx và menu trong Sidebar.tsx (nếu cần).</li>
+          <li>Ghi 1 dòng vào trang này: path, mục đích, cách dùng nhanh.</li>
+          <li>Kiểm tra role nào được thấy/chạy chức năng đó.</li>
+          <li>Liệt kê API backend liên quan (method + endpoint + input/output chính).</li>
+          <li>Test lại end-to-end trước khi merge/push.</li>
+        </ol>
       </section>
     </div>
   );

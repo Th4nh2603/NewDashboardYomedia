@@ -214,7 +214,26 @@ export async function answerWithRag(params: { question: string }) {
     score: cosineSimilarity(qVec, v),
   }));
   scored.sort((a, b) => b.score - a.score);
-  const retrieved = scored.slice(0, 6).map((s) => rag.docs[s.idx]!);
+  const sizeTokenMatch = question.match(/\b\d{2,4}x\d{2,4}\b/i);
+  const sizeToken = sizeTokenMatch?.[0]?.toLowerCase() ?? null;
+  const keywordMatchedIdx = sizeToken
+    ? rag.docs
+        .map((d, idx) => ({ idx, has: d.pageContent.toLowerCase().includes(sizeToken) }))
+        .filter((x) => x.has)
+        .map((x) => x.idx)
+    : [];
+
+  const selectedIdx: number[] = [];
+  for (const idx of keywordMatchedIdx) {
+    if (!selectedIdx.includes(idx)) selectedIdx.push(idx);
+    if (selectedIdx.length >= 6) break;
+  }
+  for (const s of scored) {
+    if (!selectedIdx.includes(s.idx)) selectedIdx.push(s.idx);
+    if (selectedIdx.length >= 6) break;
+  }
+
+  const retrieved = selectedIdx.map((idx) => rag.docs[idx]!);
 
   const context = retrieved
     .map((d: Document, i: number) => {
