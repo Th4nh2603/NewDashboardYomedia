@@ -329,15 +329,13 @@ const DocumentPage: React.FC = () => {
             : tải toàn bộ thư mục thành file zip (nút Download ở showcase).
           </li>
           <li>
-            <span className="font-semibold">GET /api/upload</span>: trả về danh
-            sách file HTML/JS đã upload sẵn để dùng trong pipeline build demo.
+            <span className="font-semibold">GET /api/upload</span>: (đã xoá/không còn dùng)
           </li>
           <li>
             <span className="font-semibold">
               GET /api/upload?name=&lt;file&gt;
             </span>
-            : đọc nội dung một file cụ thể và tự động replace đường dẫn ảnh
-            thành base64 phục vụ việc preview/render.
+            : (đã xoá/không còn dùng)
           </li>
           <li>
             <span className="font-semibold">POST /api/upload</span>: nhận body
@@ -345,12 +343,10 @@ const DocumentPage: React.FC = () => {
             <code className="text-xs">content</code> (HTML/JS) và optional
             mảng <code className="text-xs">images[]</code> (base64) để lưu
             file & asset lên thư mục <code className="text-xs">uploads</code>{" "}
-            trên server.
+            trên server. (đã xoá/không còn dùng)
           </li>
           <li>
-            <span className="font-semibold">DELETE /api/upload</span>: xóa toàn
-            bộ file trong thư mục <code className="text-xs">uploads</code>;
-            thường dùng khi cần dọn sạch môi trường test/demo.
+            <span className="font-semibold">DELETE /api/upload</span>: (đã xoá/không còn dùng)
           </li>
         </ul>
       </section>
