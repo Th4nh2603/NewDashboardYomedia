@@ -23,10 +23,68 @@ function extractSizeFromPath(relativePath: string) {
   return segments.find((s) => /^\d{2,4}x\d{2,4}$/i.test(s)) ?? null;
 }
 
+function extractSizeFromJsFilename(fileName: string) {
+  const match = fileName
+    .trim()
+    .toLowerCase()
+    .match(/^(\d{2,4}x\d{2,4})\.js$/i);
+  return match?.[1] ?? null;
+}
+
+function toSftpDirectoryPath(remotePath: string, baseRemotePath: string) {
+  const trimmed = remotePath.trim();
+  if (!trimmed) return null;
+
+  const withoutQuery = trimmed.split("?")[0].split("#")[0];
+  const noTrailingSlash = withoutQuery.replace(/\/+$/, "");
+  const noLeadingSlash = noTrailingSlash.replace(/^\/+/, "");
+  const normalizedBase = baseRemotePath.replace(/\/+$/, "");
+
+  if (!noLeadingSlash) return normalizedBase || "/";
+
+  if (noTrailingSlash.startsWith("/")) {
+    if (noTrailingSlash.startsWith(`${normalizedBase}/`)) return noTrailingSlash;
+    if (noTrailingSlash === normalizedBase) return noTrailingSlash;
+    return `${normalizedBase}/${noLeadingSlash}`;
+  }
+
+  return `${normalizedBase}/${noLeadingSlash}`;
+}
+
+async function getSizeFromSftpDirectory(
+  remotePath: string,
+  baseRemotePath: string,
+  serverApiUrl: string,
+) {
+  const directoryPath = toSftpDirectoryPath(remotePath, baseRemotePath);
+  if (!directoryPath) return null;
+
+  try {
+    const res = await fetch(
+      `${serverApiUrl}/api/sftp/list?path=${encodeURIComponent(directoryPath)}`,
+    );
+    const data = await res.json();
+    if (!res.ok || !data?.ok || !Array.isArray(data?.entries)) return null;
+
+    const entries = data.entries as Array<{ name?: string; type?: string }>;
+    for (const entry of entries) {
+      if (entry?.type === "d") continue;
+      const size = extractSizeFromJsFilename(String(entry?.name ?? ""));
+      if (size) return size;
+    }
+  } catch {
+    // Keep old fallback flow if SFTP list fails.
+  }
+
+  return null;
+}
+
 function sizeMatches(itemSize: unknown, targetSize: string) {
   if (!itemSize) return false;
   if (Array.isArray(itemSize)) {
-    return itemSize.some((s) => String(s).toLowerCase() === targetSize.toLowerCase());
+    return itemSize.some(
+      (s) => String(s).toLowerCase() === targetSize.toLowerCase(),
+    );
   }
   const value = String(itemSize).toLowerCase();
   return (
@@ -35,18 +93,40 @@ function sizeMatches(itemSize: unknown, targetSize: string) {
   );
 }
 
-function fallbackFormatBySize(size: string) {
+function fallbackFormatBySize(
+  size: string,
+  demos?: Array<{ size?: unknown; value?: string; category?: string }>,
+) {
   const key = size.toLowerCase();
-  if (key === "970x250") return "masthead-pc";
-  if (key === "480x270") return "masthead-mb";
-  if (key === "384x683") return "inpage-mb";
+  const match = (demos ?? []).find((item) => {
+    if (!item?.value) return false;
+    const raw = item.size;
+    if (Array.isArray(raw)) {
+      return raw.some(
+        (entry) =>
+          String(entry ?? "")
+            .trim()
+            .toLowerCase() === key,
+      );
+    }
+    return (
+      String(raw ?? "")
+        .trim()
+        .toLowerCase() === key
+    );
+  });
+  if (match?.value) return match.value;
   return "inpage-mb";
 }
 
-async function getFormatFromApi(
-  size: string | null,
-  serverApiUrl: string,
-) {
+function inferDeviceByCategory(category: string | null | undefined): "pc" | "mb" {
+  const key = String(category ?? "").trim().toLowerCase();
+  if (key === "display") return "pc";
+  if (key === "mobile") return "mb";
+  return "mb";
+}
+
+async function getFormatFromApi(size: string | null, serverApiUrl: string) {
   if (!size) return { format: "inpage-mb", device: "mb" as const };
 
   const res = await fetch(`${serverApiUrl}/api/creative-demos`);
@@ -55,12 +135,13 @@ async function getFormatFromApi(
     return { format: "inpage-mb", device: "mb" as const };
   }
 
-  const found = (
-    data.demos as Array<{
-      size?: unknown;
-      value?: string;
-    }>
-  ).find((item) => {
+  const demos = data.demos as Array<{
+    size?: unknown;
+    value?: string;
+    category?: string;
+  }>;
+
+  const foundBySize = demos.find((item) => {
     const sizes: unknown[] = [];
     const raw = item.size;
     if (Array.isArray(raw)) {
@@ -74,8 +155,9 @@ async function getFormatFromApi(
     return sizes.some((s) => sizeMatches(s, size)) && Boolean(item.value);
   });
 
-  const format = found?.value || fallbackFormatBySize(size);
-  const device = format.includes("-pc") ? "pc" : "mb";
+  const format = foundBySize?.value || fallbackFormatBySize(size, demos);
+  const deviceByCategory = inferDeviceByCategory(foundBySize?.category);
+  const device = format.includes("-pc") ? "pc" : deviceByCategory;
   return { format, device: device as "mb" | "pc" };
 }
 
@@ -106,7 +188,12 @@ export async function openYomediaDemoPreview(
         : `${relative.replace(/\/+$/, "")}/index.html`
       : "index.html";
 
-  const size = extractSizeFromPath(computedBannerPath);
+  const sizeFromSftp = await getSizeFromSftpDirectory(
+    params.remotePath,
+    baseRemotePath,
+    serverApiUrl,
+  );
+  const size = sizeFromSftp ?? extractSizeFromPath(computedBannerPath);
   const resolved = params.formatValue?.trim()
     ? {
         format: params.formatValue.trim(),
@@ -118,7 +205,7 @@ export async function openYomediaDemoPreview(
   const { format: formatParam, device } = resolved;
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";
-  const previewBase = `https://demo.yomedia.vn/yomedia/site/id${
+  const previewBase = `https://demo.yomedia.vn/yomedia/app/template/site/id${
     isPcFormat ? "pc" : "mb"
   }/index.html`;
   const url = `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;

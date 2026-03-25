@@ -216,7 +216,6 @@ const CreativeShowcase: React.FC = () => {
                     <div className="absolute inset-0 bg-[#4cceac]/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                       <OpenDemoButton
                         remotePath={item.source ?? ""}
-                        bannerPath={item.source ?? ""}
                         formatValue={item.value}
                         forceDevice={
                           item.category === "Display" ? "pc" : undefined

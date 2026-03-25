@@ -49,6 +49,14 @@ const ManageDemo: React.FC = () => {
   const [editorContent, setEditorContent] = React.useState<string>("");
   const [editorMode, setEditorMode] = React.useState<"view" | "edit">("view");
   const [savingFile, setSavingFile] = React.useState(false);
+  const hasJsSizeFile = React.useMemo(
+    () =>
+      entries.some(
+        (entry) =>
+          entry.type !== "d" && /^\d{2,4}x\d{2,4}\.js$/i.test(entry.name),
+      ),
+    [entries],
+  );
 
   const getParentPath = () => {
     const trimmed = remotePath.endsWith("/")
@@ -268,6 +276,7 @@ const ManageDemo: React.FC = () => {
           </button>
           <button
             onClick={handleOpenBanner}
+            disabled={!hasJsSizeFile || loadingList}
             className="px-4 py-2.5 rounded-2xl bg-[#1d4ed8] text-white text-xs font-semibold uppercase tracking-widest hover:bg-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Banner
@@ -275,6 +284,7 @@ const ManageDemo: React.FC = () => {
           <OpenDemoButton
             remotePath={remotePath}
             baseRemotePath={BASE_REMOTE_PATH}
+            disabled={!hasJsSizeFile || loadingList}
           />
         </div>
 

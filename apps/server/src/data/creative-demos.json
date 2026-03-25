@@ -11,7 +11,9 @@
       "value": "display-iab",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0002",
@@ -24,20 +26,24 @@
       "value": "display-masthead-3d-box",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0003",
       "title": "Display In Image",
       "image": "https://picsum.photos/seed/demo79/800/600",
       "size": ["600x125"],
-      "position": "-",
+      "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
       "value": "display-in-image",
       "video": "none",
-      "source": "",
-      "status": "inactive"
+      "source": "yomedia/app/template/data/0003/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_in_image_native.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0004",
@@ -50,7 +56,9 @@
       "value": "display-on-image",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0005",
@@ -63,7 +71,9 @@
       "value": "display-bottom-up",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0006",
@@ -76,7 +86,9 @@
       "value": "display-iab-medium",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0007",
@@ -89,7 +101,9 @@
       "value": "display-big-balloon",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0008",
@@ -102,7 +116,9 @@
       "value": "display-in-image-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_in_image_native.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0009",
@@ -115,7 +131,9 @@
       "value": "display-on-image-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0010",
@@ -128,7 +146,9 @@
       "value": "display-sidekick-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0011",
@@ -141,7 +161,9 @@
       "value": "display-in-feed-native",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0012",
@@ -154,7 +176,9 @@
       "value": "display-3d-post-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0013",
@@ -167,7 +191,9 @@
       "value": "display-balloon-standard",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0014",
@@ -180,7 +206,9 @@
       "value": "display-bottom-up-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0015",
@@ -193,7 +221,9 @@
       "value": "display-iab-medium-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0016",
@@ -206,7 +236,9 @@
       "value": "display-in-image-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0017",
@@ -219,7 +251,9 @@
       "value": "display-in-image-takeover",
       "video": "none",
       "source": "yomedia/app/template/data/0017/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_in_image_takeover.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0018",
@@ -232,7 +266,9 @@
       "value": "display-masthead-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0019",
@@ -245,7 +281,9 @@
       "value": "display-balloon-expandable",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0020",
@@ -258,7 +296,9 @@
       "value": "display-big-balloon-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0021",
@@ -271,7 +311,9 @@
       "value": "display-in-image-with-image-under",
       "video": "none",
       "source": "yomedia/app/template/data/0021/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0022",
@@ -284,7 +326,9 @@
       "value": "display-masthead",
       "video": "none",
       "source": "yomedia/app/template/data/0022/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     },
     {
       "id": "0023",
@@ -297,7 +341,9 @@
       "value": "display-in-image-carousel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0024",
@@ -310,7 +356,9 @@
       "value": "display-in-image-takeover-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_in_image_takeover.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0025",
@@ -323,7 +371,9 @@
       "value": "display-masthead-carousel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0026",
@@ -336,7 +386,9 @@
       "value": "display-balloon-standard-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0027",
@@ -349,7 +401,9 @@
       "value": "display-in-image-with-image-under-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0028",
@@ -362,20 +416,24 @@
       "value": "display-balloon-expandable-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0029",
       "title": "Display In Image With Inread Video",
       "image": "https://picsum.photos/seed/demo82/800/600",
-      "size": ["600x125", "480x270"],
+      "size": ["600x125"],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
       "value": "display-in-image-with-inread-video",
       "video": "none",
       "source": "yomedia/app/template/data/0029/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0030",
@@ -388,7 +446,9 @@
       "value": "display-masthead-itvc",
       "video": "mp4",
       "source": "yomedia/app/template/data/0030/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0031",
@@ -401,7 +461,9 @@
       "value": "display-masthead-expandable",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0032",
@@ -414,7 +476,9 @@
       "value": "display-masthead-expandable-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0033",
@@ -427,7 +491,9 @@
       "value": "mobile-iab",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0034",
@@ -440,7 +506,9 @@
       "value": "mobile-card",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0035",
@@ -453,7 +521,9 @@
       "value": "mobile-shake",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0036",
@@ -465,8 +535,10 @@
       "category": "Mobile",
       "value": "mobile-wheel",
       "video": "none",
-      "source": "",
-      "status": "inactive"
+      "source": "yomedia/app/template/data/0036/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_footer_wheel.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0037",
@@ -479,7 +551,9 @@
       "value": "mobile-tetris",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0038",
@@ -492,7 +566,9 @@
       "value": "mobile-bottom",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0039",
@@ -505,7 +581,9 @@
       "value": "mobile-in-image",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0040",
@@ -518,7 +596,9 @@
       "value": "mobile-masthead",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     },
     {
       "id": "0041",
@@ -531,7 +611,9 @@
       "value": "mobile-on-image",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0042",
@@ -544,7 +626,9 @@
       "value": "mobile-pull-ads",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0043",
@@ -557,7 +641,9 @@
       "value": "mobile-windmill",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0044",
@@ -570,7 +656,9 @@
       "value": "mobile-card-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0045",
@@ -583,7 +671,9 @@
       "value": "mobile-scratcher",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0046",
@@ -596,7 +686,9 @@
       "value": "mobile-spin-plus",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0047",
@@ -609,7 +701,9 @@
       "value": "mobile-iab-medium",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0048",
@@ -622,7 +716,9 @@
       "value": "mobile-shake-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0049",
@@ -635,7 +731,9 @@
       "value": "mobile-wheel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0050",
@@ -648,7 +746,9 @@
       "value": "mobile-tetris-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0051",
@@ -661,7 +761,9 @@
       "value": "mobile-bottom-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0052",
@@ -674,7 +776,9 @@
       "value": "mobile-in-image-itvc",
       "video": "mp4",
       "source": "yomedia/app/template/data/0052/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0053",
@@ -687,7 +791,9 @@
       "value": "mobile-masthead-itvc",
       "video": "mp4",
       "source": "yomedia/app/template/data/0053/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     },
     {
       "id": "0054",
@@ -700,7 +806,9 @@
       "value": "mobile-on-image-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0055",
@@ -713,7 +821,9 @@
       "value": "mobile-footer-expand",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0056",
@@ -726,7 +836,9 @@
       "value": "mobile-Inpage",
       "video": "none",
       "source": "yomedia/app/template/data/0056/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interscroller.js",
+      "delivery-name-replace": "ads-inpage"
     },
     {
       "id": "0057",
@@ -739,7 +851,9 @@
       "value": "mobile-in-feed-native",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0058",
@@ -752,7 +866,9 @@
       "value": "mobile-inpage-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0059",
@@ -765,7 +881,9 @@
       "value": "mobile-spin-plus-new",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0060",
@@ -778,7 +896,9 @@
       "value": "mobile-3d-post-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0061",
@@ -791,7 +911,9 @@
       "value": "mobile-in-image-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0062",
@@ -804,7 +926,9 @@
       "value": "mobile-in-image-takeover",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0063",
@@ -817,7 +941,9 @@
       "value": "mobile-masthead-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     },
     {
       "id": "0064",
@@ -830,7 +956,9 @@
       "value": "mobile-footer-expand-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0065",
@@ -843,7 +971,9 @@
       "value": "mobile-interstitial-shake",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0066",
@@ -856,7 +986,9 @@
       "value": "mobile-Inpage-shake",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0067",
@@ -869,7 +1001,9 @@
       "value": "mobile-in-image-with-image-under",
       "video": "none",
       "source": "yomedia/app/template/data/0067/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0068",
@@ -882,7 +1016,9 @@
       "value": "mobile-Inpage-itvc",
       "video": "mp4",
       "source": "yomedia/app/template/data/0068/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interscroller.js",
+      "delivery-name-replace": ""
     },
     {
       "id": "0069",
@@ -895,7 +1031,9 @@
       "value": "mobile-in-image-carousel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0070",
@@ -908,7 +1046,9 @@
       "value": "mobile-in-image-takeover-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0071",
@@ -921,7 +1061,9 @@
       "value": "mobile-masthead-carousel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     },
     {
       "id": "0072",
@@ -934,7 +1076,9 @@
       "value": "mobile-footer-3d-box-carousel",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0073",
@@ -947,7 +1091,9 @@
       "value": "mobile-interstitial-firstview",
       "video": "none",
       "source": "yomedia/app/template/data/0073/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0074",
@@ -960,7 +1106,9 @@
       "value": "mobile-in-image-with-image-under-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0075",
@@ -973,7 +1121,9 @@
       "value": "mobile-in-image-with-inread-video",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0076",
@@ -986,7 +1136,9 @@
       "value": "mobile-interstitial-itvc-firstview",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0077",
@@ -999,7 +1151,9 @@
       "value": "mobile-footer-3d-box-carousel-itvc",
       "video": "mp4",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0078",
@@ -1012,7 +1166,9 @@
       "value": "mobile-interstitial-interactive-firstview",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0079",
@@ -1025,7 +1181,9 @@
       "value": "video-in-read",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0080",
@@ -1038,7 +1196,9 @@
       "value": "video-preroll",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0081",
@@ -1051,7 +1211,9 @@
       "value": "vertical-video-Inpage",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0082",
@@ -1064,7 +1226,9 @@
       "value": "display-balloon-expandable",
       "video": "none",
       "source": "",
-      "status": "inactive"
+      "status": "inactive",
+      "delivery": "",
+      "delivery-name-replace": ""
     },
     {
       "id": "0083",
@@ -1077,7 +1241,9 @@
       "value": "display-balloon-expandable-itvc",
       "video": "mp4",
       "source": "yomedia/app/template/data/0083/banner",
-      "status": "active"
+      "status": "active",
+      "delivery": "",
+      "delivery-name-replace": ""
     }
   ]
 }
