@@ -215,11 +215,11 @@ const BuildDemo: React.FC = () => {
         if (!cancelled) {
           const exists = Boolean(
             res.ok &&
-              data?.ok &&
-              data?.exists &&
-              (data?.kind === "directory" ||
-                data?.kind === "file" ||
-                data?.kind === "symlink"),
+            data?.ok &&
+            data?.exists &&
+            (data?.kind === "directory" ||
+              data?.kind === "file" ||
+              data?.kind === "symlink"),
           );
           setDirectoryExists(exists);
         }
@@ -466,12 +466,54 @@ const BuildDemo: React.FC = () => {
       .filter(Boolean);
     if (images.length === 0) return content;
 
-    let output = content;
-    images.forEach((img) => {
-      const escapedName = escapeRegExp(img.name);
-      output = output.replace(new RegExp(escapedName, "g"), img.base64);
-    });
-    return output;
+    // Replace each manifest entry line that contains the original image name,
+    // so we can also inject `type:createjs.AbstractLoader.IMAGE`.
+    const lines = content.split(/\r?\n/);
+
+    for (const img of images) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.includes(img.name)) continue;
+
+        const idx = line.indexOf(img.name);
+        if (idx === -1) continue;
+
+        const afterNameIndex = idx + img.name.length;
+
+        // Find the next closing quote after the image name.
+        const nextDoubleQuoteIndex = line.indexOf('"', afterNameIndex);
+        const nextSingleQuoteIndex = line.indexOf("'", afterNameIndex);
+
+        const nextQuoteIndex =
+          nextDoubleQuoteIndex === -1
+            ? nextSingleQuoteIndex
+            : nextSingleQuoteIndex === -1
+              ? nextDoubleQuoteIndex
+              : Math.min(nextDoubleQuoteIndex, nextSingleQuoteIndex);
+
+        // Default to double quotes if we cannot detect the quote style.
+        const quoteChar =
+          nextQuoteIndex === -1
+            ? '"'
+            : nextQuoteIndex === nextSingleQuoteIndex
+              ? "'"
+              : '"';
+
+        const suffixAfterQuote =
+          nextQuoteIndex === -1
+            ? line.slice(afterNameIndex)
+            : line.slice(nextQuoteIndex + 1);
+
+        const leadingWs = line.match(/^\s*/)?.[0] ?? "";
+        lines[i] =
+          `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
+        // Chèn xong 1 manifest entry cho ảnh này thì dừng quét phần còn lại trong file
+        // (tránh chèn trùng nếu img.name xuất hiện nhiều lần).
+        break;
+      }
+    }
+
+    return lines.join("\n");
   };
 
   const handleReplaceBase64AndUploadSftp = async () => {
@@ -531,11 +573,23 @@ const BuildDemo: React.FC = () => {
 
     setSendingToSftp(true);
     try {
+      // Nếu người dùng upload nhiều HTML (.html/.htm), chỉ đổi file đầu tiên thành index.html
+      // để tránh ghi đè.
+      let indexHtmlUploaded = false;
       for (const item of textFiles) {
         const rawContent = await item.file.text();
         const convertedContent = replaceImagesToBase64(rawContent);
-        const remoteFilePath =
-          `${remoteBase}/${item.file.name}`.replace(/\/{2,}/g, "/");
+
+        const ext = item.file.name.split(".").pop()?.toLowerCase();
+        const isHtml = ext === "html" || ext === "htm";
+        const remoteFileName =
+          isHtml && !indexHtmlUploaded ? "index.html" : item.file.name;
+        if (isHtml && !indexHtmlUploaded) indexHtmlUploaded = true;
+
+        const remoteFilePath = `${remoteBase}/${remoteFileName}`.replace(
+          /\/{2,}/g,
+          "/",
+        );
 
         const res = await fetch(`${baseUrl}/api/sftp/write`, {
           method: "POST",
@@ -560,7 +614,9 @@ const BuildDemo: React.FC = () => {
         serverApiUrl: baseUrl,
       });
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : "Upload to SFTP failed.");
+      setSendError(
+        err instanceof Error ? err.message : "Upload to SFTP failed.",
+      );
     } finally {
       setSendingToSftp(false);
     }
@@ -755,12 +811,11 @@ const BuildDemo: React.FC = () => {
                     setConfig({
                       ...config,
                       model: nextModel,
-                      productCate:
-                        nextProductCates.some(
-                          (item: any) => item.id === config.productCate,
-                        )
-                          ? config.productCate
-                          : (nextProductCates[0]?.id ?? ""),
+                      productCate: nextProductCates.some(
+                        (item: any) => item.id === config.productCate,
+                      )
+                        ? config.productCate
+                        : (nextProductCates[0]?.id ?? ""),
                     });
                   }}
                   className={`w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
@@ -917,13 +972,6 @@ const BuildDemo: React.FC = () => {
                 setDirectoryExists(false);
                 setCheckingDirectory(false);
                 setSendSuccess(null);
-
-                // Gọi server xóa toàn bộ file đã upload
-                fetch(`${baseUrl}/api/upload`, { method: "DELETE" }).catch(
-                  () => {
-                    // ignore errors on reset
-                  },
-                );
               }}
               disabled={files.length === 0 && !sourceUrl}
               className="px-10 py-5 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"

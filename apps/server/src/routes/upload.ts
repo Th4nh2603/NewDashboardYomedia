@@ -39,7 +39,10 @@ router.get("/", async (req: Request, res: Response) => {
       if (!safeName) {
         res
           .status(400)
-          .json({ ok: false, error: "Missing or invalid 'name' query parameter" });
+          .json({
+            ok: false,
+            error: "Missing or invalid 'name' query parameter",
+          });
         return;
       }
       const filePath = path.join(UPLOAD_DIR, safeName);
@@ -74,9 +77,11 @@ router.get("/", async (req: Request, res: Response) => {
               nextQuoteIndex === -1
                 ? line.slice(afterNameIndex)
                 : line.slice(nextQuoteIndex);
-            const suffixAfterQuote = suffix.startsWith('"') ? suffix.slice(1) : suffix;
+            const suffixAfterQuote = suffix.startsWith('"')
+              ? suffix.slice(1)
+              : suffix;
             lines[i] =
-              `{type:createjs.Types.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
+              `{type:createjs.AbstractLoader.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
             imageLineIndexes.push({ name: img.name, lineIndex: i });
             break;
           }
