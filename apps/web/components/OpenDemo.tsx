@@ -161,10 +161,10 @@ async function getFormatFromApi(size: string | null, serverApiUrl: string) {
   return { format, device: device as "mb" | "pc" };
 }
 
-/** Mở tab preview demo.yomedia.vn với `b=` trỏ tới thư mục / file banner (giống nút Demo). */
-export async function openYomediaDemoPreview(
+/** URL preview demo.yomedia.vn (`f=`, `b=`, …) — cùng logic với nút Demo. */
+export async function getYomediaDemoPreviewUrl(
   params: OpenYomediaDemoPreviewParams,
-) {
+): Promise<string | null> {
   const baseRemotePath = params.baseRemotePath ?? "/script/demo";
   const serverApiUrl =
     params.serverApiUrl ??
@@ -174,7 +174,7 @@ export async function openYomediaDemoPreview(
   const hasPath = Boolean(
     (params.bannerPath ?? params.remotePath ?? "").trim(),
   );
-  if (!hasPath) return;
+  if (!hasPath) return null;
 
   const relative = buildRemoteRelativePath(
     params.remotePath.trim(),
@@ -205,12 +205,19 @@ export async function openYomediaDemoPreview(
   const { format: formatParam, device } = resolved;
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";
-  const previewBase = `https://demo.yomedia.vn/yomedia/app/template/site/id${
-    isPcFormat ? "pc" : "mb"
-  }/index.html`;
-  const url = `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
+  /** PC: …/idpc/index.html — Mobile: …/idmb/mobile/index.html (iframe showcase & mở tab). */
+  const previewBase = isPcFormat
+    ? "https://demo.yomedia.vn/yomedia/app/template/site/idpc/index.html"
+    : "https://demo.yomedia.vn/yomedia/app/template/site/idmb/mobile/index.html";
+  return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
+}
 
-  window.open(url, "_blank", "noopener,noreferrer");
+/** Mở tab preview demo.yomedia.vn với `b=` trỏ tới thư mục / file banner (giống nút Demo). */
+export async function openYomediaDemoPreview(
+  params: OpenYomediaDemoPreviewParams,
+) {
+  const url = await getYomediaDemoPreviewUrl(params);
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
 }
 
 type OpenDemoButtonProps = {
