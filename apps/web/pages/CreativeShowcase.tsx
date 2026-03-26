@@ -19,6 +19,14 @@ function displayPrimarySize(item: { size?: string | string[] }): string {
   return "-";
 }
 
+function toSafeZipName(title: string): string {
+  const cleaned = title
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ");
+  return (cleaned || "creative-demo") + ".zip";
+}
+
 interface DemoItem {
   id: string;
   title: string;
@@ -58,7 +66,7 @@ function Iphone16ProMaxShowcaseFrame({
   const showPoster = !iframeSrc || !iframeLoaded || urlResolving;
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[240px] flex-col items-center py-4 sm:max-w-[340px]">
+    <div className="relative mx-auto flex w-full max-w-[240px] flex-col items-center py-4 sm:max-w-[300px]">
       {/* Nút Action / rung (gợi ý viền máy) */}
       <div
         className="pointer-events-none absolute -left-0.5 top-[18%] z-10 h-8 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] to-[#1a1a1c] shadow-sm sm:top-[20%] sm:h-10"
@@ -190,6 +198,7 @@ function MobileIphonePreviewWithEmbed({
 }
 
 const CreativeShowcase: React.FC = () => {
+  const ITEMS_PER_PAGE = 8;
   const { user } = useAuth();
   const isAdsop = (user?.role || "").toLowerCase() === "adsop";
   const [items, setItems] = useState<DemoItem[]>([]);
@@ -200,6 +209,7 @@ const CreativeShowcase: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const baseUrl =
     (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
@@ -223,10 +233,7 @@ const CreativeShowcase: React.FC = () => {
       }
 
       const blob = await res.blob();
-      const contentDisposition = res.headers.get("content-disposition") || "";
-      const match = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
-      const fallbackName = `${item.id}.zip`;
-      const filename = match?.[1] || fallbackName;
+      const filename = toSafeZipName(item.title);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -280,6 +287,19 @@ const CreativeShowcase: React.FC = () => {
       .includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   return (
     <div className="w-full px-8 pt-10 space-y-8">
@@ -341,9 +361,10 @@ const CreativeShowcase: React.FC = () => {
             Loading creative demos...
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             <AnimatePresence mode="popLayout">
-              {filteredData.map((item, idx) => (
+              {paginatedData.map((item, idx) => (
                 <motion.div
                   key={item.id}
                   layout
@@ -468,7 +489,45 @@ const CreativeShowcase: React.FC = () => {
                 </motion.div>
               ))}
             </AnimatePresence>
-          </div>
+            </div>
+
+          {filteredData.length > 0 && totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
+                    currentPage === page
+                      ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
+                      : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {filteredData.length === 0 && (

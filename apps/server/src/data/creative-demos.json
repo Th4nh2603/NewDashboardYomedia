@@ -500,15 +500,15 @@
       "title": "Mobile Card",
       "image": "https://picsum.photos/seed/demo114/800/600",
       "size": ["400x250"],
-      "position": "Bottom Center Fixed",
+      "position": "Bottom Center",
       "fileType": "HTML5",
       "category": "Mobile",
       "value": "mobile-card",
       "video": "none",
-      "source": "",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "source": "yomedia/app/template/data/0034/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_footer_card.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0035",
@@ -815,15 +815,15 @@
       "title": "Mobile Footer Expand",
       "image": "https://picsum.photos/seed/demo118/800/600",
       "size": ["384x235", "384x683"],
-      "position": "-",
+      "position": "Bottom Center",
       "fileType": "HTML5",
       "category": "Mobile",
       "value": "mobile-footer-expand",
       "video": "none",
-      "source": "",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "source": "yomedia/app/template/data/0055/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_footer_expand.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0056",
@@ -1092,8 +1092,8 @@
       "video": "none",
       "source": "yomedia/app/template/data/0073/banner",
       "status": "active",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interstitial.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0074",
@@ -1165,10 +1165,10 @@
       "category": "Mobile",
       "value": "mobile-interstitial-interactive-firstview",
       "video": "none",
-      "source": "",
+      "source": "yomedia/app/template/data/0078/banner",
       "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interstitial.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0079",
