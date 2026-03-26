@@ -777,7 +777,7 @@
       "video": "mp4",
       "source": "yomedia/app/template/data/0052/banner",
       "status": "active",
-      "delivery": "",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_in_image_native.js",
       "delivery-name-replace": "any"
     },
     {
@@ -1001,7 +1001,7 @@
       "value": "mobile-in-image-with-image-under",
       "video": "none",
       "source": "yomedia/app/template/data/0067/banner",
-      "status": "active",
+      "status": "inactive",
       "delivery": "",
       "delivery-name-replace": ""
     },
@@ -1018,7 +1018,7 @@
       "source": "yomedia/app/template/data/0068/banner",
       "status": "active",
       "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interscroller.js",
-      "delivery-name-replace": ""
+      "delivery-name-replace": "ads-inpage"
     },
     {
       "id": "0069",
@@ -1099,16 +1099,16 @@
       "id": "0074",
       "title": "Mobile In-image With Image Under iTVC",
       "image": "https://picsum.photos/seed/demo51/800/600",
-      "size": ["600x125", "480x270"],
-      "position": "-",
+      "size": ["600x125"],
+      "position": "In Image",
       "fileType": "HTML5",
       "category": "Mobile",
       "value": "mobile-in-image-with-image-under-itvc",
       "video": "mp4",
-      "source": "",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "source": "yomedia/app/template/data/0074/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_in_image_carousel.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0075",

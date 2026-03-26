@@ -9,7 +9,7 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
-import OpenDemoButton from "../components/OpenDemo";
+import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 
 /** Hiển thị Size: phần tử đầu của mảng `size` (hoặc chuỗi). */
 function displayPrimarySize(item: { size?: string | string[] }): string {
@@ -34,14 +34,169 @@ interface DemoItem {
   category: "Display" | "Video" | "Mobile";
 }
 
+/** Khung iPhone 16 Pro Max (titanium + Dynamic Island); màn hình = iframe demo + ảnh poster khi tải. */
+function Iphone16ProMaxShowcaseFrame({
+  title,
+  posterImage,
+  iframeSrc,
+  urlResolving,
+  children,
+}: {
+  title: string;
+  posterImage: string;
+  iframeSrc: string | null;
+  urlResolving: boolean;
+  children: React.ReactNode;
+}) {
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+
+  useEffect(() => {
+    console.log("iframeSrc", iframeSrc);
+    setIframeLoaded(false);
+  }, [iframeSrc]);
+
+  const showPoster = !iframeSrc || !iframeLoaded || urlResolving;
+
+  return (
+    <div className="relative mx-auto flex w-full max-w-[240px] flex-col items-center py-4 sm:max-w-[340px]">
+      {/* Nút Action / rung (gợi ý viền máy) */}
+      <div
+        className="pointer-events-none absolute -left-0.5 top-[18%] z-10 h-8 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] to-[#1a1a1c] shadow-sm sm:top-[20%] sm:h-10"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-0.5 top-[28%] z-10 h-14 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] via-[#1f1f21] to-[#1a1a1c] sm:top-[30%] sm:h-16"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-0.5 top-[24%] z-10 h-20 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] to-[#1a1a1c] sm:top-[26%] sm:h-24"
+        aria-hidden
+      />
+
+      <div
+        className="relative w-full shadow-[0_28px_56px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.14)]"
+        style={{ aspectRatio: "430 / 895" }}
+      >
+        {/* Vỏ titanium */}
+        <div className="absolute inset-0 rounded-[2.35rem] bg-gradient-to-br from-[#8e8e93] via-[#636366] to-[#3a3a3c] p-[3.5%] ring-1 ring-white/15">
+          <div className="relative h-full w-full rounded-[2.05rem] bg-[#0c0c0c] p-[2.2%] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+            <div className="relative h-full w-full overflow-hidden rounded-[1.78rem] bg-black">
+              <img
+                src={posterImage}
+                alt=""
+                className={`absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-500 ${
+                  showPoster ? "opacity-100" : "pointer-events-none opacity-0"
+                }`}
+                referrerPolicy="no-referrer"
+              />
+
+              {iframeSrc ? (
+                <iframe
+                  src={iframeSrc}
+                  title={title}
+                  className={`absolute inset-0 z-[2] h-full w-full border-0 bg-black transition-opacity duration-500 ${
+                    iframeLoaded && !urlResolving ? "opacity-100" : "opacity-0"
+                  }`}
+                  onLoad={() => setIframeLoaded(true)}
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+              ) : null}
+
+              {urlResolving ? (
+                <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/40">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/70">
+                    Loading demo…
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Dynamic Island */}
+              <div
+                className="pointer-events-none absolute left-1/2 top-[1.75%] z-20 h-[3.4%] min-h-[11px] w-[34%] max-w-[120px] -translate-x-1/2 rounded-full bg-black shadow-[0_4px_14px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.04)] ring-[0.5px] ring-white/[0.06]"
+                aria-hidden
+              />
+
+              {/* Viền kính mờ góc máy */}
+              <div className="pointer-events-none absolute inset-0 z-[19] rounded-[1.78rem] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_20px_40px_-20px_rgba(255,255,255,0.06)]" />
+
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileIphonePreviewWithEmbed({
+  item,
+  serverApiUrl,
+}: {
+  item: DemoItem;
+  serverApiUrl: string;
+}) {
+  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+  const [urlResolving, setUrlResolving] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const path = item.source?.trim() ?? "";
+
+    if (!path) {
+      setIframeSrc(null);
+      setUrlResolving(false);
+      return;
+    }
+
+    setUrlResolving(true);
+    setIframeSrc(null);
+
+    void (async () => {
+      try {
+        const url = await getYomediaDemoPreviewUrl({
+          remotePath: path,
+          formatValue: item.value,
+          forceDevice: "mb",
+          serverApiUrl,
+        });
+        if (!cancelled) setIframeSrc(url);
+      } finally {
+        if (!cancelled) setUrlResolving(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, item.source, item.value, serverApiUrl]);
+
+  return (
+    <Iphone16ProMaxShowcaseFrame
+      title={item.title}
+      posterImage={item.image}
+      iframeSrc={iframeSrc}
+      urlResolving={urlResolving}
+    >
+      <div className="pointer-events-none absolute inset-0 z-[25] bg-gradient-to-t from-[#141b2d]/90 via-transparent to-transparent opacity-50" />
+
+      <div className="absolute top-3 left-3 right-3 z-30 flex justify-start pointer-events-none">
+        <span className="pointer-events-auto bg-[#141b2d]/90 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+          {item.category}
+        </span>
+      </div>
+    </Iphone16ProMaxShowcaseFrame>
+  );
+}
+
 const CreativeShowcase: React.FC = () => {
   const { user } = useAuth();
   const isAdsop = (user?.role || "").toLowerCase() === "adsop";
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"All" | "Display" | "Video" | "Mobile">(
-    "All",
+  const [filter, setFilter] = useState<"Display" | "Video" | "Mobile">(
+    "Mobile",
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -119,7 +274,7 @@ const CreativeShowcase: React.FC = () => {
   }, []);
 
   const filteredData = items.filter((item) => {
-    const matchesFilter = filter === "All" || item.category === filter;
+    const matchesFilter = item.category === filter;
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -156,10 +311,10 @@ const CreativeShowcase: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 bg-[#141b2d] p-1.5 rounded-2xl border border-white/5 shadow-xl">
-                {["All", "Display", "Video", "Mobile"].map((f) => (
+                {(["Display", "Video", "Mobile"] as const).map((f) => (
                   <button
                     key={f}
-                    onClick={() => setFilter(f as any)}
+                    onClick={() => setFilter(f)}
                     className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                       filter === f
                         ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
@@ -196,35 +351,41 @@ const CreativeShowcase: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.4, delay: idx * 0.05 }}
-                  className="group relative bg-[#141b2d] rounded-[2rem] border border-white/5 overflow-hidden hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl"
+                  className={`group relative bg-[#141b2d] rounded-[2rem] border border-white/5 hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl ${
+                    item.category === "Mobile"
+                      ? "overflow-visible"
+                      : "overflow-hidden"
+                  }`}
                 >
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
-
-                    <div className="absolute top-4 left-4">
-                      <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                        {item.category}
-                      </span>
-                    </div>
-
-                    <div className="absolute inset-0 bg-[#4cceac]/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                      <OpenDemoButton
-                        remotePath={item.source ?? ""}
-                        formatValue={item.value}
-                        forceDevice={
-                          item.category === "Display" ? "pc" : undefined
-                        }
-                        label="Launch Demo"
-                        disabled={!item.source || !item.value}
-                        className="bg-[#4cceac] text-[#141b2d] px-6 py-2.5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-2xl shadow-[#4cceac]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                  <div
+                    className={
+                      item.category === "Mobile"
+                        ? "relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1"
+                        : "relative aspect-[16/10] overflow-hidden"
+                    }
+                  >
+                    {item.category === "Mobile" ? (
+                      <MobileIphonePreviewWithEmbed
+                        item={item}
+                        serverApiUrl={baseUrl}
                       />
-                    </div>
+                    ) : (
+                      <>
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
+
+                        <div className="absolute top-4 left-4">
+                          <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                            {item.category}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="p-6">
