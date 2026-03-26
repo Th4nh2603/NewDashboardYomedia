@@ -9,7 +9,10 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
-import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
+import {
+  getYomediaDemoPreviewUrl,
+  openYomediaDemoPreview,
+} from "../components/OpenDemo";
 
 /** Hiển thị Size: phần tử đầu của mảng `size` (hoặc chuỗi). */
 function displayPrimarySize(item: { size?: string | string[] }): string {
@@ -254,6 +257,21 @@ const CreativeShowcase: React.FC = () => {
     }
   };
 
+  const handleOpenDemo = async (item: DemoItem) => {
+    if (!item.source) return;
+    try {
+      await openYomediaDemoPreview({
+        remotePath: item.source,
+        formatValue: item.value,
+        forceDevice: item.category === "Display" ? "pc" : "mb",
+        serverApiUrl: baseUrl,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to open demo";
+      setError(message);
+    }
+  };
+
   useEffect(() => {
     const fetchDemos = async () => {
       setLoading(true);
@@ -418,8 +436,17 @@ const CreativeShowcase: React.FC = () => {
                     </div>
 
                     <div className="p-6">
-                      <h3 className="text-lg font-black text-white mb-4 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
-                        {item.title}
+                      <h3 className="mb-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleOpenDemo(item);
+                          }}
+                          disabled={!item.source}
+                          className="text-left text-lg font-black text-white tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {item.title}
+                        </button>
                       </h3>
 
                       <div className="space-y-3">

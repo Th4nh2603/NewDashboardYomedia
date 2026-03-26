@@ -17,6 +17,7 @@ import ImageGenerator from './pages/ImageGenerator';
 import Login from './pages/Login';
 import BuildDemo from './pages/BuildDemo';
 import ManageDemo from './pages/ManageDemo';
+import Upload from './pages/Upload';
 import Bar from './pages/Bar';
 import AIGmail from './pages/AIGmail';
 import Documentation from './pages/Documentation';
@@ -42,6 +43,7 @@ const App: React.FC = () => {
                       <Route path="/documentation" element={<Documentation />} />
                       <Route path="/manage-demo" element={<ManageDemo />} />
                       <Route path="/build-demo" element={<BuildDemo />} />
+                      <Route path="/upload" element={<Upload />} />
                       <Route path="/bar" element={<Bar />} />
                       <Route path="/cinema" element={<Cinema />} />
                       <Route path="/live" element={<Live />} />

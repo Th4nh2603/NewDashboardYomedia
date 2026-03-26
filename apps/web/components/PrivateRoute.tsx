@@ -7,17 +7,16 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const publicPaths = new Set(["/creative-showcase"]);
+
+  if (publicPaths.has(location.pathname)) {
+    return <>{children}</>;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
-  }
-
-  const role = (user?.role || "").toLowerCase();
-  const guestAllowedPaths = new Set(["/creative-showcase", "/chat"]);
-  if (role === "guest" && !guestAllowedPaths.has(location.pathname)) {
-    return <Navigate to="/creative-showcase" replace />;
   }
 
   return <>{children}</>;
