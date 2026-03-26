@@ -205,10 +205,10 @@ export async function getYomediaDemoPreviewUrl(
   const { format: formatParam, device } = resolved;
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";
-  /** PC: …/idpc/index.html — Mobile: …/idmb/mobile/index.html (iframe showcase & mở tab). */
+  /** PC: …/idpc/index.html — Mobile: …/idmb/index.html. */
   const previewBase = isPcFormat
     ? "https://demo.yomedia.vn/yomedia/app/template/site/idpc/index.html"
-    : "https://demo.yomedia.vn/yomedia/app/template/site/idmb/mobile/index.html";
+    : "https://demo.yomedia.vn/yomedia/app/template/site/idmb/index.html";
   return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
 }
 

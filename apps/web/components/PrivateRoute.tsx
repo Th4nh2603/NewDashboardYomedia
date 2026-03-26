@@ -15,11 +15,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   const role = (user?.role || "").toLowerCase();
-  const guestAllowedPaths = new Set([
-    "/manage-demo",
-    "/creative-showcase",
-    "/chat",
-  ]);
+  const guestAllowedPaths = new Set(["/creative-showcase", "/chat"]);
   if (role === "guest" && !guestAllowedPaths.has(location.pathname)) {
     return <Navigate to="/creative-showcase" replace />;
   }
