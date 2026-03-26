@@ -610,10 +610,10 @@
       "category": "Mobile",
       "value": "mobile-on-image",
       "video": "none",
-      "source": "",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "source": "yomedia/app/template/data/0041/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_on_image.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0042",
@@ -665,15 +665,15 @@
       "title": "Mobile Scratcher",
       "image": "https://picsum.photos/seed/demo127/800/600",
       "size": ["384x683"],
-      "position": "-",
+      "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
       "value": "mobile-scratcher",
       "video": "none",
-      "source": "",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": ""
+      "source": "yomedia/app/template/data/0045/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interstitial.js",
+      "delivery-name-replace": "any"
     },
     {
       "id": "0046",
@@ -1114,7 +1114,7 @@
       "id": "0075",
       "title": "Mobile In Image With Inread Video",
       "image": "https://picsum.photos/seed/demo52/800/600",
-      "size": ["600x125", "480x270"],
+      "size": ["600x125"],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1244,6 +1244,36 @@
       "status": "active",
       "delivery": "",
       "delivery-name-replace": ""
+    },
+    {
+      "id": "0084",
+      "title": "Mobile Interstitial (Firstview) Slide Card",
+      "image": "https://picsum.photos/seed/demo122/800/600",
+      "size": ["384x683"],
+      "position": "Full Screen",
+      "fileType": "HTML5",
+      "category": "Mobile",
+      "value": "mobile-interstitial-firstview-slide-card",
+      "video": "none",
+      "source": "yomedia/app/template/data/0084/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_interstitial.js",
+      "delivery-name-replace": "any"
+    },
+    {
+      "id": "0085",
+      "title": "Mobile Masthead Slider Draggable",
+      "image": "https://picsum.photos/seed/demo57/800/600",
+      "size": ["480x270"],
+      "position": "Top Center",
+      "fileType": "HTML5",
+      "category": "Mobile",
+      "value": "mobile-masthead",
+      "video": "none",
+      "source": "yomedia/app/template/data/0085/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_masthead.js",
+      "delivery-name-replace": "ads-billboard"
     }
   ]
 }

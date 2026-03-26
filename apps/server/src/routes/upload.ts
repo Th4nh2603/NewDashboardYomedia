@@ -37,12 +37,10 @@ router.get("/", async (req: Request, res: Response) => {
     if (name) {
       const safeName = path.basename(name);
       if (!safeName) {
-        res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Missing or invalid 'name' query parameter",
-          });
+        res.status(400).json({
+          ok: false,
+          error: "Missing or invalid 'name' query parameter",
+        });
         return;
       }
       const filePath = path.join(UPLOAD_DIR, safeName);

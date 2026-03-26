@@ -177,6 +177,109 @@ export async function writeSftpFile(
   }
 }
 
+export async function uploadSftpBuffer(
+  path: string,
+  content: Buffer,
+  config: SftpConfig = {},
+) {
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  try {
+    const pathModule = await import("path");
+    const dir = pathModule.dirname(path || "/");
+
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    if (dir && dir !== "." && dir !== "/") {
+      await (client as any).mkdir(dir, true).catch(() => {
+        // ignore mkdir errors (directory may already exist)
+      });
+    }
+
+    await client.put(content, path);
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
+export async function verifySftpWritableDirectory(
+  targetDir: string,
+  config: SftpConfig = {},
+) {
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  const normalizedDir = (targetDir || "/")
+    .replace(/\\+/g, "/")
+    .replace(/\/{2,}/g, "/")
+    .replace(/\/+$/, "") || "/";
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    await (client as any).mkdir(normalizedDir, true).catch(() => {
+      // ignore; may already exist or parent not writable
+    });
+
+    const existsType = (await (client as any).exists(normalizedDir)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+
+    if (existsType !== "d") {
+      throw new Error(`Remote directory does not exist: ${normalizedDir}`);
+    }
+
+    const probeName = `.cursor-write-check-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`;
+    const probePath = `${normalizedDir}/${probeName}`.replace(/\/{2,}/g, "/");
+
+    await client.put(Buffer.from("ok", "utf8"), probePath);
+    await (client as any).delete(probePath).catch(() => {
+      // ignore cleanup failure
+    });
+
+    return { ok: true as const, path: normalizedDir };
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
 export async function sftpPathExists(
   targetPath: string,
   config: SftpConfig = {},

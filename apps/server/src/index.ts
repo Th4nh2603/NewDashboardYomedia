@@ -6,6 +6,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
+import { uploadRouter } from "./routes/upload.js";
+import { fileUploadRouter } from "./routes/fileUpload.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -15,13 +17,15 @@ app.use(
     origin: (origin: string | undefined, cb: (err: null, allow: boolean | string) => void) =>
       cb(null, origin || true),
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "x-user-role"],
   }),
 );
 app.use(express.json({ limit: "50mb" }));
 
 app.use("/api/sftp", sftpRouter);
 app.use("/api/rag", ragRouter);
+app.use("/api/upload", uploadRouter);
+app.use("/api/file-upload", fileUploadRouter);
 
 // Simple JSON-file-based data
 const __filename = fileURLToPath(import.meta.url);
@@ -94,6 +98,17 @@ app.get("/api/creative-demos", (_req, res) => {
     (d) => String(d?.status ?? "").toLowerCase() === "active",
   );
   return res.json({ ok: true, demos });
+});
+
+app.get("/api/creative-demo-titles", (_req, res) => {
+  const demos = loadCreativeDemos();
+  const items = demos
+    .map((d) => ({
+      title: typeof d?.title === "string" ? d.title.trim() : "",
+      category: typeof d?.category === "string" ? d.category.trim() : "",
+    }))
+    .filter((item) => item.title);
+  return res.json({ ok: true, items });
 });
 
 app.listen(PORT, () => {

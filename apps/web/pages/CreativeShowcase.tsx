@@ -9,7 +9,10 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
-import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
+import {
+  getYomediaDemoPreviewUrl,
+  openYomediaDemoPreview,
+} from "../components/OpenDemo";
 
 /** Hiển thị Size: phần tử đầu của mảng `size` (hoặc chuỗi). */
 function displayPrimarySize(item: { size?: string | string[] }): string {
@@ -168,7 +171,12 @@ function MobileIphonePreviewWithEmbed({
           forceDevice: "mb",
           serverApiUrl,
         });
-        if (!cancelled) setIframeSrc(url);
+        const mobileIframeUrl =
+          url?.replace(
+            "/site/idmb/index.html",
+            "/site/idmb/mobile/index.html",
+          ) ?? null;
+        if (!cancelled) setIframeSrc(mobileIframeUrl);
       } finally {
         if (!cancelled) setUrlResolving(false);
       }
@@ -249,6 +257,21 @@ const CreativeShowcase: React.FC = () => {
     }
   };
 
+  const handleOpenDemo = async (item: DemoItem) => {
+    if (!item.source) return;
+    try {
+      await openYomediaDemoPreview({
+        remotePath: item.source,
+        formatValue: item.value,
+        forceDevice: item.category === "Display" ? "pc" : "mb",
+        serverApiUrl: baseUrl,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to open demo";
+      setError(message);
+    }
+  };
+
   useEffect(() => {
     const fetchDemos = async () => {
       setLoading(true);
@@ -287,7 +310,10 @@ const CreativeShowcase: React.FC = () => {
       .includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
+  );
   const paginatedData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
@@ -363,170 +389,183 @@ const CreativeShowcase: React.FC = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-            <AnimatePresence mode="popLayout">
-              {paginatedData.map((item, idx) => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.4, delay: idx * 0.05 }}
-                  className={`group relative bg-[#141b2d] rounded-[2rem] border border-white/5 hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl ${
-                    item.category === "Mobile"
-                      ? "overflow-visible"
-                      : "overflow-hidden"
-                  }`}
-                >
-                  <div
-                    className={
+              <AnimatePresence mode="popLayout">
+                {paginatedData.map((item, idx) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.4, delay: idx * 0.05 }}
+                    className={`group relative bg-[#141b2d] rounded-[2rem] border border-white/5 hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl ${
                       item.category === "Mobile"
-                        ? "relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1"
-                        : "relative aspect-[16/10] overflow-hidden"
-                    }
+                        ? "overflow-visible"
+                        : "overflow-hidden"
+                    }`}
                   >
-                    {item.category === "Mobile" ? (
-                      <MobileIphonePreviewWithEmbed
-                        item={item}
-                        serverApiUrl={baseUrl}
-                      />
-                    ) : (
-                      <>
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          referrerPolicy="no-referrer"
+                    <div
+                      className={
+                        item.category === "Mobile"
+                          ? "relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1"
+                          : "relative aspect-[16/10] overflow-hidden"
+                      }
+                    >
+                      {item.category === "Mobile" ? (
+                        <MobileIphonePreviewWithEmbed
+                          item={item}
+                          serverApiUrl={baseUrl}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
+                      ) : (
+                        <>
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
 
-                        <div className="absolute top-4 left-4">
-                          <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                            {item.category}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="p-6">
-                    <h3 className="text-lg font-black text-white mb-4 tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors">
-                      {item.title}
-                    </h3>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-2">
-                          <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
-                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                            Size
-                          </span>
-                        </div>
-                        <span className="text-xs font-medium text-white">
-                          {displayPrimarySize(item)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-2">
-                          <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
-                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                            Position
-                          </span>
-                        </div>
-                        <span className="text-xs font-medium text-white">
-                          {item.position}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-2">
-                          <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
-                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                            File Type
-                          </span>
-                        </div>
-                        <span className="text-xs font-medium text-white">
-                          {item.fileType}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <VideoCameraIcon className="w-4 h-4 text-[#a3a3a3]" />
-                          <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
-                            Video
-                          </span>
-                        </div>
-                        <span className="text-xs font-medium text-white uppercase">
-                          {item.video === "mp4"
-                            ? "mp4"
-                            : (item.video ?? "none")}
-                        </span>
-                      </div>
+                          <div className="absolute top-4 left-4">
+                            <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                              {item.category}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {!isAdsop && (
-                      <div className="mt-4">
+                    <div className="p-6">
+                      <h3 className="mb-4">
                         <button
                           type="button"
                           onClick={() => {
-                            void handleDownload(item);
+                            void handleOpenDemo(item);
                           }}
-                          disabled={!item.source || downloadingId === item.id}
-                          className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                          disabled={!item.source}
+                          className="text-left text-lg font-black text-white tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <ArrowDownTrayIcon className="w-4 h-4" />
-                          {downloadingId === item.id
-                            ? "Downloading..."
-                            : "Download"}
+                          {item.title}
                         </button>
+                      </h3>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                          <div className="flex items-center gap-2">
+                            <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                              Size
+                            </span>
+                          </div>
+                          <span className="text-xs font-medium text-white">
+                            {displayPrimarySize(item)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                          <div className="flex items-center gap-2">
+                            <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                              Position
+                            </span>
+                          </div>
+                          <span className="text-xs font-medium text-white">
+                            {item.position}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                          <div className="flex items-center gap-2">
+                            <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                              File Type
+                            </span>
+                          </div>
+                          <span className="text-xs font-medium text-white">
+                            {item.fileType}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <VideoCameraIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
+                              Video
+                            </span>
+                          </div>
+                          <span className="text-xs font-medium text-white uppercase">
+                            {item.video === "mp4"
+                              ? "mp4"
+                              : (item.video ?? "none")}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent to-[#4cceac]/5 pointer-events-none" />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                      {!isAdsop && (
+                        <div className="mt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleDownload(item);
+                            }}
+                            disabled={!item.source || downloadingId === item.id}
+                            className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                          >
+                            <ArrowDownTrayIcon className="w-4 h-4" />
+                            {downloadingId === item.id
+                              ? "Downloading..."
+                              : "Download"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent to-[#4cceac]/5 pointer-events-none" />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
-          {filteredData.length > 0 && totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Prev
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            {filteredData.length > 0 && totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
                 <button
-                  key={page}
                   type="button"
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
-                    currentPage === page
-                      ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
-                      : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
-                  }`}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {page}
+                  Prev
                 </button>
-              ))}
 
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
+                        currentPage === page
+                          ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
+                          : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ),
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
 

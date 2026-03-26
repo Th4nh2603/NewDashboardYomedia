@@ -18,6 +18,7 @@ import {
   GlobeAltIcon,
   Bars3Icon,
   PhotoIcon,
+  ArrowUpTrayIcon,
   SparklesIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
@@ -32,14 +33,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   if (!user) return null; // Hoặc hiển thị nút Login
-  const isGuest = (user?.role || "").toLowerCase() === "guest";
 
   const displayRole =
     user?.role === "adsop"
       ? "Ad Operations Executive"
       : user?.role === "adsopmanager"
-      ? "Deputy Head of Programmatic"
-      : user?.role || "Creative Director";
+        ? "Deputy Head of Programmatic"
+        : user?.role || "Creative Director";
   const sections = [
     {
       title: null,
@@ -66,7 +66,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         },
         { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
         { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
-        { name: "Documentation", path: "/documentation", icon: DocumentTextIcon },
+        { name: "Upload", path: "/upload", icon: ArrowUpTrayIcon },
+        {
+          name: "Documentation",
+          path: "/documentation",
+          icon: DocumentTextIcon,
+        },
         { name: "Team Hub", path: "/manage-team", icon: IdentificationIcon },
         { name: "Contacts", path: "/contacts", icon: IdentificationIcon },
         { name: "Invoices", path: "/invoices", icon: DocumentTextIcon },
@@ -82,26 +87,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       ],
     },
   ];
-  const visibleSections = isGuest
-    ? [
-        {
-          title: "AI Intelligence",
-          items: [{ name: "AI Chat", path: "/chat", icon: QuestionMarkCircleIcon }],
-        },
-        {
-          title: "Data Management",
-          items: [
-            {
-              name: "Creative Showcase",
-              path: "/creative-showcase",
-              icon: SparklesIconFilled,
-            },
-            { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
-          ],
-        },
-      ]
-    : sections;
-
   return (
     <motion.nav
       initial={false}
@@ -180,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
       {/* Navigation */}
       <div className="flex-1 px-4 pb-10 overflow-y-auto custom-scrollbar">
-        {visibleSections.map((section, idx) => (
+        {sections.map((section, idx) => (
           <div key={idx} className="mb-8">
             {section.title && !isCollapsed && (
               <motion.h3
