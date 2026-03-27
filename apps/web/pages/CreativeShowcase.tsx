@@ -206,7 +206,7 @@ function MobileIphonePreviewWithEmbed({
 }
 
 const CreativeShowcase: React.FC = () => {
-  const ITEMS_PER_PAGE = 8;
+  const ITEMS_PER_PAGE = 4;
   const { user } = useAuth();
   const isAdsop = (user?.role || "").toLowerCase() === "adsop";
   const [items, setItems] = useState<DemoItem[]>([]);
@@ -267,7 +267,8 @@ const CreativeShowcase: React.FC = () => {
         serverApiUrl: baseUrl,
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to open demo";
+      const message =
+        err instanceof Error ? err.message : "Unable to open demo";
       setError(message);
     }
   };

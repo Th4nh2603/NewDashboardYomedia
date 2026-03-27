@@ -2,19 +2,33 @@ import { Router, Request, Response } from "express";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { uploadSftpBuffer, verifySftpWritableDirectory } from "../lib/sftpClient.js";
+import {
+  uploadSftpBuffer,
+  verifySftpWritableDirectory,
+} from "../lib/sftpClient.js";
 
 const router = Router();
 const FILE_UPLOAD_DIR = path.join(process.cwd(), "uploads", "file-center");
 const ALLOWED_ROLES = new Set(["admin", "design"]);
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CREATIVE_DEMOS_PATH = path.join(__dirname, "..", "data", "creative-demos.json");
+const CREATIVE_DEMOS_PATH = path.join(
+  __dirname,
+  "..",
+  "data",
+  "creative-demos.json",
+);
 
 function toSafeRelativePath(input: string): string | null {
   const normalized = input.replace(/\\/g, "/").replace(/^\/+/, "");
   const safe = path.posix.normalize(normalized);
-  if (!safe || safe === "." || safe.startsWith("../") || safe.includes("/../")) {
+  if (
+    !safe ||
+    safe === "." ||
+    safe.startsWith("../") ||
+    safe.includes("/../")
+  ) {
     return null;
   }
   return safe;
@@ -63,6 +77,10 @@ function getUserRole(req: Request): string {
   return "";
 }
 
+function isTooLarge(buffer: Buffer): boolean {
+  return buffer.length > MAX_UPLOAD_SIZE_BYTES;
+}
+
 router.use((req: Request, res: Response, next) => {
   const role = getUserRole(req);
   if (!ALLOWED_ROLES.has(role)) {
@@ -85,7 +103,8 @@ router.get("/", async (_req: Request, res: Response) => {
       .sort((a, b) => a.localeCompare(b));
     res.json({ ok: true, files });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "List files failed";
+    const message =
+      error instanceof Error ? error.message : "List files failed";
     res.status(500).json({ ok: false, error: message });
   }
 });
@@ -114,13 +133,22 @@ router.post("/", async (req: Request, res: Response) => {
     const filePath = path.join(FILE_UPLOAD_DIR, safeName);
     const encoding = body.encoding === "base64" ? "base64" : "utf8";
     const payload = body.content;
+    const buffer =
+      encoding === "base64"
+        ? Buffer.from(
+            payload.includes(",") ? payload.split(",")[1] : payload,
+            "base64",
+          )
+        : Buffer.from(payload, "utf8");
 
-    if (encoding === "base64") {
-      const raw = payload.includes(",") ? payload.split(",")[1] : payload;
-      await writeFile(filePath, Buffer.from(raw, "base64"));
-    } else {
-      await writeFile(filePath, payload, "utf8");
+    if (isTooLarge(buffer)) {
+      res
+        .status(400)
+        .json({ ok: false, error: "Uploaded file exceeds 5MB limit" });
+      return;
     }
+
+    await writeFile(filePath, buffer);
 
     res.json({
       ok: true,
@@ -139,10 +167,18 @@ router.post("/folder", async (req: Request, res: Response) => {
     const body = req.body as {
       folderName?: string;
       demoTitle?: string;
-      files?: { relativePath?: string; content?: string; encoding?: "base64" | "utf8" }[];
+      files?: {
+        relativePath?: string;
+        content?: string;
+        encoding?: "base64" | "utf8";
+      }[];
     };
 
-    if (!body?.folderName || !Array.isArray(body.files) || body.files.length === 0) {
+    if (
+      !body?.folderName ||
+      !Array.isArray(body.files) ||
+      body.files.length === 0
+    ) {
       res.status(400).json({
         ok: false,
         error: "Missing 'folderName' or 'files' in body",
@@ -160,8 +196,9 @@ router.post("/folder", async (req: Request, res: Response) => {
     };
     const matchedDemo = (demosParsed.demos || []).find(
       (item) =>
-        String(item?.title || "").trim().toLowerCase() ===
-        body.demoTitle!.trim().toLowerCase(),
+        String(item?.title || "")
+          .trim()
+          .toLowerCase() === body.demoTitle!.trim().toLowerCase(),
     );
     const source = String(matchedDemo?.source || "").trim();
     if (!source) {
@@ -192,7 +229,9 @@ router.post("/folder", async (req: Request, res: Response) => {
       const encoding = file.encoding === "utf8" ? "utf8" : "base64";
       const isZip = relativePath?.toLowerCase().endsWith(".zip");
       const targetZipName =
-        body.files.length > 1 ? `${zipBaseName}-${i + 1}.zip` : `${zipBaseName}.zip`;
+        body.files.length > 1
+          ? `${zipBaseName}-${i + 1}.zip`
+          : `${zipBaseName}.zip`;
 
       if (!relativePath || !content) {
         res.status(400).json({
@@ -211,37 +250,32 @@ router.post("/folder", async (req: Request, res: Response) => {
 
       const targetPath = path.join(rootFolder, relativePath);
       await mkdir(path.dirname(targetPath), { recursive: true });
-
-      if (encoding === "base64") {
-        const raw = content.includes(",") ? content.split(",")[1] : content;
-        const buffer = Buffer.from(raw, "base64");
-        await writeFile(targetPath, buffer);
-        const remotePath = `${sftpBaseDir}/${targetZipName}`.replace(
-          /\/{2,}/g,
-          "/",
-        );
-        const remoteDir = path.posix.dirname(remotePath);
-        if (!checkedWritableDirs.has(remoteDir)) {
-          await verifySftpWritableDirectory(remoteDir);
-          checkedWritableDirs.add(remoteDir);
-        }
-        await uploadSftpBuffer(remotePath, buffer);
-        uploadedSftpPaths.push(remotePath);
-      } else {
-        const buffer = Buffer.from(content, "utf8");
-        await writeFile(targetPath, buffer);
-        const remotePath = `${sftpBaseDir}/${targetZipName}`.replace(
-          /\/{2,}/g,
-          "/",
-        );
-        const remoteDir = path.posix.dirname(remotePath);
-        if (!checkedWritableDirs.has(remoteDir)) {
-          await verifySftpWritableDirectory(remoteDir);
-          checkedWritableDirs.add(remoteDir);
-        }
-        await uploadSftpBuffer(remotePath, buffer);
-        uploadedSftpPaths.push(remotePath);
+      const buffer =
+        encoding === "base64"
+          ? Buffer.from(
+              content.includes(",") ? content.split(",")[1] : content,
+              "base64",
+            )
+          : Buffer.from(content, "utf8");
+      if (isTooLarge(buffer)) {
+        res.status(400).json({
+          ok: false,
+          error: `Uploaded file '${relativePath}' exceeds 5MB limit`,
+        });
+        return;
       }
+      await writeFile(targetPath, buffer);
+      const remotePath = `${sftpBaseDir}/${targetZipName}`.replace(
+        /\/{2,}/g,
+        "/",
+      );
+      const remoteDir = path.posix.dirname(remotePath);
+      if (!checkedWritableDirs.has(remoteDir)) {
+        await verifySftpWritableDirectory(remoteDir);
+        checkedWritableDirs.add(remoteDir);
+      }
+      await uploadSftpBuffer(remotePath, buffer);
+      uploadedSftpPaths.push(remotePath);
     }
 
     res.json({
@@ -256,7 +290,8 @@ router.post("/folder", async (req: Request, res: Response) => {
       storage: "file-center",
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Folder upload failed";
+    const message =
+      error instanceof Error ? error.message : "Folder upload failed";
     res.status(500).json({ ok: false, error: message });
   }
 });
