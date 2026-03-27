@@ -15,6 +15,7 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
 };
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 
 function isHtmlOrJs(filename: string): boolean {
   return HTML_JS_EXT.includes(path.extname(filename).toLowerCase());
@@ -26,6 +27,10 @@ function isJsFile(filename: string): boolean {
 
 function isImageFile(filename: string): boolean {
   return IMAGE_EXT.includes(path.extname(filename).toLowerCase());
+}
+
+function isTooLarge(buffer: Buffer): boolean {
+  return buffer.length > MAX_UPLOAD_SIZE_BYTES;
 }
 
 /** GET ?name=file.html → read one file. GET (no name) → list HTML/JS files. */
@@ -136,7 +141,15 @@ router.post("/", async (req: Request, res: Response) => {
     await mkdir(uploadDir, { recursive: true });
     const safeName = path.basename(body.name) || "upload.txt";
     const filePath = path.join(uploadDir, safeName);
-    await writeFile(filePath, body.content, "utf8");
+    const contentBuffer = Buffer.from(body.content, "utf8");
+    if (isTooLarge(contentBuffer)) {
+      res.status(400).json({
+        ok: false,
+        error: "Uploaded file exceeds 5MB limit",
+      });
+      return;
+    }
+    await writeFile(filePath, contentBuffer);
 
     if (Array.isArray(body.images) && body.images.length > 0) {
       await Promise.all(
@@ -145,6 +158,9 @@ router.post("/", async (req: Request, res: Response) => {
             ? img.base64.split(",")[1]
             : img.base64;
           const buffer = Buffer.from(raw, "base64");
+          if (isTooLarge(buffer)) {
+            throw new Error("Uploaded image exceeds 5MB limit");
+          }
           const imgName = path.basename(img.name || "image.png");
           await writeFile(path.join(uploadDir, imgName), buffer);
         }),
@@ -153,6 +169,10 @@ router.post("/", async (req: Request, res: Response) => {
     res.json({ ok: true, name: safeName, path: filePath });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Upload failed";
+    if (message.includes("exceeds 5MB")) {
+      res.status(400).json({ ok: false, error: message });
+      return;
+    }
     res.status(500).json({ ok: false, error: message });
   }
 });
