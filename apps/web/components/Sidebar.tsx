@@ -6,20 +6,11 @@ import {
   HomeIcon,
   UsersIcon,
   UserPlusIcon,
-  IdentificationIcon,
   DocumentTextIcon,
-  UserIcon,
-  CalendarIcon,
   QuestionMarkCircleIcon,
-  ArrowsPointingInIcon,
-  ChartBarIcon,
-  ChartPieIcon,
-  PresentationChartLineIcon,
-  GlobeAltIcon,
   Bars3Icon,
-  PhotoIcon,
   ArrowUpTrayIcon,
-  SparklesIcon,
+  ClipboardDocumentListIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
 } from "@heroicons/react/24/outline";
@@ -33,11 +24,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   if (!user) return null; // Hoặc hiển thị nút Login
+  const normalizedRole = (user?.role || "").toLowerCase();
+  const isAdsopLikeRole =
+    normalizedRole === "adsop" ||
+    normalizedRole === "adsopmanager" ||
+    normalizedRole === "media";
 
   const displayRole =
-    user?.role === "adsop"
+    normalizedRole === "adsop" || normalizedRole === "media"
       ? "Ad Operations Executive"
-      : user?.role === "adsopmanager"
+      : normalizedRole === "adsopmanager"
         ? "Deputy Head of Programmatic"
         : user?.role || "Creative Director";
   const sections = [
@@ -47,43 +43,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     },
     {
       title: "AI Intelligence",
-      items: [
-        { name: "AI Chat", path: "/chat", icon: QuestionMarkCircleIcon },
-        { name: "Vision AI", path: "/vision", icon: GlobeAltIcon },
-        { name: "Image Gen", path: "/image-generator", icon: PhotoIcon },
-        { name: "Cinema AI", path: "/cinema", icon: PresentationChartLineIcon },
-        { name: "Live Stream", path: "/live", icon: SparklesIcon },
-        { name: "AI Gmail", path: "/ai-gmail", icon: DocumentTextIcon },
-      ],
+      items: [{ name: "AI Chat", path: "/chat", icon: QuestionMarkCircleIcon }],
     },
     {
-      title: "Data Management",
+      title: "Demo Showcases",
       items: [
         {
           name: "Creative Showcase",
           path: "/creative-showcase",
           icon: SparklesIconFilled,
         },
+      ],
+    },
+    {
+      title: "Data Management",
+      items: [
         { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
         { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
         { name: "Upload", path: "/upload", icon: ArrowUpTrayIcon },
+        {
+          name: "Test data",
+          path: "/test-data",
+          icon: ClipboardDocumentListIcon,
+        },
         {
           name: "Documentation",
           path: "/documentation",
           icon: DocumentTextIcon,
         },
-        { name: "Team Hub", path: "/manage-team", icon: IdentificationIcon },
-        { name: "Contacts", path: "/contacts", icon: IdentificationIcon },
-        { name: "Invoices", path: "/invoices", icon: DocumentTextIcon },
-      ],
-    },
-    {
-      title: "Analytics",
-      items: [
-        { name: "Performance", path: "/bar", icon: ChartBarIcon },
-        { name: "Distribution", path: "/pie", icon: ChartPieIcon },
-        { name: "Trends", path: "/line", icon: PresentationChartLineIcon },
-        { name: "Global", path: "/geography", icon: GlobeAltIcon },
       ],
     },
   ];
@@ -178,10 +165,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             )}
             <div className="space-y-1.5">
               {section.items.map((item) => {
-                // Hide "Build Demo" for adsop roles
+                // Hide "Build Demo" for adsop-like roles
                 if (
                   item.path === "/build-demo" &&
-                  (user?.role === "adsop" || user?.role === "adsopmanager")
+                  isAdsopLikeRole
                 ) {
                   return null;
                 }

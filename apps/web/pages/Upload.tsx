@@ -1,17 +1,17 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 
+type DemoListItem = { id: string; title: string; category: string };
+
 const Upload: React.FC = () => {
   const { user } = useAuth();
   const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
   const role = (user?.role || "").toLowerCase();
   const canUpload = role === "admin" || role === "design";
 
-  const [demoItems, setDemoItems] = React.useState<
-    { title: string; category: string }[]
-  >([]);
+  const [demoItems, setDemoItems] = React.useState<DemoListItem[]>([]);
   const [selectedCategory, setSelectedCategory] = React.useState("all");
-  const [selectedDemoTitle, setSelectedDemoTitle] = React.useState("");
+  const [selectedDemoId, setSelectedDemoId] = React.useState("");
   const [files, setFiles] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [uploadingFolder, setUploadingFolder] = React.useState(false);
@@ -19,6 +19,15 @@ const Upload: React.FC = () => {
   const [selectedFolderName, setSelectedFolderName] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const resetFolderForm = React.useCallback(() => {
+    setSelectedFolderFiles([]);
+    setSelectedFolderName("");
+    if (folderInputRef.current) {
+      folderInputRef.current.value = "";
+    }
+  }, []);
 
   const loadFiles = React.useCallback(async () => {
     if (!canUpload) return;
@@ -51,30 +60,19 @@ const Upload: React.FC = () => {
         const res = await fetch(`${baseUrl}/api/creative-demo-titles`);
         const data = (await res.json()) as {
           ok?: boolean;
-          items?: { title?: string; category?: string }[];
-          error?: string;
+          items?: DemoListItem[];
         };
-        if (!res.ok || !data.ok) {
-          throw new Error(data.error || "Unable to load creative demo titles");
-        }
-        const items = Array.isArray(data.items)
-          ? data.items
-              .map((item) => ({
-                title: String(item?.title ?? "").trim(),
-                category: String(item?.category ?? "").trim(),
-              }))
-              .filter((item) => item.title)
-          : [];
+        const items = Array.isArray(data.items) ? data.items : [];
         setDemoItems(items);
         if (items.length > 0) {
-          setSelectedDemoTitle((prev) => prev || items[0].title);
+          setSelectedDemoId((prev) => prev || items[0].id);
         }
       } catch {
         setDemoItems([]);
       }
     };
     void loadDemoTitles();
-  }, [baseUrl, canUpload]);
+  }, [canUpload, baseUrl]);
 
   const categories = React.useMemo(() => {
     const unique = Array.from(
@@ -87,22 +85,20 @@ const Upload: React.FC = () => {
     return ["all", ...unique];
   }, [demoItems]);
 
-  const filteredTitles = React.useMemo(() => {
-    if (selectedCategory === "all") return demoItems.map((item) => item.title);
-    return demoItems
-      .filter((item) => item.category === selectedCategory)
-      .map((item) => item.title);
+  const filteredDemos = React.useMemo(() => {
+    if (selectedCategory === "all") return demoItems;
+    return demoItems.filter((item) => item.category === selectedCategory);
   }, [demoItems, selectedCategory]);
 
   React.useEffect(() => {
-    if (filteredTitles.length === 0) {
-      setSelectedDemoTitle("");
+    if (filteredDemos.length === 0) {
+      setSelectedDemoId("");
       return;
     }
-    if (!filteredTitles.includes(selectedDemoTitle)) {
-      setSelectedDemoTitle(filteredTitles[0]);
+    if (!filteredDemos.some((d) => d.id === selectedDemoId)) {
+      setSelectedDemoId(filteredDemos[0].id);
     }
-  }, [filteredTitles, selectedDemoTitle]);
+  }, [filteredDemos, selectedDemoId]);
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -131,6 +127,10 @@ const Upload: React.FC = () => {
   };
 
   const handleUploadFolder = async () => {
+    if (!selectedDemoId.trim()) {
+      setError("Please select a creative demo");
+      return;
+    }
     if (selectedFolderFiles.length === 0 || !selectedFolderName.trim()) {
       setError("Please select a folder first");
       return;
@@ -152,31 +152,67 @@ const Upload: React.FC = () => {
         }),
       );
 
-      const res = await fetch(`${baseUrl}/api/file-upload/folder`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": role,
-        },
-        body: JSON.stringify({
-          folderName: selectedFolderName.trim(),
-          files: payloadFiles,
-          demoTitle: selectedDemoTitle,
-        }),
-      });
-
-      const data = (await res.json()) as {
+      type UploadFolderResponse = {
         ok?: boolean;
         uploaded?: number;
         folderName?: string;
         error?: string;
+        testJsonUpdated?: boolean;
+        creativeDemosUpdated?: boolean;
+        conflict?: boolean;
+        existingPaths?: string[];
       };
+      const uploadOnce = async (overwrite: boolean) => {
+        const res = await fetch(`${baseUrl}/api/file-upload/folder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-role": role,
+          },
+          body: JSON.stringify({
+            folderName: selectedFolderName.trim(),
+            files: payloadFiles,
+            demoId: selectedDemoId,
+            categoryFilter: selectedCategory,
+            overwrite,
+          }),
+        });
+        const data = (await res.json()) as UploadFolderResponse;
+        return { res, data };
+      };
+
+      let { res, data } = await uploadOnce(false);
+      if (res.status === 409 && data.conflict) {
+        const conflictList = Array.isArray(data.existingPaths)
+          ? data.existingPaths.join("\n")
+          : "";
+        const shouldOverwrite = window.confirm(
+          `File da ton tai tren SFTP:\n${conflictList}\n\nBan co muon ghi de khong?`,
+        );
+        if (!shouldOverwrite) {
+          resetFolderForm();
+          setMessage("Upload cancelled. Form has been reset.");
+          return;
+        }
+        ({ res, data } = await uploadOnce(true));
+      }
+
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Folder upload failed");
       }
 
+      const baseMsg = `Uploaded ${data.uploaded || payloadFiles.length} file(s) to folder ${data.folderName || selectedFolderName}.`;
+      const extraMessages: string[] = [];
+      if (data.testJsonUpdated) {
+        extraMessages.push("Da ghi cac field upload vao apps/server/src/data/test.json.");
+      }
+      if (data.creativeDemosUpdated) {
+        extraMessages.push("Da cap nhat fla=true trong apps/server/src/data/creative-demos.json.");
+      }
       setMessage(
-        `Uploaded ${data.uploaded || payloadFiles.length} file(s) to folder ${data.folderName || selectedFolderName}`,
+        extraMessages.length > 0
+          ? `${baseMsg} ${extraMessages.join(" ")}`
+          : baseMsg,
       );
       await loadFiles();
     } catch (err) {
@@ -227,16 +263,16 @@ const Upload: React.FC = () => {
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">Creative Demo Title</label>
           <select
-            value={selectedDemoTitle}
-            onChange={(e) => setSelectedDemoTitle(e.target.value)}
+            value={selectedDemoId}
+            onChange={(e) => setSelectedDemoId(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-2.5 text-sm text-white outline-none focus:border-[#4cceac]/60"
           >
-            {filteredTitles.length === 0 ? (
+            {filteredDemos.length === 0 ? (
               <option value="">No title available</option>
             ) : (
-              filteredTitles.map((title) => (
-                <option key={title} value={title}>
-                  {title}
+              filteredDemos.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
                 </option>
               ))
             )}
@@ -267,6 +303,7 @@ const Upload: React.FC = () => {
             type="file"
             multiple
             accept=".zip,application/zip"
+            ref={folderInputRef}
             onChange={handleFolderSelection}
             className="hidden"
           />

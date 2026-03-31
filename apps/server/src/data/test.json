@@ -1,0 +1,78 @@
+{
+  "0": {
+    "id": "u_006",
+    "name": "Pham Le Tran",
+    "email": "tran.pl@pinetech.vn",
+    "phone": "0794546511",
+    "role": "design",
+    "status": "active"
+  },
+  "1": {
+    "id": "u_006",
+    "name": "Pham Le Tran",
+    "email": "tran.pl@pinetech.vn",
+    "phone": "0794546511",
+    "role": "design",
+    "status": "active"
+  },
+  "lastUpload": {
+    "at": "2026-03-31T08:58:01.919Z",
+    "fields": {
+      "categoryFilter": "Mobile",
+      "demoTitle": "Mobile Inpage iTVC",
+      "folderName": "creative-demos"
+    },
+    "demo": {
+      "id": "0068",
+      "title": "Mobile Inpage iTVC",
+      "category": "Mobile",
+      "source": "yomedia/app/template/data/0068/banner"
+    },
+    "files": [
+      {
+        "index": 1,
+        "name": "creative-demos.zip",
+        "sizeBytes": 3388
+      }
+    ],
+    "upload": {
+      "uploadedCount": 1,
+      "sftpBaseDir": "/script/demo/yomedia/app/template/data/0068/banner",
+      "sftpUploadedPaths": [
+        "/script/demo/yomedia/app/template/data/0068/banner/mobile-inpage-itvc.zip"
+      ],
+      "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\creative-demos"
+    }
+  },
+  "uploadHistory": [
+    {
+      "at": "2026-03-31T08:58:01.919Z",
+      "fields": {
+        "categoryFilter": "Mobile",
+        "demoTitle": "Mobile Inpage iTVC",
+        "folderName": "creative-demos"
+      },
+      "demo": {
+        "id": "0068",
+        "title": "Mobile Inpage iTVC",
+        "category": "Mobile",
+        "source": "yomedia/app/template/data/0068/banner"
+      },
+      "files": [
+        {
+          "index": 1,
+          "name": "creative-demos.zip",
+          "sizeBytes": 3388
+        }
+      ],
+      "upload": {
+        "uploadedCount": 1,
+        "sftpBaseDir": "/script/demo/yomedia/app/template/data/0068/banner",
+        "sftpUploadedPaths": [
+          "/script/demo/yomedia/app/template/data/0068/banner/mobile-inpage-itvc.zip"
+        ],
+        "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\creative-demos"
+      }
+    }
+  ]
+}

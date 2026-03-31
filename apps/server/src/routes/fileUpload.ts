@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import {
   uploadSftpBuffer,
+  sftpPathExists,
   verifySftpWritableDirectory,
 } from "../lib/sftpClient.js";
 
@@ -19,6 +20,7 @@ const CREATIVE_DEMOS_PATH = path.join(
   "data",
   "creative-demos.json",
 );
+const TEST_JSON_PATH = path.join(__dirname, "..", "data", "test.json");
 
 function toSafeRelativePath(input: string): string | null {
   const normalized = input.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -79,6 +81,80 @@ function getUserRole(req: Request): string {
 
 function isTooLarge(buffer: Buffer): boolean {
   return buffer.length > MAX_UPLOAD_SIZE_BYTES;
+}
+
+type DemoRow = {
+  id?: string;
+  title?: string;
+  source?: string;
+  category?: string;
+  fla?: boolean;
+};
+
+async function recordFolderUploadToTestJson(payload: {
+  categoryFilter?: string;
+  demoTitle: string;
+  folderName: string;
+  zipEntries: { relativePath: string; sizeBytes: number }[];
+  demo: DemoRow | undefined;
+  source: string;
+  sftpBaseDir: string;
+  uploadedCount: number;
+  localRootFolder: string;
+  sftpUploadedPaths: string[];
+}): Promise<void> {
+  let existing: Record<string, unknown> = {};
+  try {
+    const raw = await readFile(TEST_JSON_PATH, "utf8");
+    const t = raw.trim();
+    if (t) existing = JSON.parse(t) as Record<string, unknown>;
+  } catch {
+    existing = {};
+  }
+
+  const at = new Date().toISOString();
+  const record = {
+    at,
+    fields: {
+      categoryFilter: payload.categoryFilter ?? "",
+      demoTitle: payload.demoTitle,
+      folderName: payload.folderName,
+    },
+    demo: {
+      id: payload.demo?.id ?? null,
+      title: payload.demo?.title ?? payload.demoTitle,
+      category: payload.demo?.category ?? null,
+      source: payload.source,
+    },
+    files: payload.zipEntries.map((z, i) => ({
+      index: i + 1,
+      name: z.relativePath,
+      sizeBytes: z.sizeBytes,
+    })),
+    upload: {
+      uploadedCount: payload.uploadedCount,
+      sftpBaseDir: payload.sftpBaseDir,
+      sftpUploadedPaths: payload.sftpUploadedPaths,
+      localRootFolder: payload.localRootFolder,
+    },
+  };
+
+  const prevHistory = existing.uploadHistory;
+  const history = Array.isArray(prevHistory)
+    ? [...prevHistory]
+    : [];
+  history.unshift(record);
+  const next = {
+    ...existing,
+    lastUpload: record,
+    uploadHistory: history.slice(0, 100),
+  };
+
+  await writeFile(
+    TEST_JSON_PATH,
+    JSON.stringify(next, null, 2) + "\n",
+    "utf8",
+  );
 }
 
 router.use((req: Request, res: Response, next) => {
@@ -166,7 +242,10 @@ router.post("/folder", async (req: Request, res: Response) => {
   try {
     const body = req.body as {
       folderName?: string;
+      demoId?: string;
       demoTitle?: string;
+      categoryFilter?: string;
+      overwrite?: boolean;
       files?: {
         relativePath?: string;
         content?: string;
@@ -185,21 +264,33 @@ router.post("/folder", async (req: Request, res: Response) => {
       });
       return;
     }
-    if (!body.demoTitle?.trim()) {
-      res.status(400).json({ ok: false, error: "Missing 'demoTitle' in body" });
+    const demoId = typeof body.demoId === "string" ? body.demoId.trim() : "";
+    const demoTitleInput =
+      typeof body.demoTitle === "string" ? body.demoTitle.trim() : "";
+    if (!demoId && !demoTitleInput) {
+      res
+        .status(400)
+        .json({ ok: false, error: "Missing 'demoId' or 'demoTitle' in body" });
       return;
     }
 
     const demosRaw = await readFile(CREATIVE_DEMOS_PATH, "utf8");
     const demosParsed = JSON.parse(demosRaw) as {
-      demos?: { title?: string; source?: string }[];
+      demos?: DemoRow[];
     };
-    const matchedDemo = (demosParsed.demos || []).find(
-      (item) =>
-        String(item?.title || "")
-          .trim()
-          .toLowerCase() === body.demoTitle!.trim().toLowerCase(),
-    );
+    const demosList = demosParsed.demos || [];
+    const matchedDemo = demoId
+      ? demosList.find(
+          (item) =>
+            String(item?.id ?? "").trim().toLowerCase() ===
+            demoId.toLowerCase(),
+        )
+      : demosList.find(
+          (item) =>
+            String(item?.title || "")
+              .trim()
+              .toLowerCase() === demoTitleInput.toLowerCase(),
+        );
     const source = String(matchedDemo?.source || "").trim();
     if (!source) {
       res.status(400).json({
@@ -209,7 +300,10 @@ router.post("/folder", async (req: Request, res: Response) => {
       return;
     }
     const sftpBaseDir = mapSourceToSftpRoot(source);
-    const zipBaseName = toSafeZipBaseName(body.demoTitle.trim());
+    const titleForZip =
+      String(matchedDemo?.title || demoTitleInput || "").trim();
+    const zipBaseName = toSafeZipBaseName(titleForZip);
+    const overwrite = body.overwrite === true;
 
     const safeFolderName = path.basename(body.folderName);
     if (!safeFolderName) {
@@ -221,17 +315,39 @@ router.post("/folder", async (req: Request, res: Response) => {
     await mkdir(rootFolder, { recursive: true });
 
     const uploadedSftpPaths: string[] = [];
+    const zipEntries: { relativePath: string; sizeBytes: number }[] = [];
     const checkedWritableDirs = new Set<string>();
+    const remoteTargetPaths = body.files.map((_, i) => {
+      const targetZipName =
+        body.files!.length > 1 ? `${zipBaseName}-${i + 1}.zip` : `${zipBaseName}.zip`;
+      return `${sftpBaseDir}/${targetZipName}`.replace(/\/{2,}/g, "/");
+    });
+    if (!overwrite) {
+      const existingPaths: string[] = [];
+      const uniqueTargets = Array.from(new Set(remoteTargetPaths));
+      for (const targetPath of uniqueTargets) {
+        const existsInfo = await sftpPathExists(targetPath, {}, { scope: "demo" });
+        if (existsInfo.exists) {
+          existingPaths.push(existsInfo.checkedPath || targetPath);
+        }
+      }
+      if (existingPaths.length > 0) {
+        res.status(409).json({
+          ok: false,
+          conflict: true,
+          error: "Remote file already exists on SFTP",
+          existingPaths,
+        });
+        return;
+      }
+    }
+
     for (let i = 0; i < body.files.length; i++) {
       const file = body.files[i];
       const relativePath = toSafeRelativePath(String(file.relativePath || ""));
       const content = typeof file.content === "string" ? file.content : "";
       const encoding = file.encoding === "utf8" ? "utf8" : "base64";
       const isZip = relativePath?.toLowerCase().endsWith(".zip");
-      const targetZipName =
-        body.files.length > 1
-          ? `${zipBaseName}-${i + 1}.zip`
-          : `${zipBaseName}.zip`;
 
       if (!relativePath || !content) {
         res.status(400).json({
@@ -265,10 +381,11 @@ router.post("/folder", async (req: Request, res: Response) => {
         return;
       }
       await writeFile(targetPath, buffer);
-      const remotePath = `${sftpBaseDir}/${targetZipName}`.replace(
-        /\/{2,}/g,
-        "/",
-      );
+      zipEntries.push({
+        relativePath,
+        sizeBytes: buffer.length,
+      });
+      const remotePath = remoteTargetPaths[i];
       const remoteDir = path.posix.dirname(remotePath);
       if (!checkedWritableDirs.has(remoteDir)) {
         await verifySftpWritableDirectory(remoteDir);
@@ -278,16 +395,53 @@ router.post("/folder", async (req: Request, res: Response) => {
       uploadedSftpPaths.push(remotePath);
     }
 
+    const categoryFilter =
+      typeof body.categoryFilter === "string" ? body.categoryFilter.trim() : "";
+    let testJsonUpdated = false;
+    try {
+      await recordFolderUploadToTestJson({
+        categoryFilter,
+        demoTitle: titleForZip,
+        folderName: safeFolderName,
+        zipEntries,
+        demo: matchedDemo,
+        source,
+        sftpBaseDir,
+        uploadedCount: body.files.length,
+        localRootFolder: rootFolder,
+        sftpUploadedPaths: uploadedSftpPaths,
+      });
+      testJsonUpdated = true;
+    } catch (err) {
+      console.error("recordFolderUploadToTestJson failed", err);
+    }
+    let creativeDemosUpdated = false;
+    try {
+      if (matchedDemo && matchedDemo.fla !== true) {
+        matchedDemo.fla = true;
+        await writeFile(
+          CREATIVE_DEMOS_PATH,
+          JSON.stringify(demosParsed, null, 2) + "\n",
+          "utf8",
+        );
+        creativeDemosUpdated = true;
+      }
+    } catch (err) {
+      console.error("update creative-demos fla failed", err);
+    }
+
     res.json({
       ok: true,
       folderName: safeFolderName,
-      demoTitle: body.demoTitle.trim(),
+      demoTitle: titleForZip,
       source,
       sftpBaseDir,
       uploaded: body.files.length,
       path: rootFolder,
       sftpUploadedPaths: uploadedSftpPaths,
       storage: "file-center",
+      testJsonUpdated,
+      creativeDemosUpdated,
     });
   } catch (error: unknown) {
     const message =
