@@ -1,4 +1,5 @@
 import React from "react";
+import { loadCreativeDemos } from "../data/creativeDemos";
 
 export type OpenYomediaDemoPreviewParams = {
   /** Đường dẫn tương đối (vd `2026/03/.../480x270`) hoặc full có prefix `/script/demo`. */
@@ -126,20 +127,10 @@ function inferDeviceByCategory(category: string | null | undefined): "pc" | "mb"
   return "mb";
 }
 
-async function getFormatFromApi(size: string | null, serverApiUrl: string) {
+async function getFormatFromData(size: string | null) {
   if (!size) return { format: "inpage-mb", device: "mb" as const };
 
-  const res = await fetch(`${serverApiUrl}/api/creative-demos`);
-  const data = await res.json();
-  if (!res.ok || !data?.ok || !Array.isArray(data?.demos)) {
-    return { format: "inpage-mb", device: "mb" as const };
-  }
-
-  const demos = data.demos as Array<{
-    size?: unknown;
-    value?: string;
-    category?: string;
-  }>;
+  const demos = await loadCreativeDemos();
 
   const foundBySize = demos.find((item) => {
     const sizes: unknown[] = [];
@@ -201,7 +192,7 @@ export async function getYomediaDemoPreviewUrl(
           ? ("pc" as const)
           : ("mb" as const),
       }
-    : await getFormatFromApi(size, serverApiUrl);
+    : await getFormatFromData(size);
   const { format: formatParam, device } = resolved;
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";

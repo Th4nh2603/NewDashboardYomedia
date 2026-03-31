@@ -47,6 +47,14 @@
       "phone": "0794546511",
       "role": "design",
       "status": "active"
+    },
+    {
+      "id": "u_007",
+      "name": "Guest",
+      "email": "media@pinetech.vn",
+      "phone": "0123456789",
+      "role": "media",
+      "status": "active"
     }
   ]
 }

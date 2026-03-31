@@ -4,7 +4,11 @@
       "id": "0001",
       "title": "Display IAB",
       "image": "https://picsum.photos/seed/demo72/800/600",
-      "size": ["320x50", "300x50", "300x250"],
+      "size": [
+        "320x50",
+        "300x50",
+        "300x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -20,7 +24,9 @@
       "id": "0002",
       "title": "Display Masthead 3D Box",
       "image": "https://picsum.photos/seed/demo65/800/600",
-      "size": ["970x250"],
+      "size": [
+        "970x250"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Display",
@@ -36,7 +42,9 @@
       "id": "0003",
       "title": "Display In Image",
       "image": "https://picsum.photos/seed/demo79/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
@@ -52,7 +60,9 @@
       "id": "0004",
       "title": "Display On Image",
       "image": "https://picsum.photos/seed/demo93/800/600",
-      "size": ["600x650"],
+      "size": [
+        "600x650"
+      ],
       "position": "top image",
       "fileType": "HTML5",
       "category": "Display",
@@ -68,7 +78,11 @@
       "id": "0005",
       "title": "Display Bottom Up",
       "image": "https://picsum.photos/seed/demo106/800/600",
-      "size": ["1200x120", "1200x600", "640x360"],
+      "size": [
+        "1200x120",
+        "1200x600",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -84,7 +98,12 @@
       "id": "0006",
       "title": "Display IAB Medium",
       "image": "https://picsum.photos/seed/demo71/800/600",
-      "size": [" 728x90", "970x90", " 300x600", " 970x250"],
+      "size": [
+        " 728x90",
+        "970x90",
+        " 300x600",
+        " 970x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -100,7 +119,11 @@
       "id": "0007",
       "title": "Display Big Balloon",
       "image": "https://picsum.photos/seed/demo104/800/600",
-      "size": ["800x500", "300x250", "300x100"],
+      "size": [
+        "800x500",
+        "300x250",
+        "300x100"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -116,7 +139,9 @@
       "id": "0008",
       "title": "Display In Image iTVC",
       "image": "https://picsum.photos/seed/demo76/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -132,7 +157,9 @@
       "id": "0009",
       "title": "Display On Image iTVC",
       "image": "https://picsum.photos/seed/demo92/800/600",
-      "size": ["600x650"],
+      "size": [
+        "600x650"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -148,7 +175,10 @@
       "id": "0010",
       "title": "Display Sidekick iTVC",
       "image": "https://picsum.photos/seed/demo109/800/600",
-      "size": ["800x750", "300x250"],
+      "size": [
+        "800x750",
+        "300x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -164,7 +194,9 @@
       "id": "0011",
       "title": "Display In-feed Native",
       "image": "https://picsum.photos/seed/demo73/800/600",
-      "size": ["200x237"],
+      "size": [
+        "200x237"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -180,7 +212,9 @@
       "id": "0012",
       "title": "Display 3D Post Carousel",
       "image": "https://picsum.photos/seed/demo66/800/600",
-      "size": ["400x450"],
+      "size": [
+        "400x450"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -196,7 +230,11 @@
       "id": "0013",
       "title": "Display Balloon Standard",
       "image": "https://picsum.photos/seed/demo102/800/600",
-      "size": ["300x250", "300x100", "640x360"],
+      "size": [
+        "300x250",
+        "300x100",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -212,7 +250,10 @@
       "id": "0014",
       "title": "Display Bottom Up iTVC",
       "image": "https://picsum.photos/seed/demo105/800/600",
-      "size": ["1200x120", "1200x600"],
+      "size": [
+        "1200x120",
+        "1200x600"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -228,7 +269,9 @@
       "id": "0015",
       "title": "Display IAB Medium iTVC",
       "image": "https://picsum.photos/seed/demo70/800/600",
-      "size": ["-"],
+      "size": [
+        "-"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -244,7 +287,11 @@
       "id": "0016",
       "title": "Display In Image Carousel",
       "image": "https://picsum.photos/seed/demo75/800/600",
-      "size": ["600x125", "480x270", "640x360"],
+      "size": [
+        "600x125",
+        "480x270",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -260,7 +307,9 @@
       "id": "0017",
       "title": "Display In Image Takeover",
       "image": "https://picsum.photos/seed/demo78/800/600",
-      "size": ["600x1200"],
+      "size": [
+        "600x1200"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
@@ -276,7 +325,9 @@
       "id": "0018",
       "title": "Display Masthead Carousel",
       "image": "https://picsum.photos/seed/demo90/800/600",
-      "size": ["970x250"],
+      "size": [
+        "970x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -292,7 +343,11 @@
       "id": "0019",
       "title": "Display Balloon Expandable",
       "image": "https://picsum.photos/seed/demo99/800/600",
-      "size": ["500x300", "300x250", "300x100"],
+      "size": [
+        "500x300",
+        "300x250",
+        "300x100"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -308,7 +363,11 @@
       "id": "0020",
       "title": "Display Big Balloon iTVC",
       "image": "https://picsum.photos/seed/demo103/800/600",
-      "size": ["800x500", "300x250", "300x100"],
+      "size": [
+        "800x500",
+        "300x250",
+        "300x100"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -324,7 +383,9 @@
       "id": "0021",
       "title": "Display In-image With Image Under",
       "image": "https://picsum.photos/seed/demo80/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
@@ -340,7 +401,9 @@
       "id": "0022",
       "title": "Display Masthead",
       "image": "https://picsum.photos/seed/demo101/800/600",
-      "size": ["970x250"],
+      "size": [
+        "970x250"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Display",
@@ -356,7 +419,11 @@
       "id": "0023",
       "title": "Display In Image Carousel iTVC",
       "image": "https://picsum.photos/seed/demo74/800/600",
-      "size": ["600x125", "480x270", "640x360"],
+      "size": [
+        "600x125",
+        "480x270",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -372,7 +439,9 @@
       "id": "0024",
       "title": "Display In Image Takeover iTVC",
       "image": "https://picsum.photos/seed/demo77/800/600",
-      "size": ["600x550"],
+      "size": [
+        "600x550"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -388,7 +457,9 @@
       "id": "0025",
       "title": "Display Masthead Carousel iTVC",
       "image": "https://picsum.photos/seed/demo89/800/600",
-      "size": ["970x250"],
+      "size": [
+        "970x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -404,7 +475,11 @@
       "id": "0026",
       "title": "Display Balloon Standard iTVC",
       "image": "https://picsum.photos/seed/demo101/800/600",
-      "size": ["300x250", "300x100", "640x360"],
+      "size": [
+        "300x250",
+        "300x100",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -420,7 +495,9 @@
       "id": "0027",
       "title": "Display In-image With Image Under iTVC",
       "image": "https://picsum.photos/seed/demo81/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -436,7 +513,11 @@
       "id": "0028",
       "title": "Display Balloon Expandable iTVC",
       "image": "https://picsum.photos/seed/demo98/800/600",
-      "size": ["500x300", "300x250", "300x100"],
+      "size": [
+        "500x300",
+        "300x250",
+        "300x100"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -452,7 +533,9 @@
       "id": "0029",
       "title": "Display In Image With Inread Video",
       "image": "https://picsum.photos/seed/demo82/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Display",
@@ -468,7 +551,9 @@
       "id": "0030",
       "title": "Display Masthead iTVC",
       "image": "https://picsum.photos/seed/demo87/800/600",
-      "size": ["970x250"],
+      "size": [
+        "970x250"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Display",
@@ -484,7 +569,10 @@
       "id": "0031",
       "title": "Display Masthead Expandable",
       "image": "https://picsum.photos/seed/demo86/800/600",
-      "size": ["970x90", "970x415"],
+      "size": [
+        "970x90",
+        "970x415"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -500,7 +588,11 @@
       "id": "0032",
       "title": "Display Masthead Expandable iTVC",
       "image": "https://picsum.photos/seed/demo85/800/600",
-      "size": ["970x90", "970x415", "640x360"],
+      "size": [
+        "970x90",
+        "970x415",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Display",
@@ -516,7 +608,12 @@
       "id": "0033",
       "title": "Mobile IAB",
       "image": "https://picsum.photos/seed/demo42/800/600",
-      "size": ["320x50", "300x50", "300x250", "160x600"],
+      "size": [
+        "320x50",
+        "300x50",
+        "300x250",
+        "160x600"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -532,7 +629,9 @@
       "id": "0034",
       "title": "Mobile Card",
       "image": "https://picsum.photos/seed/demo114/800/600",
-      "size": ["400x250"],
+      "size": [
+        "400x250"
+      ],
       "position": "Bottom Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -548,7 +647,9 @@
       "id": "0035",
       "title": "Mobile Shake",
       "image": "https://picsum.photos/seed/demo129/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Middle Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -564,7 +665,9 @@
       "id": "0036",
       "title": "Mobile Wheel",
       "image": "https://picsum.photos/seed/demo133/800/600",
-      "size": ["750x300"],
+      "size": [
+        "750x300"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -580,7 +683,9 @@
       "id": "0037",
       "title": "Mobile Tetris",
       "image": "https://picsum.photos/seed/demo62/800/600",
-      "size": ["660x990"],
+      "size": [
+        "660x990"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -596,7 +701,9 @@
       "id": "0038",
       "title": "Mobile Bottom",
       "image": "https://picsum.photos/seed/demo112/800/600",
-      "size": ["640x460"],
+      "size": [
+        "640x460"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -612,7 +719,9 @@
       "id": "0039",
       "title": "Mobile In Image",
       "image": "https://picsum.photos/seed/demo49/800/600",
-      "size": ["640x460"],
+      "size": [
+        "640x460"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -628,7 +737,9 @@
       "id": "0040",
       "title": "Mobile Masthead",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["480x270"],
+      "size": [
+        "480x270"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -644,7 +755,9 @@
       "id": "0041",
       "title": "Mobile On Image",
       "image": "https://picsum.photos/seed/demo60/800/600",
-      "size": ["600x650"],
+      "size": [
+        "600x650"
+      ],
       "position": "top image",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -660,7 +773,9 @@
       "id": "0042",
       "title": "Mobile Pull Ads",
       "image": "https://picsum.photos/seed/demo126/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -676,7 +791,9 @@
       "id": "0043",
       "title": "Mobile Windmill",
       "image": "https://picsum.photos/seed/demo134/800/600",
-      "size": ["600x360"],
+      "size": [
+        "600x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -692,7 +809,9 @@
       "id": "0044",
       "title": "Mobile Card iTVC",
       "image": "https://picsum.photos/seed/demo113/800/600",
-      "size": ["400x250"],
+      "size": [
+        "400x250"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -708,7 +827,9 @@
       "id": "0045",
       "title": "Mobile Scratcher",
       "image": "https://picsum.photos/seed/demo127/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -724,7 +845,9 @@
       "id": "0046",
       "title": "Mobile Spin Plus",
       "image": "https://picsum.photos/seed/demo131/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -740,7 +863,9 @@
       "id": "0047",
       "title": "Mobile IAB Medium",
       "image": "https://picsum.photos/seed/demo41/800/600",
-      "size": ["-"],
+      "size": [
+        "-"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -756,7 +881,9 @@
       "id": "0048",
       "title": "Mobile Shake iTVC",
       "image": "https://picsum.photos/seed/demo128/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -772,7 +899,9 @@
       "id": "0049",
       "title": "Mobile Wheel iTVC",
       "image": "https://picsum.photos/seed/demo132/800/600",
-      "size": ["750x300"],
+      "size": [
+        "750x300"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -788,7 +917,9 @@
       "id": "0050",
       "title": "Mobile Tetris iTVC",
       "image": "https://picsum.photos/seed/demo61/800/600",
-      "size": ["660x990"],
+      "size": [
+        "660x990"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -804,7 +935,9 @@
       "id": "0051",
       "title": "Mobile Bottom iTVC",
       "image": "https://picsum.photos/seed/demo111/800/600",
-      "size": ["640x460"],
+      "size": [
+        "640x460"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -820,7 +953,9 @@
       "id": "0052",
       "title": "Mobile In Image iTVC",
       "image": "https://picsum.photos/seed/demo46/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -836,7 +971,9 @@
       "id": "0053",
       "title": "Mobile Masthead iTVC",
       "image": "https://picsum.photos/seed/demo56/800/600",
-      "size": ["480x270"],
+      "size": [
+        "480x270"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -852,7 +989,9 @@
       "id": "0054",
       "title": "Mobile On Image iTVC",
       "image": "https://picsum.photos/seed/demo59/800/600",
-      "size": ["600x650"],
+      "size": [
+        "600x650"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -868,7 +1007,9 @@
       "id": "0055",
       "title": "Mobile Footer Expand",
       "image": "https://picsum.photos/seed/demo118/800/600",
-      "size": ["384x235"],
+      "size": [
+        "384x235"
+      ],
       "position": "Bottom Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -884,7 +1025,9 @@
       "id": "0056",
       "title": "Mobile Inpage",
       "image": "https://picsum.photos/seed/demo121/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Middle Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -900,7 +1043,9 @@
       "id": "0057",
       "title": "Mobile In-feed Native",
       "image": "https://picsum.photos/seed/demo43/800/600",
-      "size": ["200x237"],
+      "size": [
+        "200x237"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -916,7 +1061,9 @@
       "id": "0058",
       "title": "Mobile Inpage Carousel",
       "image": "https://picsum.photos/seed/demo53/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Middle Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -932,7 +1079,9 @@
       "id": "0059",
       "title": "Mobile Spin Plus (New)",
       "image": "https://picsum.photos/seed/demo130/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -948,7 +1097,9 @@
       "id": "0060",
       "title": "Mobile 3D Post Carousel",
       "image": "https://picsum.photos/seed/demo40/800/600",
-      "size": ["400x450"],
+      "size": [
+        "400x450"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -964,7 +1115,9 @@
       "id": "0061",
       "title": "Mobile In Image Carousel",
       "image": "https://picsum.photos/seed/demo45/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -980,7 +1133,9 @@
       "id": "0062",
       "title": "Mobile In Image Takeover",
       "image": "https://picsum.photos/seed/demo48/800/600",
-      "size": ["600x550"],
+      "size": [
+        "600x550"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -996,7 +1151,10 @@
       "id": "0063",
       "title": "Mobile Masthead Carousel",
       "image": "https://picsum.photos/seed/demo55/800/600",
-      "size": ["480x270", "640x360"],
+      "size": [
+        "480x270",
+        "640x360"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1012,7 +1170,11 @@
       "id": "0064",
       "title": "Mobile Footer Expand iTVC",
       "image": "https://picsum.photos/seed/demo117/800/600",
-      "size": ["384x235", "384x683", "640x360"],
+      "size": [
+        "384x235",
+        "384x683",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1028,7 +1190,9 @@
       "id": "0065",
       "title": "Mobile Interstitial Shake",
       "image": "https://picsum.photos/seed/demo125/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1044,7 +1208,9 @@
       "id": "0066",
       "title": "Mobile Inpage Shake",
       "image": "https://picsum.photos/seed/demo120/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1060,7 +1226,10 @@
       "id": "0067",
       "title": "Mobile In-image With Image Under",
       "image": "https://picsum.photos/seed/demo50/800/600",
-      "size": ["600x125", "480x270"],
+      "size": [
+        "600x125",
+        "480x270"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1076,7 +1245,9 @@
       "id": "0068",
       "title": "Mobile Inpage iTVC",
       "image": "https://picsum.photos/seed/demo119/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Middle Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1092,7 +1263,11 @@
       "id": "0069",
       "title": "Mobile In Image Carousel iTVC",
       "image": "https://picsum.photos/seed/demo44/800/600",
-      "size": ["600x125", "480x270", "640x360"],
+      "size": [
+        "600x125",
+        "480x270",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1108,7 +1283,10 @@
       "id": "0070",
       "title": "Mobile In Image Takeover iTVC",
       "image": "https://picsum.photos/seed/demo47/800/600",
-      "size": ["600x550", "640x360"],
+      "size": [
+        "600x550",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1124,7 +1302,10 @@
       "id": "0071",
       "title": "Mobile Masthead Carousel iTVC",
       "image": "https://picsum.photos/seed/demo54/800/600",
-      "size": ["480x270", "640x360"],
+      "size": [
+        "480x270",
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1140,7 +1321,10 @@
       "id": "0072",
       "title": "Mobile Footer 3D Box Carousel",
       "image": "https://picsum.photos/seed/demo116/800/600",
-      "size": ["384x235", "384x683"],
+      "size": [
+        "384x235",
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1156,7 +1340,9 @@
       "id": "0073",
       "title": "Mobile Interstitial FirstView",
       "image": "https://picsum.photos/seed/demo122/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1172,7 +1358,9 @@
       "id": "0074",
       "title": "Mobile In-image With Image Under iTVC",
       "image": "https://picsum.photos/seed/demo51/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1188,7 +1376,9 @@
       "id": "0075",
       "title": "Mobile In Image With Inread Video",
       "image": "https://picsum.photos/seed/demo52/800/600",
-      "size": ["600x125"],
+      "size": [
+        "600x125"
+      ],
       "position": "In Image",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1204,7 +1394,9 @@
       "id": "0076",
       "title": "Mobile Interstitial iTVC FirstView",
       "image": "https://picsum.photos/seed/demo124/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1220,7 +1412,10 @@
       "id": "0077",
       "title": "Mobile Footer 3D Box Carousel iTVC",
       "image": "https://picsum.photos/seed/demo115/800/600",
-      "size": ["384x235", "384x683"],
+      "size": [
+        "384x235",
+        "384x683"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1236,7 +1431,9 @@
       "id": "0078",
       "title": "Mobile Interstitial Interactive FirstView",
       "image": "https://picsum.photos/seed/demo123/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "middle center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1252,7 +1449,9 @@
       "id": "0079",
       "title": "Video In-read",
       "image": "https://picsum.photos/seed/demo15/800/600",
-      "size": ["640x360"],
+      "size": [
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Video",
@@ -1268,7 +1467,9 @@
       "id": "0080",
       "title": "Video Pre-roll",
       "image": "https://picsum.photos/seed/demo15/800/600",
-      "size": ["640x360"],
+      "size": [
+        "640x360"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Video",
@@ -1284,7 +1485,9 @@
       "id": "0081",
       "title": "Vertical Video Inpage",
       "image": "https://picsum.photos/seed/demo11/800/600",
-      "size": ["1080x1920"],
+      "size": [
+        "1080x1920"
+      ],
       "position": "-",
       "fileType": "HTML5",
       "category": "Video",
@@ -1300,7 +1503,11 @@
       "id": "0082",
       "title": "Display Balloon Expandable",
       "image": "https://picsum.photos/seed/demo99/800/600",
-      "size": ["475x325", "300x250", "300x100"],
+      "size": [
+        "475x325",
+        "300x250",
+        "300x100"
+      ],
       "position": "bottom right fixed",
       "fileType": "HTML5",
       "category": "Display",
@@ -1316,7 +1523,11 @@
       "id": "0083",
       "title": "Display Balloon Expandable iTVC",
       "image": "https://picsum.photos/seed/demo99/800/600",
-      "size": ["475x325", "300x250", "300x100"],
+      "size": [
+        "475x325",
+        "300x250",
+        "300x100"
+      ],
       "position": "Bottom Right Fixed",
       "fileType": "HTML5",
       "category": "Display",
@@ -1332,7 +1543,9 @@
       "id": "0084",
       "title": "Mobile Interstitial FirstView Slide Card",
       "image": "https://picsum.photos/seed/demo122/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1348,7 +1561,9 @@
       "id": "0085",
       "title": "Mobile Masthead Slider Draggable",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["480x270"],
+      "size": [
+        "480x270"
+      ],
       "position": "Top Center",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1364,7 +1579,9 @@
       "id": "0086",
       "title": "Mobile FirstView Interactive Scratch",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1380,7 +1597,9 @@
       "id": "0087",
       "title": "Mobile FirstView interactive Puzzle",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1396,7 +1615,9 @@
       "id": "0088",
       "title": "Mobile FirstView interactive Wheel",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1412,7 +1633,9 @@
       "id": "0089",
       "title": "Mobile FirstView interactive Bubble",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1428,7 +1651,9 @@
       "id": "0090",
       "title": "Mobile FirstView interactive Spin",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",
@@ -1444,7 +1669,9 @@
       "id": "0091",
       "title": "Mobile FirstView interactive Drag",
       "image": "https://picsum.photos/seed/demo57/800/600",
-      "size": ["384x683"],
+      "size": [
+        "384x683"
+      ],
       "position": "Full Screen",
       "fileType": "HTML5",
       "category": "Mobile",

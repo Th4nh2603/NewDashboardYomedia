@@ -13,8 +13,8 @@ import {
   getYomediaDemoPreviewUrl,
   openYomediaDemoPreview,
 } from "../components/OpenDemo";
+import { type CreativeDemoItem } from "../data/creativeDemos";
 
-/** Hiển thị Size: phần tử đầu của mảng `size` (hoặc chuỗi). */
 function displayPrimarySize(item: { size?: string | string[] }): string {
   const s = item.size;
   if (Array.isArray(s) && s.length > 0) return String(s[0]).trim();
@@ -30,22 +30,82 @@ function toSafeZipName(title: string): string {
   return (cleaned || "creative-demo") + ".zip";
 }
 
-interface DemoItem {
-  id: string;
-  title: string;
-  image: string;
-  size?: string | string[];
-  position: string;
-  fileType: string;
-  value?: string;
-  /** mp4 nếu title có iTVC, ngược lại none */
-  video?: string;
-  source?: string;
-  status?: string;
-  category: "Display" | "Video" | "Mobile";
+type DemoItem = CreativeDemoItem;
+type CreativeDemosApiResponse = {
+  ok?: boolean;
+  demos?: unknown[];
+};
+
+function normalizeDemo(raw: unknown): DemoItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Record<string, unknown>;
+  const id = String(item.id ?? "").trim();
+  const title = String(item.title ?? "").trim();
+  const category = String(item.category ?? "").trim() as DemoItem["category"];
+  if (!id || !title || !["Display", "Video", "Mobile"].includes(category)) {
+    return null;
+  }
+
+  return {
+    id,
+    title,
+    image: String(item.image ?? ""),
+    size: item.size as string | string[] | undefined,
+    position: String(item.position ?? "-"),
+    fileType: String(item.fileType ?? ""),
+    value: item.value ? String(item.value) : undefined,
+    video: item.video ? String(item.video) : undefined,
+    source: item.source ? String(item.source) : undefined,
+    status: item.status ? String(item.status) : undefined,
+    category,
+    fla: typeof item.fla === "boolean" ? item.fla : false,
+  };
 }
 
-/** Khung iPhone 16 Pro Max (titanium + Dynamic Island); màn hình = iframe demo + ảnh poster khi tải. */
+function StatusBarCellularIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1024 1024"
+      fill="currentColor"
+      aria-hidden
+      {...props}
+    >
+      <path d="M584 352H440c-17.7 0-32 14.3-32 32v544c0 17.7 14.3 32 32 32h144c17.7 0 32-14.3 32-32V384c0-17.7-14.3-32-32-32M892 64H748c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h144c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32M276 640H132c-17.7 0-32 14.3-32 32v256c0 17.7 14.3 32 32 32h144c17.7 0 32-14.3 32-32V672c0-17.7-14.3-32-32-32" />
+    </svg>
+  );
+}
+
+function StatusBarWifiIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      fill="currentColor"
+      aria-hidden
+      {...props}
+    >
+      <path d="M256 96c-81.5 0-163 33.6-221.5 88.3-3.3 3-3.4 8.1-.3 11.4l26.7 27.9c3.1 3.3 8.3 3.4 11.6.3 23.3-21.6 49.9-38.8 79.3-51 33-13.8 68.1-20.7 104.3-20.7s71.3 7 104.3 20.7c29.4 12.3 56 29.4 79.3 51 3.3 3.1 8.5 3 11.6-.3l26.7-27.9c3.1-3.2 3-8.3-.3-11.4C419 129.6 337.5 96 256 96z" />
+      <path d="M113.2 277.5l28.6 28.3c3.1 3 8 3.2 11.2.3 28.3-25.1 64.6-38.9 102.9-38.9s74.6 13.7 102.9 38.9c3.2 2.9 8.1 2.7 11.2-.3l28.6-28.3c3.3-3.3 3.2-8.6-.3-11.7-37.5-33.9-87.6-54.6-142.5-54.6s-105 20.7-142.5 54.6c-3.3 3.1-3.4 8.4-.1 11.7z" />
+      <path d="M256 324.2c-23.4 0-44.6 9.8-59.4 25.5-3 3.2-2.9 8.1.2 11.2l53.4 52.7c3.2 3.2 8.4 3.2 11.6 0l53.4-52.7c3.1-3.1 3.2-8 .2-11.2-14.8-15.6-36-25.5-59.4-25.5z" />
+    </svg>
+  );
+}
+
+function StatusBarBatteryIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      {...props}
+    >
+      <path d="M20 8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2h2v-4h-2z" />
+    </svg>
+  );
+}
+
 function Iphone16ProMaxShowcaseFrame({
   title,
   posterImage,
@@ -62,7 +122,6 @@ function Iphone16ProMaxShowcaseFrame({
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   useEffect(() => {
-    console.log("iframeSrc", iframeSrc);
     setIframeLoaded(false);
   }, [iframeSrc]);
 
@@ -70,7 +129,6 @@ function Iphone16ProMaxShowcaseFrame({
 
   return (
     <div className="relative mx-auto flex w-full max-w-[240px] flex-col items-center py-4 sm:max-w-[300px]">
-      {/* Nút Action / rung (gợi ý viền máy) */}
       <div
         className="pointer-events-none absolute -left-0.5 top-[18%] z-10 h-8 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] to-[#1a1a1c] shadow-sm sm:top-[20%] sm:h-10"
         aria-hidden
@@ -85,53 +143,69 @@ function Iphone16ProMaxShowcaseFrame({
       />
 
       <div
-        className="relative w-full shadow-[0_28px_56px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.14)]"
+        className="relative w-full ,inset_0_1px_0_rgba(255,255,255,0.14)]"
         style={{ aspectRatio: "430 / 895" }}
       >
-        {/* Vỏ titanium */}
-        <div className="absolute inset-0 rounded-[2.35rem] bg-gradient-to-br from-[#8e8e93] via-[#636366] to-[#3a3a3c] p-[3.5%] ring-1 ring-white/15">
+        <div className="absolute inset-0 rounded-[2.35rem] bg-[#3b3b3b] via-[#636366]  p-[2.5%] ring-1 ring-white/15">
           <div className="relative h-full w-full rounded-[2.05rem] bg-[#0c0c0c] p-[2.2%] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
-            <div className="relative h-full w-full overflow-hidden rounded-[1.78rem] bg-black">
-              <img
-                src={posterImage}
-                alt=""
-                className={`absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-500 ${
-                  showPoster ? "opacity-100" : "pointer-events-none opacity-0"
-                }`}
-                referrerPolicy="no-referrer"
-              />
-
-              {iframeSrc ? (
-                <iframe
-                  src={iframeSrc}
-                  title={title}
-                  className={`absolute inset-0 z-[2] h-full w-full border-0 bg-black transition-opacity duration-500 ${
-                    iframeLoaded && !urlResolving ? "opacity-100" : "opacity-0"
-                  }`}
-                  onLoad={() => setIframeLoaded(true)}
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                />
-              ) : null}
-
-              {urlResolving ? (
-                <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/40">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/70">
-                    Loading demo…
-                  </span>
-                </div>
-              ) : null}
-
-              {/* Dynamic Island */}
+            <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.78rem] bg-black">
               <div
-                className="pointer-events-none absolute left-1/2 top-[1.75%] z-20 h-[3.4%] min-h-[11px] w-[34%] max-w-[120px] -translate-x-1/2 rounded-full bg-black shadow-[0_4px_14px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.04)] ring-[0.5px] ring-white/[0.06]"
+                className="pointer-events-none absolute left-1/2 top-[1.25%] z-[32] h-[3.4%] min-h-[11px] w-[34%] max-w-[118px] -translate-x-1/2 rounded-full bg-black shadow-[0_4px_14px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.04)] ring-[0.5px] ring-white/[0.06]"
                 aria-hidden
               />
 
-              {/* Viền kính mờ góc máy */}
-              <div className="pointer-events-none absolute inset-0 z-[19] rounded-[1.78rem] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_20px_40px_-20px_rgba(255,255,255,0.06)]" />
+              <div className="relative z-[21] flex w-full shrink-0 items-center bg-white pl-[9%] pr-[5%] pb-1.5 pt-[3.5%] text-[0.7rem] font-semibold leading-none text-black pointer-events-none">
+                <span className="tabular-nums shrink-0">9:42</span>
+                <span className="min-w-0 flex-1" aria-hidden />
+                <div className="flex shrink-0 items-center gap-1 text-black translate-x-0.5">
+                  <StatusBarCellularIcon className="h-3.5 w-[1.1rem] shrink-0" />
+                  <StatusBarWifiIcon className="h-3.5 w-3.5 shrink-0" />
+                  <StatusBarBatteryIcon className="h-3 w-6 shrink-0" />
+                </div>
+              </div>
 
-              {children}
+              <div className="relative min-h-0 w-full flex-1 bg-white">
+                <img
+                  src={posterImage}
+                  alt=""
+                  className={`absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-500 ${
+                    showPoster ? "opacity-100" : "pointer-events-none opacity-0"
+                  }`}
+                  referrerPolicy="no-referrer"
+                />
+
+                {iframeSrc ? (
+                  <iframe
+                    src={iframeSrc}
+                    title={title}
+                    className={`absolute inset-0 z-[2] h-full w-full border-0 bg-white transition-opacity duration-500 ${
+                      iframeLoaded && !urlResolving
+                        ? "opacity-100"
+                        : "opacity-0"
+                    }`}
+                    onLoad={() => setIframeLoaded(true)}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    allow="autoplay; fullscreen; encrypted-media"
+                  />
+                ) : null}
+
+                {urlResolving ? (
+                  <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/35">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/90">
+                      Loading demo…
+                    </span>
+                  </div>
+                ) : null}
+
+                {children}
+              </div>
+
+              <div className="flex shrink-0 justify-center pb-1.5 pt-1">
+                <div className="h-1 w-[28%] max-w-[130px] rounded-full bg-white/90" />
+              </div>
+
+              <div className="pointer-events-none absolute inset-0 z-[19] rounded-[1.78rem] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),inset_0_20px_40px_-20px_rgba(255,255,255,0.06)]" />
             </div>
           </div>
         </div>
@@ -140,7 +214,7 @@ function Iphone16ProMaxShowcaseFrame({
   );
 }
 
-function MobileIphonePreviewWithEmbed({
+function ShowcaseIphonePreviewWithEmbed({
   item,
   serverApiUrl,
 }: {
@@ -149,6 +223,7 @@ function MobileIphonePreviewWithEmbed({
 }) {
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [urlResolving, setUrlResolving] = useState(true);
+  const isMobileCategory = item.category === "Mobile";
 
   useEffect(() => {
     let cancelled = false;
@@ -168,15 +243,17 @@ function MobileIphonePreviewWithEmbed({
         const url = await getYomediaDemoPreviewUrl({
           remotePath: path,
           formatValue: item.value,
-          forceDevice: "mb",
+          forceDevice: isMobileCategory ? "mb" : "pc",
           serverApiUrl,
         });
-        const mobileIframeUrl =
-          url?.replace(
-            "/site/idmb/index.html",
-            "/site/idmb/mobile/index.html",
-          ) ?? null;
-        if (!cancelled) setIframeSrc(mobileIframeUrl);
+        const resolved =
+          isMobileCategory && url
+            ? url.replace(
+                "/site/idmb/index.html",
+                "/site/idmb/mobile/index.html",
+              )
+            : url;
+        if (!cancelled) setIframeSrc(resolved);
       } finally {
         if (!cancelled) setUrlResolving(false);
       }
@@ -185,7 +262,7 @@ function MobileIphonePreviewWithEmbed({
     return () => {
       cancelled = true;
     };
-  }, [item.id, item.source, item.value, serverApiUrl]);
+  }, [item.id, item.source, item.value, serverApiUrl, isMobileCategory]);
 
   return (
     <Iphone16ProMaxShowcaseFrame
@@ -194,10 +271,9 @@ function MobileIphonePreviewWithEmbed({
       iframeSrc={iframeSrc}
       urlResolving={urlResolving}
     >
-      <div className="pointer-events-none absolute inset-0 z-[25] bg-gradient-to-t from-[#141b2d]/90 via-transparent to-transparent opacity-50" />
-
-      <div className="absolute top-3 left-3 right-3 z-30 flex justify-start pointer-events-none">
-        <span className="pointer-events-auto bg-[#141b2d]/90 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
+      <div className="pointer-events-none absolute inset-0 z-[25] bg-gradient-to-t from-[#141b2d]/85 via-transparent to-transparent opacity-40" />
+      <div className="absolute left-2 right-2 top-2 z-30 flex justify-start pointer-events-none sm:left-3 sm:right-3 sm:top-3">
+        <span className="pointer-events-auto rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[8px]">
           {item.category}
         </span>
       </div>
@@ -208,7 +284,8 @@ function MobileIphonePreviewWithEmbed({
 const CreativeShowcase: React.FC = () => {
   const ITEMS_PER_PAGE = 4;
   const { user } = useAuth();
-  const isAdsop = (user?.role || "").toLowerCase() === "adsop";
+  const role = (user?.role || "").toLowerCase();
+  const isRestrictedDownloadRole = role === "adsop" || role === "media";
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -279,11 +356,16 @@ const CreativeShowcase: React.FC = () => {
       setError(null);
       try {
         const res = await fetch(`${baseUrl}/api/creative-demos`);
-        const data = await res.json();
-        if (!res.ok || !data.ok || !Array.isArray(data.demos)) {
-          throw new Error(data.error || "Unable to load creative demos");
+        if (!res.ok) {
+          throw new Error("Unable to load creative demos from server");
         }
-        const sortedById = [...data.demos].sort((a: DemoItem, b: DemoItem) => {
+        const data = (await res.json()) as CreativeDemosApiResponse;
+        const demos = Array.isArray(data?.demos)
+          ? data.demos
+              .map(normalizeDemo)
+              .filter((item): item is DemoItem => Boolean(item))
+          : [];
+        const sortedById = demos.sort((a: DemoItem, b: DemoItem) => {
           const idA = Number(a.id);
           const idB = Number(b.id);
           if (Number.isNaN(idA) || Number.isNaN(idB)) {
@@ -302,7 +384,7 @@ const CreativeShowcase: React.FC = () => {
     };
 
     void fetchDemos();
-  }, []);
+  }, [baseUrl]);
 
   const filteredData = items.filter((item) => {
     const matchesFilter = item.category === filter;
@@ -399,41 +481,13 @@ const CreativeShowcase: React.FC = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.4, delay: idx * 0.05 }}
-                    className={`group relative bg-[#141b2d] rounded-[2rem] border border-white/5 hover:border-[#4cceac]/30 transition-all duration-500 shadow-2xl ${
-                      item.category === "Mobile"
-                        ? "overflow-visible"
-                        : "overflow-hidden"
-                    }`}
+                    className="group relative overflow-visible rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl transition-all duration-500 hover:border-[#4cceac]/30"
                   >
-                    <div
-                      className={
-                        item.category === "Mobile"
-                          ? "relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1"
-                          : "relative aspect-[16/10] overflow-hidden"
-                      }
-                    >
-                      {item.category === "Mobile" ? (
-                        <MobileIphonePreviewWithEmbed
-                          item={item}
-                          serverApiUrl={baseUrl}
-                        />
-                      ) : (
-                        <>
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#141b2d] via-transparent to-transparent opacity-60" />
-
-                          <div className="absolute top-4 left-4">
-                            <span className="bg-[#141b2d]/80 backdrop-blur-md border border-white/10 text-[#4cceac] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                              {item.category}
-                            </span>
-                          </div>
-                        </>
-                      )}
+                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1">
+                      <ShowcaseIphonePreviewWithEmbed
+                        item={item}
+                        serverApiUrl={baseUrl}
+                      />
                     </div>
 
                     <div className="p-6">
@@ -502,7 +556,7 @@ const CreativeShowcase: React.FC = () => {
                         </div>
                       </div>
 
-                      {!isAdsop && (
+                      {!isRestrictedDownloadRole && (
                         <div className="mt-4">
                           <button
                             type="button"

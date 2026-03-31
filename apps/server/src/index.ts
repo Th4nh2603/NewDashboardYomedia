@@ -8,6 +8,7 @@ import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
 import { fileUploadRouter } from "./routes/fileUpload.js";
+import { testDataRouter } from "./routes/testData.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -16,7 +17,7 @@ app.use(
   cors({
     origin: (origin: string | undefined, cb: (err: null, allow: boolean | string) => void) =>
       cb(null, origin || true),
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "x-user-role"],
   }),
 );
@@ -26,6 +27,7 @@ app.use("/api/sftp", sftpRouter);
 app.use("/api/rag", ragRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/file-upload", fileUploadRouter);
+app.use("/api/test-data", testDataRouter);
 
 // Simple JSON-file-based data
 const __filename = fileURLToPath(import.meta.url);
@@ -104,10 +106,11 @@ app.get("/api/creative-demo-titles", (_req, res) => {
   const demos = loadCreativeDemos();
   const items = demos
     .map((d) => ({
+      id: String(d?.id ?? "").trim(),
       title: typeof d?.title === "string" ? d.title.trim() : "",
       category: typeof d?.category === "string" ? d.category.trim() : "",
     }))
-    .filter((item) => item.title);
+    .filter((item) => item.id && item.title);
   return res.json({ ok: true, items });
 });
 
