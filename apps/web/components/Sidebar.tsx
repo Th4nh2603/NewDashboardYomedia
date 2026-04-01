@@ -11,6 +11,7 @@ import {
   Bars3Icon,
   ArrowUpTrayIcon,
   ClipboardDocumentListIcon,
+  ServerStackIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
 } from "@heroicons/react/24/outline";
@@ -59,6 +60,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       title: "Data Management",
       items: [
         { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
+        {
+          name: "Manage SFTP",
+          path: "/manage-sftp",
+          icon: ServerStackIcon,
+        },
         { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
         { name: "Upload", path: "/upload", icon: ArrowUpTrayIcon },
         {
@@ -169,6 +175,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 if (
                   item.path === "/build-demo" &&
                   isAdsopLikeRole
+                ) {
+                  return null;
+                }
+                if (
+                  item.path === "/manage-demo" &&
+                  normalizedRole !== "admin"
+                ) {
+                  return null;
+                }
+                if (
+                  item.path === "/manage-sftp" &&
+                  normalizedRole !== "admin"
                 ) {
                   return null;
                 }

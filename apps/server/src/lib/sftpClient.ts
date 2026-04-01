@@ -65,12 +65,33 @@ export async function listSftpDirectory(path: string, config: SftpConfig = {}) {
       password,
     });
 
-    const entries = (await client.list(path || "/")) as {
+    const normalizedPath = (path || "/").replace(/\/{2,}/g, "/") || "/";
+
+    let entries: {
       name: string;
       type: string;
       size: number;
       modifyTime?: number;
     }[];
+    try {
+      entries = (await client.list(normalizedPath)) as typeof entries;
+    } catch (listErr: unknown) {
+      const msg =
+        listErr instanceof Error ? listErr.message : String(listErr);
+      const code =
+        typeof listErr === "object" &&
+        listErr !== null &&
+        "code" in listErr
+          ? (listErr as { code?: number }).code
+          : undefined;
+      if (
+        code === 2 ||
+        /no such file|not found|does not exist/i.test(msg)
+      ) {
+        return [];
+      }
+      throw listErr;
+    }
 
     const normalized = entries
       .filter(

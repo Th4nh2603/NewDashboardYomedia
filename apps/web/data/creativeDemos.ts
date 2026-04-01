@@ -6,6 +6,7 @@ export type CreativeDemoItem = {
   position: string;
   fileType: string;
   value?: string;
+  format?: string;
   video?: string;
   source?: string;
   status?: string;
@@ -19,6 +20,10 @@ type CreativeDemoResponse = {
 };
 
 let cache: CreativeDemoItem[] | null = null;
+
+function getServerBaseUrl(): string {
+  return import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+}
 
 function normalizeFla(item: Record<string, unknown>): boolean {
   if (typeof item.fla === "boolean") return item.fla;
@@ -41,6 +46,7 @@ function normalizeDemo(raw: unknown): CreativeDemoItem | null {
     position: String(item.position ?? "-"),
     fileType: String(item.fileType ?? ""),
     value: item.value ? String(item.value) : undefined,
+    format: item.format ? String(item.format).trim() : undefined,
     video: item.video ? String(item.video) : undefined,
     source: item.source ? String(item.source) : undefined,
     status: item.status ? String(item.status) : undefined,
@@ -51,8 +57,19 @@ function normalizeDemo(raw: unknown): CreativeDemoItem | null {
 
 export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
   if (cache) return cache;
-  const res = await fetch("/creative-demos.json");
-  const data = (await res.json()) as CreativeDemoResponse;
+  let data: CreativeDemoResponse | null = null;
+  try {
+    const apiRes = await fetch(`${getServerBaseUrl()}/api/creative-demos`);
+    if (apiRes.ok) {
+      data = (await apiRes.json()) as CreativeDemoResponse;
+    }
+  } catch {
+    // fallback below
+  }
+  if (!data) {
+    const res = await fetch("/creative-demos.json");
+    data = (await res.json()) as CreativeDemoResponse;
+  }
   const demos = Array.isArray(data?.demos)
     ? data.demos.map(normalizeDemo).filter((item): item is CreativeDemoItem => Boolean(item))
     : [];

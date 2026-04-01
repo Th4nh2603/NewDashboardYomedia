@@ -42,34 +42,33 @@ const BuildDemo: React.FC = () => {
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
   const productCates = (demoConfig as any).ListProductCate ?? [];
-  const maxkleenProductCateIds = [
-    "softergent",
-    "thematic",
-    "colourcare",
-    "podrange",
-    "floorcleaner",
-    "lingeriewash",
-  ];
-  const enchantuerProductCateIds = [
-    "shower",
-    "naturalle-shower",
-    "naturalle-serum",
-    "scrub",
-    "deodorants",
-    "shampoo",
-  ];
+  const productCateIdsByBrand =
+    (demoConfig as any).ProductCateIdsByBrand ?? {};
   const getProductCateOptionsByBrand = (brandId: string) => {
-    if (brandId?.toLowerCase() === "maxkleen") {
-      return productCates.filter((item: any) =>
-        maxkleenProductCateIds.includes(String(item?.id ?? "").toLowerCase()),
+    if (!brandId?.trim()) {
+      return productCates.filter(
+        (item: any) =>
+          String(item?.id ?? "").toLowerCase() === "all",
       );
     }
-    if (brandId?.toLowerCase() === "enchantuer") {
-      return productCates.filter((item: any) =>
-        enchantuerProductCateIds.includes(String(item?.id ?? "").toLowerCase()),
+    const allowedRaw: string[] | undefined =
+      productCateIdsByBrand[brandId] ??
+      Object.entries(productCateIdsByBrand).find(
+        ([k]) => k.toLowerCase() === brandId.toLowerCase(),
+      )?.[1];
+    if (!allowedRaw?.length) {
+      return productCates.filter(
+        (item: any) =>
+          String(item?.id ?? "").toLowerCase() === "all",
       );
     }
-    return productCates;
+    const allowed = new Set(
+      allowedRaw.map((id) => String(id).trim().toLowerCase()),
+    );
+    allowed.add("all");
+    return productCates.filter((item: any) =>
+      allowed.has(String(item?.id ?? "").trim().toLowerCase()),
+    );
   };
   const seasons = ["Spring", "Summer", "Autumn", "Winter"];
 

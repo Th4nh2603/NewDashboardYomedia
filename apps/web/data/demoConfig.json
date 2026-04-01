@@ -34,7 +34,7 @@
     { "id": "12", "label": "12" }
   ],
   "ListProductCate": [
-    { "id": "others", "label": "OTHERS" },
+    { "id": "all", "label": "ALL" },
     { "id": "softergent", "label": "SOFTERGENT" },
     { "id": "thematic", "label": "THEMATIC" },
     { "id": "colourcare", "label": "COLOUR CARE" },
@@ -46,6 +46,43 @@
     { "id": "naturalle-serum", "label": "NATURELLE SERUM" },
     { "id": "scrub", "label": "SCRUB" },
     { "id": "deodorants", "label": "DEODORANTS" },
-    { "id": "shampoo", "label": "SHAMPOO" }
-  ]
+    { "id": "shampoo", "label": "SHAMPOO" },
+    { "id": "cleanser", "label": "CLEANSER" },
+    { "id": "facewash", "label": "FACE WASH" },
+    { "id": "2in1", "label": "2 IN 1" },
+    { "id": "deodorant", "label": "DEODORANT" },
+    { "id": "spray", "label": "SPRAY" },
+    { "id": "wax", "label": "WAX" },
+    { "id": "genz", "label": "GEN Z" },
+    { "id": "vip", "label": "VIP" }
+  ],
+  "ProductCateIdsByBrand": {
+    "Maxkleen": [
+      "softergent",
+      "thematic",
+      "colourcare",
+      "podrange",
+      "floorcleaner",
+      "lingeriewash"
+    ],
+    "Enchantuer": [
+      "shower",
+      "naturalle-shower",
+      "naturalle-serum",
+      "scrub",
+      "deodorants",
+      "shampoo"
+    ],
+    "Romano": [
+      "shampoo",
+      "cleanser",
+      "facewash",
+      "2in1",
+      "deodorant",
+      "spray",
+      "wax",
+      "genz",
+      "vip"
+    ]
+  }
 }

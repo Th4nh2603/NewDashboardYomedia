@@ -1,5 +1,5 @@
 import React from "react";
-import { loadCreativeDemos } from "../data/creativeDemos";
+import { loadActiveCreativeDemos } from "../data/creativeDemos";
 
 export type OpenYomediaDemoPreviewParams = {
   /** Đường dẫn tương đối (vd `2026/03/.../480x270`) hoặc full có prefix `/script/demo`. */
@@ -130,7 +130,7 @@ function inferDeviceByCategory(category: string | null | undefined): "pc" | "mb"
 async function getFormatFromData(size: string | null) {
   if (!size) return { format: "inpage-mb", device: "mb" as const };
 
-  const demos = await loadCreativeDemos();
+  const demos = await loadActiveCreativeDemos();
 
   const foundBySize = demos.find((item) => {
     const sizes: unknown[] = [];
