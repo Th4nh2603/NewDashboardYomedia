@@ -180,7 +180,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 }
                 if (
                   item.path === "/manage-demo" &&
-                  normalizedRole !== "admin"
+                  normalizedRole !== "admin" &&
+                  normalizedRole !== "media"
                 ) {
                   return null;
                 }

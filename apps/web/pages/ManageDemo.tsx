@@ -9,7 +9,6 @@ import {
   CodeBracketIcon,
   GlobeAltIcon,
 } from "@heroicons/react/24/outline";
-import OpenDemoButton from "../components/OpenDemo";
 import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 import {
   loadActiveCreativeDemos,
@@ -74,6 +73,7 @@ const ManageDemo: React.FC = () => {
     quality: currentYearId,
     mode: currentMonthId,
     formatValue: "",
+    category: "Mobile" as "Mobile" | "Display",
   });
 
   const demoPaths = React.useMemo(() => {
@@ -163,7 +163,7 @@ const ManageDemo: React.FC = () => {
           remotePath: currentPath,
           formatValue: config.formatValue || undefined,
           baseRemotePath: BASE_REMOTE_PATH,
-          forceDevice: "mb",
+          forceDevice: config.category === "Display" ? "pc" : "mb",
           serverApiUrl,
         });
         if (!cancelled) {
@@ -179,7 +179,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPath, config.formatValue]);
+  }, [currentPath, config.formatValue, config.category]);
 
   const pathForDisplay = currentPath.replace(
     /(\/script\/demo\/)\d{4}(\/)/,
@@ -398,10 +398,42 @@ const ManageDemo: React.FC = () => {
                     Auto detect
                   </option>
                   {formatOptions.map((format) => (
-                    <option key={format} value={format} className="bg-[#0b1730]">
+                    <option
+                      key={format}
+                      value={format}
+                      className="bg-[#0b1730]"
+                    >
                       {format}
                     </option>
                   ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)] md:col-span-2">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Category
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={config.category}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      category: e.target.value as "Mobile" | "Display",
+                    }))
+                  }
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                >
+                  <option value="Mobile" className="bg-[#0b1730]">
+                    Mobile
+                  </option>
+                  <option value="Display" className="bg-[#0b1730]">
+                    Display
+                  </option>
                 </select>
               </div>
             </div>
@@ -425,15 +457,8 @@ const ManageDemo: React.FC = () => {
                   disabled={!getParentPath(currentPath) || listBusy}
                   className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Up
+                  Back
                 </button>
-                <OpenDemoButton
-                  remotePath={currentPath}
-              formatValue={config.formatValue || undefined}
-              forceDevice="mb"
-                  baseRemotePath={BASE_REMOTE_PATH}
-                  disabled={listBusy}
-                />
               </div>
             </div>
             <div className="flex items-center gap-2 ml-1">
@@ -548,12 +573,24 @@ const ManageDemo: React.FC = () => {
         <aside className="xl:sticky xl:h-[calc(100vh-5rem)]">
           <div className="h-full max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
             <div className="flex-1 min-h-0 flex justify-center">
-              <div className="w-full h-full max-h-[calc(100vh-15rem)] rounded-[2.25rem] bg-[#0f172a] p-2.5 ring-1 ring-white/10">
-                <div className="relative overflow-hidden rounded-[1.8rem] bg-black h-full">
+              <div
+                className={`w-full h-full max-h-[calc(100vh-15rem)] bg-[#0f172a] ring-1 ring-white/10 ${
+                  config.category === "Display"
+                    ? "rounded-2xl p-2"
+                    : "rounded-[2.25rem] p-2.5"
+                }`}
+              >
+                <div
+                  className={`relative overflow-hidden bg-black h-full ${
+                    config.category === "Display"
+                      ? "rounded-xl"
+                      : "rounded-[1.8rem]"
+                  }`}
+                >
                   {previewUrl ? (
                     <iframe
                       src={previewUrl}
-                      title="iphone-preview"
+                      title={`${config.category.toLowerCase()}-preview`}
                       className="absolute inset-0 h-full w-full border-0 bg-white"
                       loading="lazy"
                       referrerPolicy="no-referrer"
