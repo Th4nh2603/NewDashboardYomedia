@@ -41,6 +41,7 @@ type Account = {
   email: string;
   phone: string;
   role?: string;
+  roleTitle?: string;
   status?: string;
 };
 
@@ -90,6 +91,34 @@ app.post("/api/login", (req, res) => {
       email: account.email,
       phone: account.phone,
       role: account.role,
+      roleTitle: account.roleTitle,
+      status: account.status,
+    },
+  });
+});
+
+app.get("/api/account-profile", (req, res) => {
+  const email = String(req.query.email || "").trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ ok: false, error: "Missing email" });
+  }
+
+  const account = loadAccounts().find(
+    (item) => String(item.email || "").trim().toLowerCase() === email,
+  );
+
+  if (!account) {
+    return res.status(404).json({ ok: false, error: "Account not found" });
+  }
+
+  return res.json({
+    ok: true,
+    user: {
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      role: account.role,
+      roleTitle: account.roleTitle,
       status: account.status,
     },
   });

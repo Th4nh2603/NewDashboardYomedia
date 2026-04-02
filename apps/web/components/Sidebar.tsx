@@ -31,12 +31,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     normalizedRole === "adsopmanager" ||
     normalizedRole === "media";
 
-  const displayRole =
-    normalizedRole === "adsop" || normalizedRole === "media"
-      ? "Ad Operations Executive"
-      : normalizedRole === "adsopmanager"
-        ? "Deputy Head of Programmatic"
-        : user?.role || "Creative Director";
+  const roleTitleFromServer =
+    "roleTitle" in user ? (user as { roleTitle?: string }).roleTitle : undefined;
+  const displayRole = roleTitleFromServer || user?.role || "Creative Director";
   const sections = [
     {
       title: null,
@@ -179,16 +176,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   return null;
                 }
                 if (
-                  item.path === "/manage-demo" &&
-                  normalizedRole !== "admin" &&
-                  normalizedRole !== "media"
+                  item.path === "/manage-sftp" &&
+                  normalizedRole !== "admin"
                 ) {
                   return null;
                 }
                 if (
-                  item.path === "/manage-sftp" &&
-                  normalizedRole !== "admin"
+                  item.path === "/upload" &&
+                  normalizedRole !== "admin" &&
+                  normalizedRole !== "design"
                 ) {
+                  return null;
+                }
+                if (item.path === "/test-data" && normalizedRole === "guest") {
                   return null;
                 }
                 const isActive = location.pathname === item.path;

@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./components/DashboardLayout";
 import PrivateRoute from "./components/PrivateRoute";
+import RoleRoute from "./components/RoleRoute";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import Vision from "./pages/Vision";
@@ -54,8 +55,22 @@ const App: React.FC = () => {
                         />
                         <Route path="/manage-demo" element={<ManageDemo />} />
                         <Route path="/build-demo" element={<BuildDemo />} />
-                        <Route path="/upload" element={<Upload />} />
-                        <Route path="/test-data" element={<TestData />} />
+                        <Route
+                          path="/upload"
+                          element={
+                            <RoleRoute allow={["admin", "design"]}>
+                              <Upload />
+                            </RoleRoute>
+                          }
+                        />
+                        <Route
+                          path="/test-data"
+                          element={
+                            <RoleRoute deny={["guest"]}>
+                              <TestData />
+                            </RoleRoute>
+                          }
+                        />
                         <Route path="/bar" element={<Bar />} />
                         <Route path="/cinema" element={<Cinema />} />
                         <Route path="/live" element={<Live />} />
