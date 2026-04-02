@@ -50,6 +50,7 @@ const Login: React.FC = () => {
           email: data.user.email || email,
           picture: undefined,
           role: data.user.role,
+          roleTitle: data.user.roleTitle,
         },
         { remember: rememberMe },
       );

@@ -8,6 +8,7 @@ import {
   DocumentTextIcon,
   CodeBracketIcon,
   GlobeAltIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 import {
@@ -67,6 +68,9 @@ const ManageDemo: React.FC = () => {
   const [listError, setListError] = React.useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [resolvingPreview, setResolvingPreview] = React.useState(false);
+  const [directoryHasSizeJs, setDirectoryHasSizeJs] = React.useState<
+    Record<string, boolean>
+  >({});
   const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
   const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
   const [config, setConfig] = React.useState({
@@ -145,6 +149,39 @@ const ManageDemo: React.FC = () => {
     ).sort((a, b) => a.localeCompare(b));
     setFormatOptions(values);
   }, [activeDemos, detectedSizes]);
+
+  const autoDetectedCategory = React.useMemo<"Mobile" | "Display" | null>(() => {
+    const matchedCategories = new Set<"Mobile" | "Display">();
+    activeDemos.forEach((demo) => {
+      const sizes = Array.isArray(demo.size)
+        ? demo.size
+        : demo.size
+          ? [demo.size]
+          : [];
+      const hasMatchedSize = sizes.some((s) =>
+        detectedSizes.has(String(s).trim().toLowerCase()),
+      );
+      if (!hasMatchedSize) return;
+      if (demo.category === "Mobile" || demo.category === "Display") {
+        matchedCategories.add(demo.category);
+      }
+    });
+
+    if (matchedCategories.has("Mobile") && !matchedCategories.has("Display")) {
+      return "Mobile";
+    }
+    if (matchedCategories.has("Display") && !matchedCategories.has("Mobile")) {
+      return "Display";
+    }
+    if (matchedCategories.has(config.category)) return config.category;
+    return null;
+  }, [activeDemos, detectedSizes, config.category]);
+
+  React.useEffect(() => {
+    if (!autoDetectedCategory) return;
+    if (config.category === autoDetectedCategory) return;
+    setConfig((prev) => ({ ...prev, category: autoDetectedCategory }));
+  }, [autoDetectedCategory, config.category]);
 
   React.useEffect(() => {
     if (config.formatValue && !formatOptions.includes(config.formatValue)) {
@@ -229,6 +266,11 @@ const ManageDemo: React.FC = () => {
     [buildRemoteRelativePath],
   );
 
+  const openCurrentDemo = React.useCallback(() => {
+    if (!previewUrl) return;
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  }, [previewUrl]);
+
   const getBrandColorClass = (name: string) => {
     const lower = name.toLowerCase();
     const match = (
@@ -304,12 +346,57 @@ const ManageDemo: React.FC = () => {
     };
   }, [currentPath]);
 
+  React.useEffect(() => {
+    const dirs = listEntries.filter((entry) => entry.type === "d");
+    if (dirs.length === 0) {
+      setDirectoryHasSizeJs({});
+      return;
+    }
+
+    let cancelled = false;
+    const baseUrl = getServerBaseUrl();
+    const sizeJsRegex = /^\d{2,4}x\d{2,4}\.js$/i;
+
+    void (async () => {
+      const checks = await Promise.all(
+        dirs.map(async (dir) => {
+          const fullPath = buildEntryFullPath(dir.name, currentPath);
+          try {
+            const res = await fetch(
+              `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`,
+            );
+            const data = await res.json();
+            if (!res.ok || !data?.ok || !Array.isArray(data?.entries)) {
+              return [fullPath, false] as const;
+            }
+            const expectedByDirName = `${String(dir.name).toLowerCase()}.js`;
+            const hasSizeJs = (data.entries as SftpEntry[]).some((entry) => {
+              if (entry.type === "d") return false;
+              const fileName = String(entry.name ?? "").toLowerCase();
+              return sizeJsRegex.test(fileName) || fileName === expectedByDirName;
+            });
+            return [fullPath, hasSizeJs] as const;
+          } catch {
+            return [fullPath, false] as const;
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setDirectoryHasSizeJs(Object.fromEntries(checks));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [listEntries, currentPath, buildEntryFullPath]);
+
   const listBusy = loadingList || isNavigating;
 
   return (
-    <div className="w-full px-8 pt-10 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 space-y-6 sm:space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#e0e0e0] tracking-tight">
           Manage Demo
         </h1>
       </header>
@@ -439,8 +526,8 @@ const ManageDemo: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3 pb-12">
-            <div className="flex items-center justify-between gap-3">
+          <div className="space-y-3 pb-8 sm:pb-12">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
@@ -473,13 +560,15 @@ const ManageDemo: React.FC = () => {
               <p className="text-sm text-amber-400/90 px-1">{listError}</p>
             )}
             <div className="rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
-              <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80">
-                <div className="col-span-6">Name</div>
-                <div className="col-span-2 text-center">Type</div>
-                <div className="col-span-2 text-right">Size</div>
-                <div className="col-span-2 text-right">Modified</div>
-              </div>
-              <div className="max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px]">
+                  <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80">
+                    <div className="col-span-6">Name</div>
+                    <div className="col-span-2 text-center">Type</div>
+                    <div className="col-span-2 text-right">Size</div>
+                    <div className="col-span-2 text-right">Modified</div>
+                  </div>
+                  <div className="max-h-[24rem] sm:max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
                 {loadingList && listEntries.length === 0 ? (
                   <div className="px-4 py-8 text-center text-[#6b7280]">
                     Loading…
@@ -537,7 +626,12 @@ const ManageDemo: React.FC = () => {
                         <div
                           className={`col-span-6 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
                         >
-                          {item.name}
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="truncate">{item.name}</span>
+                            {isDir && directoryHasSizeJs[fullPath] && (
+                              <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            )}
+                          </span>
                         </div>
                         <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
                           {isDir ? (
@@ -564,14 +658,26 @@ const ManageDemo: React.FC = () => {
                       </div>
                     );
                   })
-                )}
+                  )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <aside className="xl:sticky xl:h-[calc(100vh-5rem)]">
-          <div className="h-full max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
+          <div className="h-full min-h-[22rem] xl:min-h-0 max-h-[32rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-3 sm:p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={openCurrentDemo}
+                disabled={!previewUrl}
+                className="w-full sm:w-auto rounded-2xl bg-[#4cceac]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Open demo
+              </button>
+            </div>
             <div className="flex-1 min-h-0 flex justify-center">
               <div
                 className={`w-full h-full max-h-[calc(100vh-15rem)] bg-[#0f172a] ring-1 ring-white/10 ${

@@ -5,6 +5,7 @@ interface User {
   email: string;
   picture?: string;
   role?: string;
+  roleTitle?: string;
 }
 
 interface AuthContextType {
@@ -21,19 +22,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const isAuthenticated = !!user;
+  const getServerBaseUrl = () =>
+    (import.meta.env as any).VITE_SERVER_URL ||
+    window.location.origin.replace(/:3000$/, ":3001");
 
   useEffect(() => {
+    let cancelled = false;
     try {
       const stored = window.localStorage.getItem("yomedia-auth-user");
       if (stored) {
         const parsed = JSON.parse(stored) as User;
         if (parsed && parsed.email) {
           setUser(parsed);
+          void (async () => {
+            try {
+              const res = await fetch(
+                `${getServerBaseUrl()}/api/account-profile?email=${encodeURIComponent(parsed.email)}`,
+              );
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok || !data?.ok || !data?.user || cancelled) return;
+
+              const refreshedUser: User = {
+                ...parsed,
+                name: data.user.name || parsed.name,
+                email: data.user.email || parsed.email,
+                role: data.user.role || parsed.role,
+                roleTitle: data.user.roleTitle || parsed.roleTitle,
+              };
+              setUser(refreshedUser);
+              window.localStorage.setItem(
+                "yomedia-auth-user",
+                JSON.stringify(refreshedUser),
+              );
+            } catch {
+              // keep stored user when profile refresh fails
+            }
+          })();
         }
       }
     } catch {
       // ignore storage errors
     }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = (userData: User, options?: { remember?: boolean }) => {
