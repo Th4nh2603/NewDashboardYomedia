@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Square3Stack3DIcon,
@@ -14,6 +15,27 @@ import {
   openYomediaDemoPreview,
 } from "../components/OpenDemo";
 import { type CreativeDemoItem } from "../data/creativeDemos";
+
+/** Ô aspect cùng tỉ lệ Mobile/Video; khung iPhone trong ô này. */
+const SHOWCASE_DEVICE_ASPECT = "375 / 700";
+
+const SHOWCASE_DEVICE_OUTER_CLASS =
+  "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[360px] xl:max-w-[367px]";
+
+/** Bề ngang tham chiếu (như preview phone) — chỉ dùng để tính chiều cao cho Display khi vẫn rộng full ô thẻ. */
+const SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS =
+  "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[360px] xl:max-w-[367px]";
+
+/** Overlay Display: ~2/3 màn; laptop (lg) co nhẹ chiều cao để tránh sát taskbar / tab. */
+const DISPLAY_HOVER_OVERLAY_BOX_CLASS =
+  "relative box-border overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl sm:rounded-2xl " +
+  "h-[min(58vh,calc(100vh-1.25rem))] w-[min(94vw,calc(100vw-1rem))] " +
+  "sm:h-[min(62vh,calc(100vh-1.5rem))] sm:w-[min(90vw,calc(100vw-1.5rem))] " +
+  "md:h-[min(64vh,calc(100vh-2rem))] md:w-[min(72vw,calc(100vw-2rem))] " +
+  "lg:h-[min(63vh,calc(100vh-2.5rem))] lg:w-[min(68vw,calc(100vw-2rem))] " +
+  "xl:h-[min(66.6667vh,calc(100vh-3rem))] xl:w-[min(66.6667vw,calc(100vw-2.5rem))]";
+
+const DISPLAY_HOVER_CLOSE_DELAY_MS = 200;
 
 function displayPrimarySize(item: { size?: string | string[] }): string {
   const s = item.size;
@@ -60,6 +82,39 @@ function normalizeDemo(raw: unknown): DemoItem | null {
     category,
     fla: typeof item.fla === "boolean" ? item.fla : false,
   };
+}
+
+type ShowcaseFilter =
+  | "All"
+  | "Display"
+  | "Video"
+  | "Mobile"
+  | "Masthead"
+  | "FirstView";
+
+const SHOWCASE_FILTERS = [
+  "All",
+  "Display",
+  "Video",
+  "Mobile",
+  "Masthead",
+  "FirstView",
+] as const satisfies readonly ShowcaseFilter[];
+
+function foldTitleForKeywordMatch(title: string): string {
+  return title.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function matchesShowcaseFilter(
+  item: DemoItem,
+  filter: ShowcaseFilter,
+): boolean {
+  if (filter === "All") return true;
+  if (filter === "Masthead")
+    return foldTitleForKeywordMatch(item.title).includes("masthead");
+  if (filter === "FirstView")
+    return foldTitleForKeywordMatch(item.title).includes("firstview");
+  return item.category === filter;
 }
 
 function StatusBarCellularIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -128,7 +183,7 @@ function Iphone16ProMaxShowcaseFrame({
   const showPoster = !iframeSrc || !iframeLoaded || urlResolving;
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[240px] flex-col items-center py-4 sm:max-w-[300px]">
+    <div className={SHOWCASE_DEVICE_OUTER_CLASS}>
       <div
         className="pointer-events-none absolute -left-0.5 top-[18%] z-10 h-8 w-[3px] rounded-full bg-gradient-to-b from-[#2a2a2c] to-[#1a1a1c] shadow-sm sm:top-[20%] sm:h-10"
         aria-hidden
@@ -143,8 +198,8 @@ function Iphone16ProMaxShowcaseFrame({
       />
 
       <div
-        className="relative w-full ,inset_0_1px_0_rgba(255,255,255,0.14)]"
-        style={{ aspectRatio: "430 / 895" }}
+        className="relative w-full"
+        style={{ aspectRatio: SHOWCASE_DEVICE_ASPECT }}
       >
         <div className="absolute inset-0 rounded-[2.35rem] bg-[#3b3b3b] via-[#636366]  p-[2.5%] ring-1 ring-white/15">
           <div className="relative h-full w-full rounded-[2.05rem] bg-[#0c0c0c] p-[2.2%] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
@@ -178,7 +233,7 @@ function Iphone16ProMaxShowcaseFrame({
                   <iframe
                     src={iframeSrc}
                     title={title}
-                    className={`absolute inset-0 z-[2] h-full w-full border-0 bg-white transition-opacity duration-500 ${
+                    className={`absolute inset-0 z-[2] h-full w-full overflow-x-hidden border-0 bg-white transition-opacity duration-500 ${
                       iframeLoaded && !urlResolving
                         ? "opacity-100"
                         : "opacity-0"
@@ -223,7 +278,52 @@ function ShowcaseIphonePreviewWithEmbed({
 }) {
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [urlResolving, setUrlResolving] = useState(true);
+  const [displayHoverOpen, setDisplayHoverOpen] = useState(false);
+  const displayHoverCloseTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const isMobileCategory = item.category === "Mobile";
+  const useDisplaySizePreview = item.category === "Display";
+
+  const cancelDisplayHoverClose = useCallback(() => {
+    if (displayHoverCloseTimerRef.current != null) {
+      clearTimeout(displayHoverCloseTimerRef.current);
+      displayHoverCloseTimerRef.current = null;
+    }
+  }, []);
+
+  const openDisplayHover = useCallback(() => {
+    cancelDisplayHoverClose();
+    setDisplayHoverOpen(true);
+  }, [cancelDisplayHoverClose]);
+
+  const scheduleDisplayHoverClose = useCallback(() => {
+    cancelDisplayHoverClose();
+    displayHoverCloseTimerRef.current = setTimeout(() => {
+      setDisplayHoverOpen(false);
+      displayHoverCloseTimerRef.current = null;
+    }, DISPLAY_HOVER_CLOSE_DELAY_MS);
+  }, [cancelDisplayHoverClose]);
+
+  const closeDisplayHoverNow = useCallback(() => {
+    cancelDisplayHoverClose();
+    setDisplayHoverOpen(false);
+  }, [cancelDisplayHoverClose]);
+
+  useEffect(() => {
+    return () => {
+      cancelDisplayHoverClose();
+    };
+  }, [cancelDisplayHoverClose]);
+
+  useEffect(() => {
+    if (!displayHoverOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeDisplayHoverNow();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [displayHoverOpen, closeDisplayHoverNow]);
 
   useEffect(() => {
     let cancelled = false;
@@ -264,6 +364,112 @@ function ShowcaseIphonePreviewWithEmbed({
     };
   }, [item.id, item.source, item.value, serverApiUrl, isMobileCategory]);
 
+  if (useDisplaySizePreview) {
+    const renderDisplayPreview = (opts: { thumbSurface: boolean }) => (
+      <>
+        <img
+          src={item.image}
+          alt=""
+          className={`absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-500 ${
+            !iframeSrc || urlResolving
+              ? "opacity-100"
+              : "pointer-events-none opacity-0"
+          }`}
+          referrerPolicy="no-referrer"
+        />
+        {iframeSrc ? (
+          <iframe
+            src={iframeSrc}
+            title={item.title}
+            className={`absolute inset-0 z-[2] h-full w-full overflow-x-hidden border-0 bg-white transition-opacity duration-500 ${
+              !urlResolving ? "opacity-100" : "opacity-0"
+            } ${opts.thumbSurface ? "pointer-events-none" : ""}`}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            allow="autoplay; fullscreen; encrypted-media"
+          />
+        ) : null}
+        {urlResolving ? (
+          <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/35">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/90">
+              Loading demo...
+            </span>
+          </div>
+        ) : null}
+      </>
+    );
+
+    const hoverPortal =
+      displayHoverOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4 lg:p-6"
+              onMouseEnter={openDisplayHover}
+              onMouseLeave={scheduleDisplayHoverClose}
+              onClick={closeDisplayHoverNow}
+              role="presentation"
+            >
+              <div
+                className={`${DISPLAY_HOVER_OVERLAY_BOX_CLASS} cursor-zoom-out`}
+                onClick={(e) => e.stopPropagation()}
+                role="presentation"
+              >
+                <div className="relative h-full w-full">
+                  {renderDisplayPreview({ thumbSurface: false })}
+                </div>
+                <div className="pointer-events-none absolute left-3 top-3 z-30 sm:left-4 sm:top-4">
+                  <span className="rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[9px]">
+                    {item.category}
+                  </span>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null;
+
+    return (
+      <div className="relative w-full py-3 sm:py-4 lg:py-3 xl:py-4">
+        {hoverPortal}
+        <div className="relative w-full">
+          <div
+            className={`${SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS} pointer-events-none select-none`}
+            aria-hidden
+          >
+            <div
+              className="w-full"
+              style={{ aspectRatio: SHOWCASE_DEVICE_ASPECT }}
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-0"
+            onMouseEnter={openDisplayHover}
+            onMouseLeave={scheduleDisplayHoverClose}
+          >
+            <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_14px_32px_rgba(0,0,0,0.4)]">
+              {renderDisplayPreview({ thumbSurface: true })}
+              <button
+                type="button"
+                aria-label="Expand display preview"
+                className="absolute inset-0 z-[16] cursor-zoom-in bg-transparent"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openDisplayHover();
+                }}
+              />
+            </div>
+            <div className="pointer-events-none absolute left-2 top-2 z-30 sm:left-3 sm:top-3">
+              <span className="rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[8px]">
+                {item.category}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Iphone16ProMaxShowcaseFrame
       title={item.title}
@@ -282,19 +488,28 @@ function ShowcaseIphonePreviewWithEmbed({
 }
 
 const CreativeShowcase: React.FC = () => {
-  const ITEMS_PER_PAGE = 4;
+  const DEFAULT_ITEMS_PER_PAGE = 4;
+  const THREE_COL_ITEMS_PER_PAGE = 3;
   const { user } = useAuth();
   const role = (user?.role || "").toLowerCase();
   const isRestrictedDownloadRole = role === "adsop" || role === "media";
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"Display" | "Video" | "Mobile">(
-    "Mobile",
-  );
+  const [filter, setFilter] = useState<ShowcaseFilter>("Mobile");
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const usesThreeColumnPage =
+    filter === "All" ||
+    filter === "Display" ||
+    filter === "Mobile" ||
+    filter === "Masthead" ||
+    filter === "FirstView";
+  const itemsPerPage = usesThreeColumnPage
+    ? THREE_COL_ITEMS_PER_PAGE
+    : DEFAULT_ITEMS_PER_PAGE;
 
   const baseUrl =
     (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
@@ -387,19 +602,16 @@ const CreativeShowcase: React.FC = () => {
   }, [baseUrl]);
 
   const filteredData = items.filter((item) => {
-    const matchesFilter = item.category === filter;
+    const matchesFilter = matchesShowcaseFilter(item, filter);
     const matchesSearch = item.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredData.length / ITEMS_PER_PAGE),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
   const paginatedData = filteredData.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
   );
 
   useEffect(() => {
@@ -411,40 +623,40 @@ const CreativeShowcase: React.FC = () => {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="w-full px-8 pt-10 space-y-8">
+    <div className="w-full space-y-6 px-4 sm:space-y-7 sm:px-6 lg:space-y-8 lg:px-6 xl:px-8">
       <div className="max-w-full mx-auto">
-        <header className="mb-10 relative">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-1 h-6 bg-[#4cceac] rounded-full" />
-                <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+        <header className="relative mb-8 sm:mb-10">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between xl:items-center">
+            <div className="min-w-0 shrink">
+              <div className="mb-1 flex items-center gap-2 sm:gap-3">
+                <div className="h-5 w-0.5 shrink-0 rounded-full bg-[#4cceac] sm:h-6 sm:w-1" />
+                <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white sm:text-3xl">
                   Creative Showcase
                 </h1>
               </div>
-              <p className="text-[#a3a3a3] font-medium tracking-widest uppercase text-[9px] ml-4">
+              <p className="ml-0 text-[8px] font-medium uppercase tracking-widest text-[#a3a3a3] sm:ml-4 sm:text-[9px]">
                 Interactive Ad Format Demos &amp; Specifications
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative group">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-none lg:flex-nowrap xl:gap-4">
+              <div className="relative group w-full min-w-0 sm:w-52 sm:max-w-[13.5rem] lg:w-56 xl:w-64">
                 <input
                   type="text"
                   placeholder="Search formats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#141b2d] border border-white/5 rounded-2xl py-3 pl-10 pr-4 text-xs font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all w-64 shadow-xl"
+                  className="w-full rounded-2xl border border-white/5 bg-[#141b2d] py-2.5 pl-9 pr-3 text-xs font-medium text-white shadow-xl outline-none transition-all focus:border-[#4cceac]/50 sm:py-3 sm:pl-10 sm:pr-4"
                 />
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a3a3a3] group-focus-within:text-[#4cceac] transition-colors" />
+                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3a3a3] transition-colors group-focus-within:text-[#4cceac] sm:left-3" />
               </div>
 
-              <div className="flex items-center gap-2 bg-[#141b2d] p-1.5 rounded-2xl border border-white/5 shadow-xl">
-                {(["Display", "Video", "Mobile"] as const).map((f) => (
+              <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/5 bg-[#141b2d] p-1 shadow-xl sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+                {SHOWCASE_FILTERS.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:px-4 ${
                       filter === f
                         ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
                         : "text-[#a3a3a3] hover:text-white"
@@ -456,7 +668,7 @@ const CreativeShowcase: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-4 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
+          <div className="absolute -bottom-4 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
         </header>
 
         {error && (
@@ -471,7 +683,13 @@ const CreativeShowcase: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+            <div
+              className={`grid gap-4 sm:gap-5 lg:gap-6 ${
+                usesThreeColumnPage
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+              }`}
+            >
               <AnimatePresence mode="popLayout">
                 {paginatedData.map((item, idx) => (
                   <motion.div
@@ -483,22 +701,22 @@ const CreativeShowcase: React.FC = () => {
                     transition={{ duration: 0.4, delay: idx * 0.05 }}
                     className="group relative overflow-visible rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl transition-all duration-500 hover:border-[#4cceac]/30"
                   >
-                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-2 pt-2 pb-1">
+                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2">
                       <ShowcaseIphonePreviewWithEmbed
                         item={item}
                         serverApiUrl={baseUrl}
                       />
                     </div>
 
-                    <div className="p-6">
-                      <h3 className="mb-4">
+                    <div className="p-4 sm:p-5 lg:p-6">
+                      <h3 className="mb-3 sm:mb-4">
                         <button
                           type="button"
                           onClick={() => {
                             void handleOpenDemo(item);
                           }}
                           disabled={!item.source}
-                          className="text-left text-lg font-black text-white tracking-tight uppercase italic group-hover:text-[#4cceac] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors group-hover:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg"
                         >
                           {item.title}
                         </button>
@@ -582,7 +800,7 @@ const CreativeShowcase: React.FC = () => {
             </div>
 
             {filteredData.length > 0 && totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}

@@ -150,7 +150,9 @@ const ManageDemo: React.FC = () => {
     setFormatOptions(values);
   }, [activeDemos, detectedSizes]);
 
-  const autoDetectedCategory = React.useMemo<"Mobile" | "Display" | null>(() => {
+  const autoDetectedCategory = React.useMemo<
+    "Mobile" | "Display" | null
+  >(() => {
     const matchedCategories = new Set<"Mobile" | "Display">();
     activeDemos.forEach((demo) => {
       const sizes = Array.isArray(demo.size)
@@ -204,8 +206,30 @@ const ManageDemo: React.FC = () => {
           serverApiUrl,
         });
         if (!cancelled) {
-          console.log("[ManageDemo] iframe preview URL:", url);
-          setPreviewUrl(url);
+          if (url) {
+            try {
+              const u = new URL(url);
+              u.searchParams.set("qr", "false");
+              const withQrFlagDisabled = u.toString();
+              console.log(
+                "[ManageDemo] iframe preview URL (qr=false):",
+                withQrFlagDisabled,
+              );
+              setPreviewUrl(withQrFlagDisabled);
+            } catch {
+              // Fallback: best-effort append if URL parsing fails.
+              const withQrFlagDisabled = url.includes("?")
+                ? `${url}&qr=false`
+                : `${url}?qr=false`;
+              console.log(
+                "[ManageDemo] iframe preview URL (qr=false fallback):",
+                withQrFlagDisabled,
+              );
+              setPreviewUrl(withQrFlagDisabled);
+            }
+          } else {
+            setPreviewUrl(null);
+          }
         }
       } catch {
         if (!cancelled) setPreviewUrl(null);
@@ -373,7 +397,9 @@ const ManageDemo: React.FC = () => {
             const hasSizeJs = (data.entries as SftpEntry[]).some((entry) => {
               if (entry.type === "d") return false;
               const fileName = String(entry.name ?? "").toLowerCase();
-              return sizeJsRegex.test(fileName) || fileName === expectedByDirName;
+              return (
+                sizeJsRegex.test(fileName) || fileName === expectedByDirName
+              );
             });
             return [fullPath, hasSizeJs] as const;
           } catch {
@@ -394,7 +420,7 @@ const ManageDemo: React.FC = () => {
   const listBusy = loadingList || isNavigating;
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 space-y-6 sm:space-y-8">
+    <div className="w-full px-4 sm:px-6   space-y-6 sm:space-y-8">
       <header className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#e0e0e0] tracking-tight">
           Manage Demo
@@ -569,96 +595,101 @@ const ManageDemo: React.FC = () => {
                     <div className="col-span-2 text-right">Modified</div>
                   </div>
                   <div className="max-h-[24rem] sm:max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
-                {loadingList && listEntries.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-[#6b7280]">
-                    Loading…
-                  </div>
-                ) : listEntries.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-[#6b7280] space-y-3">
-                    <p>No entries in this directory.</p>
-                    {currentPath !== demoPaths.pathYearMonth && (
-                      <button
-                        type="button"
-                        onClick={() => navigateToPath(demoPaths.pathYearMonth)}
-                        disabled={listBusy}
-                        className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
-                      >
-                        Back to month folder
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  listEntries.map((item) => {
-                    const isDir = item.type === "d";
-                    const fullPath = buildEntryFullPath(item.name, currentPath);
-                    const ext = isDir
-                      ? ""
-                      : (item.name.split(".").pop()?.toLowerCase() ?? "");
-
-                    return (
-                      <div
-                        key={fullPath}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (isDir) {
-                            navigateToPath(fullPath);
-                          }
-                        }}
-                        onDoubleClick={() => {
-                          if (!isDir) {
-                            openRemoteMedia(fullPath);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== "Enter" && e.key !== " ") return;
-                          e.preventDefault();
-                          if (isDir) {
-                            navigateToPath(fullPath);
-                            return;
-                          }
-                          openRemoteMedia(fullPath);
-                        }}
-                        className={`px-4 py-2.5 grid grid-cols-12 border-t border-[#0f172a] hover:bg-white/[0.04] transition-colors cursor-pointer ${
-                          listBusy ? "pointer-events-none opacity-80" : ""
-                        }`}
-                      >
-                        <div
-                          className={`col-span-6 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
-                        >
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="truncate">{item.name}</span>
-                            {isDir && directoryHasSizeJs[fullPath] && (
-                              <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            )}
-                          </span>
-                        </div>
-                        <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
-                          {isDir ? (
-                            <FolderIcon className="w-4 h-4" />
-                          ) : ext === "html" || ext === "htm" ? (
-                            <GlobeAltIcon className="w-4 h-4" />
-                          ) : ext === "js" || ext === "ts" ? (
-                            <CodeBracketIcon className="w-4 h-4" />
-                          ) : (
-                            <DocumentTextIcon className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className="col-span-2 text-right text-[#9ca3af]">
-                          {isDir ? "—" : item.size}
-                        </div>
-                        <div className="col-span-2 text-right text-[#6b7280]">
-                          {item.modifyTime
-                            ? new Date(item.modifyTime).toLocaleDateString(
-                                undefined,
-                                { day: "2-digit", month: "2-digit" },
-                              )
-                            : "—"}
-                        </div>
+                    {loadingList && listEntries.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-[#6b7280]">
+                        Loading…
                       </div>
-                    );
-                  })
-                  )}
+                    ) : listEntries.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-[#6b7280] space-y-3">
+                        <p>No entries in this directory.</p>
+                        {currentPath !== demoPaths.pathYearMonth && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigateToPath(demoPaths.pathYearMonth)
+                            }
+                            disabled={listBusy}
+                            className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                          >
+                            Back to month folder
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      listEntries.map((item) => {
+                        const isDir = item.type === "d";
+                        const fullPath = buildEntryFullPath(
+                          item.name,
+                          currentPath,
+                        );
+                        const ext = isDir
+                          ? ""
+                          : (item.name.split(".").pop()?.toLowerCase() ?? "");
+
+                        return (
+                          <div
+                            key={fullPath}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              if (isDir) {
+                                navigateToPath(fullPath);
+                              }
+                            }}
+                            onDoubleClick={() => {
+                              if (!isDir) {
+                                openRemoteMedia(fullPath);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter" && e.key !== " ") return;
+                              e.preventDefault();
+                              if (isDir) {
+                                navigateToPath(fullPath);
+                                return;
+                              }
+                              openRemoteMedia(fullPath);
+                            }}
+                            className={`px-4 py-2.5 grid grid-cols-12 border-t border-[#0f172a] hover:bg-white/[0.04] transition-colors cursor-pointer ${
+                              listBusy ? "pointer-events-none opacity-80" : ""
+                            }`}
+                          >
+                            <div
+                              className={`col-span-6 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="truncate">{item.name}</span>
+                                {isDir && directoryHasSizeJs[fullPath] && (
+                                  <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                )}
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
+                              {isDir ? (
+                                <FolderIcon className="w-4 h-4" />
+                              ) : ext === "html" || ext === "htm" ? (
+                                <GlobeAltIcon className="w-4 h-4" />
+                              ) : ext === "js" || ext === "ts" ? (
+                                <CodeBracketIcon className="w-4 h-4" />
+                              ) : (
+                                <DocumentTextIcon className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="col-span-2 text-right text-[#9ca3af]">
+                              {isDir ? "—" : item.size}
+                            </div>
+                            <div className="col-span-2 text-right text-[#6b7280]">
+                              {item.modifyTime
+                                ? new Date(item.modifyTime).toLocaleDateString(
+                                    undefined,
+                                    { day: "2-digit", month: "2-digit" },
+                                  )
+                                : "—"}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
