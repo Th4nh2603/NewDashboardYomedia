@@ -16,15 +16,20 @@ import {
 } from "../components/OpenDemo";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 
-/** Ô aspect cùng tỉ lệ Mobile/Video; khung iPhone trong ô này. */
-const SHOWCASE_DEVICE_ASPECT = "375 / 700";
+/** Tỉ lệ ô preview: mặc định cao như phone; laptop (lg/xl) co chiều cao để thẻ gọn hơn. */
+const SHOWCASE_PREVIEW_ASPECT_CLASS =
+  "aspect-[375/700] lg:aspect-[375/472] xl:aspect-[375/512]";
+
+/** Preview Display trên lưới (iframe): thấp hơn phone để cột ngắn, vẫn đủ nội dung cuộn trong demo. */
+const SHOWCASE_DISPLAY_GRID_ASPECT_CLASS =
+  "aspect-[375/340] lg:aspect-[375/265] xl:aspect-[375/290]";
 
 const SHOWCASE_DEVICE_OUTER_CLASS =
-  "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[360px] xl:max-w-[367px]";
+  "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[328px] lg:py-2 xl:max-w-[352px] xl:py-2.5 2xl:max-w-[367px]";
 
 /** Bề ngang tham chiếu (như preview phone) — chỉ dùng để tính chiều cao cho Display khi vẫn rộng full ô thẻ. */
 const SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS =
-  "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[360px] xl:max-w-[367px]";
+  "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[328px] xl:max-w-[352px] 2xl:max-w-[367px]";
 
 /** Overlay Display: ~2/3 màn; laptop (lg) co nhẹ chiều cao để tránh sát taskbar / tab. */
 const DISPLAY_HOVER_OVERLAY_BOX_CLASS =
@@ -197,10 +202,7 @@ function Iphone16ProMaxShowcaseFrame({
         aria-hidden
       />
 
-      <div
-        className="relative w-full"
-        style={{ aspectRatio: SHOWCASE_DEVICE_ASPECT }}
-      >
+      <div className={`relative w-full ${SHOWCASE_PREVIEW_ASPECT_CLASS}`}>
         <div className="absolute inset-0 rounded-[2.35rem] bg-[#3b3b3b] via-[#636366]  p-[2.5%] ring-1 ring-white/15">
           <div className="relative h-full w-full rounded-[2.05rem] bg-[#0c0c0c] p-[2.2%] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
             <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[1.78rem] bg-black">
@@ -429,17 +431,14 @@ function ShowcaseIphonePreviewWithEmbed({
         : null;
 
     return (
-      <div className="relative w-full py-3 sm:py-4 lg:py-3 xl:py-4">
+      <div className="relative w-full py-3 sm:py-4 lg:py-1.5 xl:py-2">
         {hoverPortal}
         <div className="relative w-full">
           <div
             className={`${SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS} pointer-events-none select-none`}
             aria-hidden
           >
-            <div
-              className="w-full"
-              style={{ aspectRatio: SHOWCASE_DEVICE_ASPECT }}
-            />
+            <div className={`w-full ${SHOWCASE_DISPLAY_GRID_ASPECT_CLASS}`} />
           </div>
           <div
             className="absolute inset-0 z-0"
@@ -701,7 +700,7 @@ const CreativeShowcase: React.FC = () => {
                     transition={{ duration: 0.4, delay: idx * 0.05 }}
                     className="group relative overflow-visible rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl transition-all duration-500 hover:border-[#4cceac]/30"
                   >
-                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2">
+                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2 lg:px-1.5 lg:pt-0.5 lg:pb-0">
                       <ShowcaseIphonePreviewWithEmbed
                         item={item}
                         serverApiUrl={baseUrl}
