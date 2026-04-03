@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -16,31 +16,30 @@ import {
 } from "../components/OpenDemo";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 
-/** Tỉ lệ ô preview: mặc định cao như phone; laptop (lg/xl) co chiều cao để thẻ gọn hơn. */
+/** Tỉ lệ ô preview: mobile + laptop (lg) gọn; từ xl trở lên khôi phục tỉ lệ phone đầy đủ như bản cũ. */
 const SHOWCASE_PREVIEW_ASPECT_CLASS =
-  "aspect-[375/700] lg:aspect-[375/472] xl:aspect-[375/512]";
+  "aspect-[375/700] lg:aspect-[375/472] xl:aspect-[375/700]";
 
-/** Preview Display trên lưới (iframe): thấp hơn phone để cột ngắn, vẫn đủ nội dung cuộn trong demo. */
+/** Display trên lưới: laptop thấp hơn; màn lớn (xl+) lại tỉ lệ 375/700 như trước. */
 const SHOWCASE_DISPLAY_GRID_ASPECT_CLASS =
-  "aspect-[375/340] lg:aspect-[375/265] xl:aspect-[375/290]";
+  "aspect-[375/340] lg:aspect-[375/265] xl:aspect-[375/700]";
 
 const SHOWCASE_DEVICE_OUTER_CLASS =
-  "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[328px] lg:py-2 xl:max-w-[352px] xl:py-2.5 2xl:max-w-[367px]";
+  "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[328px] lg:py-2 " +
+  "xl:max-w-[367px] xl:py-4";
 
 /** Bề ngang tham chiếu (như preview phone) — chỉ dùng để tính chiều cao cho Display khi vẫn rộng full ô thẻ. */
 const SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS =
-  "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[328px] xl:max-w-[352px] 2xl:max-w-[367px]";
+  "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[328px] xl:max-w-[367px]";
 
-/** Overlay Display: ~2/3 màn; laptop (lg) co nhẹ chiều cao để tránh sát taskbar / tab. */
+/** Overlay Display: bước sm→lg cho laptop; xl+ một khối ~2/3 viewport như code cũ. */
 const DISPLAY_HOVER_OVERLAY_BOX_CLASS =
   "relative box-border overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl sm:rounded-2xl " +
   "h-[min(58vh,calc(100vh-1.25rem))] w-[min(94vw,calc(100vw-1rem))] " +
   "sm:h-[min(62vh,calc(100vh-1.5rem))] sm:w-[min(90vw,calc(100vw-1.5rem))] " +
   "md:h-[min(64vh,calc(100vh-2rem))] md:w-[min(72vw,calc(100vw-2rem))] " +
   "lg:h-[min(63vh,calc(100vh-2.5rem))] lg:w-[min(68vw,calc(100vw-2rem))] " +
-  "xl:h-[min(66.6667vh,calc(100vh-3rem))] xl:w-[min(66.6667vw,calc(100vw-2.5rem))]";
-
-const DISPLAY_HOVER_CLOSE_DELAY_MS = 200;
+  "xl:h-[min(66.6667vh,calc(100vh-2rem))] xl:w-[min(66.6667vw,calc(100vw-2rem))] xl:rounded-2xl";
 
 function displayPrimarySize(item: { size?: string | string[] }): string {
   const s = item.size;
@@ -280,52 +279,26 @@ function ShowcaseIphonePreviewWithEmbed({
 }) {
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [urlResolving, setUrlResolving] = useState(true);
-  const [displayHoverOpen, setDisplayHoverOpen] = useState(false);
-  const displayHoverCloseTimerRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const [displayLightboxOpen, setDisplayLightboxOpen] = useState(false);
   const isMobileCategory = item.category === "Mobile";
   const useDisplaySizePreview = item.category === "Display";
 
-  const cancelDisplayHoverClose = useCallback(() => {
-    if (displayHoverCloseTimerRef.current != null) {
-      clearTimeout(displayHoverCloseTimerRef.current);
-      displayHoverCloseTimerRef.current = null;
-    }
+  const openDisplayLightbox = useCallback(() => {
+    setDisplayLightboxOpen(true);
   }, []);
 
-  const openDisplayHover = useCallback(() => {
-    cancelDisplayHoverClose();
-    setDisplayHoverOpen(true);
-  }, [cancelDisplayHoverClose]);
-
-  const scheduleDisplayHoverClose = useCallback(() => {
-    cancelDisplayHoverClose();
-    displayHoverCloseTimerRef.current = setTimeout(() => {
-      setDisplayHoverOpen(false);
-      displayHoverCloseTimerRef.current = null;
-    }, DISPLAY_HOVER_CLOSE_DELAY_MS);
-  }, [cancelDisplayHoverClose]);
-
-  const closeDisplayHoverNow = useCallback(() => {
-    cancelDisplayHoverClose();
-    setDisplayHoverOpen(false);
-  }, [cancelDisplayHoverClose]);
+  const closeDisplayLightbox = useCallback(() => {
+    setDisplayLightboxOpen(false);
+  }, []);
 
   useEffect(() => {
-    return () => {
-      cancelDisplayHoverClose();
-    };
-  }, [cancelDisplayHoverClose]);
-
-  useEffect(() => {
-    if (!displayHoverOpen) return;
+    if (!displayLightboxOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeDisplayHoverNow();
+      if (e.key === "Escape") closeDisplayLightbox();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [displayHoverOpen, closeDisplayHoverNow]);
+  }, [displayLightboxOpen, closeDisplayLightbox]);
 
   useEffect(() => {
     let cancelled = false;
@@ -401,18 +374,16 @@ function ShowcaseIphonePreviewWithEmbed({
       </>
     );
 
-    const hoverPortal =
-      displayHoverOpen && typeof document !== "undefined"
+    const lightboxPortal =
+      displayLightboxOpen && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4 lg:p-6"
-              onMouseEnter={openDisplayHover}
-              onMouseLeave={scheduleDisplayHoverClose}
-              onClick={closeDisplayHoverNow}
+              className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4 lg:p-6 xl:p-4"
+              onClick={closeDisplayLightbox}
               role="presentation"
             >
               <div
-                className={`${DISPLAY_HOVER_OVERLAY_BOX_CLASS} cursor-zoom-out`}
+                className={`${DISPLAY_HOVER_OVERLAY_BOX_CLASS} cursor-default`}
                 onClick={(e) => e.stopPropagation()}
                 role="presentation"
               >
@@ -431,8 +402,8 @@ function ShowcaseIphonePreviewWithEmbed({
         : null;
 
     return (
-      <div className="relative w-full py-3 sm:py-4 lg:py-1.5 xl:py-2">
-        {hoverPortal}
+      <div className="relative w-full py-3 sm:py-4 lg:py-1.5 xl:py-4">
+        {lightboxPortal}
         <div className="relative w-full">
           <div
             className={`${SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS} pointer-events-none select-none`}
@@ -440,21 +411,17 @@ function ShowcaseIphonePreviewWithEmbed({
           >
             <div className={`w-full ${SHOWCASE_DISPLAY_GRID_ASPECT_CLASS}`} />
           </div>
-          <div
-            className="absolute inset-0 z-0"
-            onMouseEnter={openDisplayHover}
-            onMouseLeave={scheduleDisplayHoverClose}
-          >
+          <div className="absolute inset-0 z-0">
             <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_14px_32px_rgba(0,0,0,0.4)]">
               {renderDisplayPreview({ thumbSurface: true })}
               <button
                 type="button"
-                aria-label="Expand display preview"
-                className="absolute inset-0 z-[16] cursor-zoom-in bg-transparent"
+                aria-label="Mở xem lớn"
+                className="absolute inset-0 z-[16] cursor-pointer bg-transparent"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openDisplayHover();
+                  openDisplayLightbox();
                 }}
               />
             </div>
@@ -622,40 +589,40 @@ const CreativeShowcase: React.FC = () => {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="w-full space-y-6 px-4 sm:space-y-7 sm:px-6 lg:space-y-8 lg:px-6 xl:px-8">
+    <div className="w-full space-y-6 px-4 sm:space-y-7 sm:px-6 lg:space-y-8 lg:px-6 xl:space-y-8 xl:px-8">
       <div className="max-w-full mx-auto">
-        <header className="relative mb-8 sm:mb-10">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between xl:items-center">
+        <header className="relative mb-8 sm:mb-10 xl:mb-10">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between xl:flex-row xl:items-center xl:justify-between xl:gap-6">
             <div className="min-w-0 shrink">
-              <div className="mb-1 flex items-center gap-2 sm:gap-3">
-                <div className="h-5 w-0.5 shrink-0 rounded-full bg-[#4cceac] sm:h-6 sm:w-1" />
-                <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white sm:text-3xl">
+              <div className="mb-1 flex items-center gap-2 sm:gap-3 xl:gap-3">
+                <div className="h-5 w-0.5 shrink-0 rounded-full bg-[#4cceac] sm:h-6 sm:w-1 xl:h-6 xl:w-1" />
+                <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white sm:text-3xl xl:text-3xl">
                   Creative Showcase
                 </h1>
               </div>
-              <p className="ml-0 text-[8px] font-medium uppercase tracking-widest text-[#a3a3a3] sm:ml-4 sm:text-[9px]">
+              <p className="ml-0 text-[8px] font-medium uppercase tracking-widest text-[#a3a3a3] sm:ml-4 sm:text-[9px] xl:ml-4 xl:text-[9px]">
                 Interactive Ad Format Demos &amp; Specifications
               </p>
             </div>
 
-            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-none lg:flex-nowrap xl:gap-4">
-              <div className="relative group w-full min-w-0 sm:w-52 sm:max-w-[13.5rem] lg:w-56 xl:w-64">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-none lg:flex-nowrap xl:flex-row xl:flex-wrap xl:items-center xl:gap-4">
+              <div className="relative group w-full min-w-0 sm:w-52 sm:max-w-[13.5rem] lg:w-56 xl:w-64 xl:max-w-none xl:flex-none">
                 <input
                   type="text"
                   placeholder="Search formats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#141b2d] py-2.5 pl-9 pr-3 text-xs font-medium text-white shadow-xl outline-none transition-all focus:border-[#4cceac]/50 sm:py-3 sm:pl-10 sm:pr-4"
+                  className="w-full rounded-2xl border border-white/5 bg-[#141b2d] py-2.5 pl-9 pr-3 text-xs font-medium text-white shadow-xl outline-none transition-all focus:border-[#4cceac]/50 sm:py-3 sm:pl-10 sm:pr-4 xl:py-3 xl:pl-10 xl:pr-4"
                 />
-                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3a3a3] transition-colors group-focus-within:text-[#4cceac] sm:left-3" />
+                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3a3a3] transition-colors group-focus-within:text-[#4cceac] sm:left-3 xl:left-3" />
               </div>
 
-              <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/5 bg-[#141b2d] p-1 shadow-xl sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+              <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/5 bg-[#141b2d] p-1 shadow-xl sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 xl:mx-0 xl:flex-wrap xl:gap-2 xl:overflow-visible xl:p-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
                 {SHOWCASE_FILTERS.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:px-4 ${
+                    className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:rounded-xl xl:px-4 xl:py-1.5 xl:text-[10px] ${
                       filter === f
                         ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
                         : "text-[#a3a3a3] hover:text-white"
@@ -683,7 +650,7 @@ const CreativeShowcase: React.FC = () => {
         ) : (
           <>
             <div
-              className={`grid gap-4 sm:gap-5 lg:gap-6 ${
+              className={`grid gap-4 sm:gap-5 lg:gap-6 xl:gap-6 ${
                 usesThreeColumnPage
                   ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                   : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
@@ -700,22 +667,22 @@ const CreativeShowcase: React.FC = () => {
                     transition={{ duration: 0.4, delay: idx * 0.05 }}
                     className="group relative overflow-visible rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl transition-all duration-500 hover:border-[#4cceac]/30"
                   >
-                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2 lg:px-1.5 lg:pt-0.5 lg:pb-0">
+                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2 lg:px-1.5 lg:pt-0.5 lg:pb-0 xl:px-2 xl:pt-2 xl:pb-1">
                       <ShowcaseIphonePreviewWithEmbed
                         item={item}
                         serverApiUrl={baseUrl}
                       />
                     </div>
 
-                    <div className="p-4 sm:p-5 lg:p-6">
-                      <h3 className="mb-3 sm:mb-4">
+                    <div className="p-4 sm:p-5 lg:p-6 xl:p-6">
+                      <h3 className="mb-3 sm:mb-4 xl:mb-4">
                         <button
                           type="button"
                           onClick={() => {
                             void handleOpenDemo(item);
                           }}
                           disabled={!item.source}
-                          className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors group-hover:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg"
+                          className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors group-hover:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg xl:text-lg"
                         >
                           {item.title}
                         </button>
@@ -799,7 +766,7 @@ const CreativeShowcase: React.FC = () => {
             </div>
 
             {filteredData.length > 0 && totalPages > 1 && (
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 xl:mt-8">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}

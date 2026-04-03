@@ -460,7 +460,7 @@
       "video": "none",
       "source": "yomedia/app/template/data/0029/banner",
       "status": "active",
-      "delivery": "",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_in_image_with_video_inread.js",
       "delivery-name-replace": "any",
       "fla": false
     },
@@ -477,7 +477,7 @@
       "source": "yomedia/app/template/data/0030/banner",
       "status": "active",
       "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_masthead.js",
-      "delivery-name-replace": "",
+      "delivery-name-replace": "ads-billboard",
       "fla": false
     },
     {
