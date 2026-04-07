@@ -10,6 +10,11 @@ export type OpenYomediaDemoPreviewParams = {
   baseRemotePath?: string;
   /** Base URL server có `/api/creative-demos` (mặc định giống nút Demo). */
   serverApiUrl?: string;
+  /**
+   * Tab mở đồng bộ trong click (vd `about:blank`) để gán `location` sau khi SFTP xong —
+   * tránh trình duyệt chặn `window.open` sau chuỗi `await`.
+   */
+  targetWindow?: Window | null;
 };
 
 function buildRemoteRelativePath(fullPath: string, baseRemotePath: string) {
@@ -207,8 +212,18 @@ export async function getYomediaDemoPreviewUrl(
 export async function openYomediaDemoPreview(
   params: OpenYomediaDemoPreviewParams,
 ) {
-  const url = await getYomediaDemoPreviewUrl(params);
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
+  const { targetWindow, ...urlParams } = params;
+  const url = await getYomediaDemoPreviewUrl(urlParams);
+  if (!url) {
+    targetWindow?.close();
+    return;
+  }
+  const tab = targetWindow;
+  if (tab && !tab.closed) {
+    tab.location.href = url;
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 type OpenDemoButtonProps = {

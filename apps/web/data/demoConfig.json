@@ -1,6 +1,6 @@
 {
   "ListBrands": [
-    { "id": "Enchantuer", "label": "Enchantuer" },
+    { "id": "Enchanteur", "label": "Enchanteur" },
     { "id": "Maxkleen", "label": "Maxkleen" },
     { "id": "Romano", "label": "Romano" },
     { "id": "Aiken", "label": "Aiken" },
@@ -65,7 +65,7 @@
       "floorcleaner",
       "lingeriewash"
     ],
-    "Enchantuer": [
+    "Enchanteur": [
       "shower",
       "naturalle-shower",
       "naturalle-serum",

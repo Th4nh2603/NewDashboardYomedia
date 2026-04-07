@@ -28,11 +28,15 @@ const TestData: React.FC = () => {
         error?: string;
       };
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Unable to load test.json");
+        throw new Error(data.error || "Unable to load creative-demos.json");
       }
-      setContent(typeof data.content === "string" ? data.content : "{}\n");
+      setContent(typeof data.content === "string" ? data.content : '{"demos":[]}\n');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load test.json");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load creative-demos.json",
+      );
     } finally {
       setLoading(false);
     }
@@ -60,7 +64,7 @@ const TestData: React.FC = () => {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Save failed");
       }
-      setMessage("Đã lưu test.json.");
+      setMessage("Đã lưu creative-demos.json.");
       void load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -79,11 +83,13 @@ const TestData: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight uppercase italic">
-                Test data (test.json)
+                Test data (creative-demos.json)
               </h1>
               <p className="text-[#a3a3a3] text-xs font-medium mt-1 max-w-xl">
                 Chỉnh sửa nội dung file{" "}
-                <span className="text-white/90">apps/server/src/data/test.json</span>
+                <span className="text-white/90">
+                  apps/server/src/data/creative-demos.json
+                </span>
                 . Chỉ tài khoản admin hoặc design được phép lưu.
               </p>
             </div>
@@ -142,7 +148,7 @@ const TestData: React.FC = () => {
             readOnly={!canEdit}
             spellCheck={false}
             className="w-full min-h-[420px] bg-[#0d111a] text-white/90 text-sm font-mono leading-relaxed px-5 py-4 outline-none border-0 resize-y disabled:opacity-80"
-            aria-label="Nội dung test.json"
+            aria-label="Nội dung creative-demos.json"
           />
         )}
       </div>

@@ -15,8 +15,10 @@ const PORT = Number(process.env.PORT) || 3001;
 
 app.use(
   cors({
-    origin: (origin: string | undefined, cb: (err: null, allow: boolean | string) => void) =>
-      cb(null, origin || true),
+    origin: (
+      origin: string | undefined,
+      cb: (err: null, allow: boolean | string) => void,
+    ) => cb(null, origin || true),
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "x-user-role"],
   }),
@@ -66,12 +68,15 @@ app.post("/api/login", (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
 
   if (!email || !password) {
-    return res.status(400).json({ ok: false, error: "Missing email or password" });
+    return res
+      .status(400)
+      .json({ ok: false, error: "Missing email or password" });
   }
 
   const accounts = loadAccounts();
   // Normalize phone/password by removing spaces so formatting differences don't block login
-  const normalizePhone = (value: string | undefined) => (value || "").replace(/\s+/g, "");
+  const normalizePhone = (value: string | undefined) =>
+    (value || "").replace(/\s+/g, "");
 
   const account = accounts.find(
     (a) =>
@@ -80,7 +85,9 @@ app.post("/api/login", (req, res) => {
   );
 
   if (!account) {
-    return res.status(401).json({ ok: false, error: "Invalid email or password" });
+    return res
+      .status(401)
+      .json({ ok: false, error: "Invalid email or password" });
   }
 
   return res.json({
@@ -98,13 +105,18 @@ app.post("/api/login", (req, res) => {
 });
 
 app.get("/api/account-profile", (req, res) => {
-  const email = String(req.query.email || "").trim().toLowerCase();
+  const email = String(req.query.email || "")
+    .trim()
+    .toLowerCase();
   if (!email) {
     return res.status(400).json({ ok: false, error: "Missing email" });
   }
 
   const account = loadAccounts().find(
-    (item) => String(item.email || "").trim().toLowerCase() === email,
+    (item) =>
+      String(item.email || "")
+        .trim()
+        .toLowerCase() === email,
   );
 
   if (!account) {
@@ -131,13 +143,22 @@ app.get("/api/creative-demos", (_req, res) => {
   return res.json({ ok: true, demos });
 });
 
-app.get("/api/creative-demo-titles", (_req, res) => {
-  const demos = loadCreativeDemos();
+app.get("/api/creative-demo-titles", (req, res) => {
+  const activeOnlyRaw = String(req.query.activeOnly ?? "").toLowerCase();
+  const activeOnly =
+    activeOnlyRaw === "1" || activeOnlyRaw === "true" || activeOnlyRaw === "yes";
+  let demos = loadCreativeDemos();
+  if (activeOnly) {
+    demos = demos.filter(
+      (d) => String(d?.status ?? "").toLowerCase() === "active",
+    );
+  }
   const items = demos
     .map((d) => ({
       id: String(d?.id ?? "").trim(),
       title: typeof d?.title === "string" ? d.title.trim() : "",
       category: typeof d?.category === "string" ? d.category.trim() : "",
+      value: typeof d?.value === "string" ? d.value.trim() : "",
     }))
     .filter((item) => item.id && item.title);
   return res.json({ ok: true, items });
@@ -146,4 +167,3 @@ app.get("/api/creative-demo-titles", (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
-

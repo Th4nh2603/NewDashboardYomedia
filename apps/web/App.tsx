@@ -54,7 +54,14 @@ const App: React.FC = () => {
                           element={<Documentation />}
                         />
                         <Route path="/manage-demo" element={<ManageDemo />} />
-                        <Route path="/build-demo" element={<BuildDemo />} />
+                        <Route
+                          path="/build-demo"
+                          element={
+                            <RoleRoute allow={["admin", "design"]}>
+                              <BuildDemo />
+                            </RoleRoute>
+                          }
+                        />
                         <Route
                           path="/upload"
                           element={

@@ -122,6 +122,274 @@ export async function listSftpDirectory(path: string, config: SftpConfig = {}) {
   }
 }
 
+export type SftpDirSearchMatch = {
+  fullPath: string;
+  relativePath: string;
+  matchedName: string;
+};
+
+function posixJoinSftp(base: string, name: string): string {
+  const b = base.replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
+  const n = name.replace(/^\/+/, "");
+  if (b === "/") return `/${n}`;
+  return `${b}/${n}`.replace(/\/{2,}/g, "/");
+}
+
+function relativePathFromRoot(
+  rootNormalized: string,
+  fullPath: string,
+): string {
+  const r = rootNormalized.replace(/\/+$/, "") || "/";
+  const f = fullPath.replace(/\/{2,}/g, "/");
+  if (f === r || f === `${r}/`) return "";
+  const prefix = r === "/" ? "/" : `${r}/`;
+  if (f.startsWith(prefix)) {
+    return f.slice(prefix.length).replace(/^\/+/, "");
+  }
+  return fullPath.replace(/^\/+/, "");
+}
+
+/**
+ * DFS từ rootPath, trả về các thư mục có tên hoặc đường dẫn tương đối chứa query (không phân biệt hoa thường).
+ * Một kết nối SFTP, có giới hạn độ sâu và số kết quả.
+ */
+export async function searchSftpDirectoryTree(
+  rootPath: string,
+  query: string,
+  options: { maxDepth?: number; limit?: number; config?: SftpConfig } = {},
+): Promise<SftpDirSearchMatch[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const maxDepth = Math.min(24, Math.max(1, options.maxDepth ?? 14));
+  const limit = Math.min(500, Math.max(1, options.limit ?? 250));
+  const config = options.config ?? {};
+
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  const normalizeRoot =
+    (rootPath || "/").replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
+
+  const results: SftpDirSearchMatch[] = [];
+
+  const isDir = (type: string) => type === "d" || type === "D";
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    async function listDirSafe(dir: string) {
+      try {
+        const raw = (await client.list(dir)) as {
+          name: string;
+          type: string;
+          size: number;
+          modifyTime?: number;
+        }[];
+        return raw.filter(
+          (entry) =>
+            entry.name &&
+            !entry.name.startsWith(".") &&
+            !entry.name.startsWith(".bash"),
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    async function walk(dir: string, depth: number): Promise<void> {
+      if (results.length >= limit || depth > maxDepth) return;
+
+      const entries = await listDirSafe(dir);
+      entries.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        }),
+      );
+
+      for (const entry of entries) {
+        if (results.length >= limit) return;
+        if (!isDir(entry.type)) continue;
+
+        const fullPath = posixJoinSftp(dir, entry.name);
+        const rel = relativePathFromRoot(normalizeRoot, fullPath);
+        const nameLower = entry.name.toLowerCase();
+        const relLower = rel.toLowerCase();
+
+        if (nameLower.includes(q) || relLower.includes(q)) {
+          results.push({
+            fullPath,
+            relativePath: rel,
+            matchedName: entry.name,
+          });
+        }
+
+        if (depth < maxDepth && results.length < limit) {
+          await walk(fullPath, depth + 1);
+        }
+      }
+    }
+
+    await walk(normalizeRoot, 0);
+
+    results.sort((a, b) =>
+      a.relativePath.localeCompare(b.relativePath, undefined, {
+        numeric: true,
+      }),
+    );
+
+    return results;
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
+/** Cây thư mục (chỉ folder), dùng cho snapshot JSON local. */
+export type SftpDirTreeNode = {
+  name: string;
+  path: string;
+  children: SftpDirTreeNode[];
+};
+
+function countDirTreeNodes(node: SftpDirTreeNode): number {
+  return 1 + node.children.reduce((sum, c) => sum + countDirTreeNodes(c), 0);
+}
+
+/**
+ * Một kết nối SFTP: duyệt DFS từ root, chỉ lấy thư mục, dựng cây nested.
+ * Có giới hạn độ sâu và số node để tránh treo với cây quá lớn.
+ */
+export async function mapSftpDirectoryTree(
+  rootPath: string,
+  options: {
+    maxDepth?: number;
+    maxNodes?: number;
+    config?: SftpConfig;
+  } = {},
+): Promise<{
+  sftpRoot: string;
+  generatedAt: string;
+  host: string;
+  port: number;
+  tree: SftpDirTreeNode;
+  directoryCount: number;
+}> {
+  const maxDepth = Math.min(64, Math.max(1, options.maxDepth ?? 48));
+  const maxNodes = Math.min(100_000, Math.max(1, options.maxNodes ?? 20_000));
+  const config = options.config ?? {};
+
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  const normalizeRoot =
+    (rootPath || "/").replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
+
+  const isDir = (type: string) => type === "d" || type === "D";
+
+  let visited = 0;
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    async function listDirSafe(dir: string) {
+      try {
+        const raw = (await client.list(dir)) as {
+          name: string;
+          type: string;
+        }[];
+        return raw.filter(
+          (entry) =>
+            entry.name &&
+            !entry.name.startsWith(".") &&
+            !entry.name.startsWith(".bash"),
+        );
+      } catch {
+        return [];
+      }
+    }
+
+    async function buildTree(
+      dir: string,
+      depth: number,
+    ): Promise<SftpDirTreeNode> {
+      visited += 1;
+      const name =
+        dir === "/" ? "/" : dir.split("/").filter(Boolean).pop() ?? dir;
+      const node: SftpDirTreeNode = { name, path: dir, children: [] };
+
+      if (depth >= maxDepth) {
+        return node;
+      }
+
+      const entries = await listDirSafe(dir);
+      entries.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        }),
+      );
+
+      for (const entry of entries) {
+        if (!isDir(entry.type)) continue;
+        if (visited >= maxNodes) break;
+        const fullPath = posixJoinSftp(dir, entry.name);
+        const child = await buildTree(fullPath, depth + 1);
+        node.children.push(child);
+      }
+
+      return node;
+    }
+
+    const tree = await buildTree(normalizeRoot, 0);
+
+    return {
+      sftpRoot: normalizeRoot,
+      generatedAt: new Date().toISOString(),
+      host,
+      port,
+      tree,
+      directoryCount: countDirTreeNodes(tree),
+    };
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
 export async function readSftpFile(path: string, config: SftpConfig = {}) {
   const client = new SftpClient();
 

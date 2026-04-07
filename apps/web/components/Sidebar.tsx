@@ -26,13 +26,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const { user, logout } = useAuth();
   if (!user) return null; // Hoặc hiển thị nút Login
   const normalizedRole = (user?.role || "").toLowerCase();
-  const isAdsopLikeRole =
-    normalizedRole === "adsop" ||
-    normalizedRole === "adsopmanager" ||
-    normalizedRole === "media";
+  const canAccessBuildDemo =
+    normalizedRole === "admin" || normalizedRole === "design";
 
   const roleTitleFromServer =
-    "roleTitle" in user ? (user as { roleTitle?: string }).roleTitle : undefined;
+    "roleTitle" in user
+      ? (user as { roleTitle?: string }).roleTitle
+      : undefined;
   const displayRole = roleTitleFromServer || user?.role || "Creative Director";
   const sections = [
     {
@@ -88,9 +88,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     >
       {/* Header / Logo */}
       <div
-        className={`h-20 flex items-center px-6 mb-4 ${isCollapsed ? "justify-center" : "justify-between"}`}
+        className={`h-20 flex items-center px-6 mb-4 ${isCollapsed ? "justify-center" : "justify-start"}`}
       >
-        {!isCollapsed && (
+        {isCollapsed ? (
+          <div className="w-10 h-10 bg-gradient-to-br from-[#4cceac] to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-[#4cceac]/20 shrink-0">
+            <CommandLineIcon className="w-6 h-6 text-white" />
+          </div>
+        ) : (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -104,14 +108,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             </span>
           </motion.div>
         )}
-        <motion.button
-          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.05)" }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl text-[#a3a3a3] hover:text-white transition-colors"
-        >
-          <Bars3Icon className="w-6 h-6" />
-        </motion.button>
       </div>
 
       {/* Profile Section */}
@@ -168,11 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             )}
             <div className="space-y-1.5">
               {section.items.map((item) => {
-                // Hide "Build Demo" for adsop-like roles
-                if (
-                  item.path === "/build-demo" &&
-                  isAdsopLikeRole
-                ) {
+                if (item.path === "/build-demo" && !canAccessBuildDemo) {
                   return null;
                 }
                 if (

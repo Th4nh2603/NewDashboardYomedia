@@ -1,7 +1,12 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 
-type DemoListItem = { id: string; title: string; category: string };
+type DemoListItem = {
+  id: string;
+  title: string;
+  category: string;
+  value?: string;
+};
 
 const Upload: React.FC = () => {
   const { user } = useAuth();
@@ -11,15 +16,20 @@ const Upload: React.FC = () => {
 
   const [demoItems, setDemoItems] = React.useState<DemoListItem[]>([]);
   const [selectedCategory, setSelectedCategory] = React.useState("all");
+  const [demoComboInput, setDemoComboInput] = React.useState("");
+  const [demoPickerOpen, setDemoPickerOpen] = React.useState(false);
   const [selectedDemoId, setSelectedDemoId] = React.useState("");
   const [files, setFiles] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [uploadingFolder, setUploadingFolder] = React.useState(false);
-  const [selectedFolderFiles, setSelectedFolderFiles] = React.useState<File[]>([]);
+  const [selectedFolderFiles, setSelectedFolderFiles] = React.useState<File[]>(
+    [],
+  );
   const [selectedFolderName, setSelectedFolderName] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+  const demoComboRef = React.useRef<HTMLDivElement | null>(null);
 
   const resetFolderForm = React.useCallback(() => {
     setSelectedFolderFiles([]);
@@ -37,13 +47,19 @@ const Upload: React.FC = () => {
       const res = await fetch(`${baseUrl}/api/file-upload`, {
         headers: { "x-user-role": role },
       });
-      const data = (await res.json()) as { ok?: boolean; files?: string[]; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        files?: string[];
+        error?: string;
+      };
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Unable to load uploaded files");
       }
       setFiles(Array.isArray(data.files) ? data.files : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load uploaded files");
+      setError(
+        err instanceof Error ? err.message : "Unable to load uploaded files",
+      );
     } finally {
       setLoading(false);
     }
@@ -57,16 +73,15 @@ const Upload: React.FC = () => {
     if (!canUpload) return;
     const loadDemoTitles = async () => {
       try {
-        const res = await fetch(`${baseUrl}/api/creative-demo-titles`);
+        const res = await fetch(
+          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
+        );
         const data = (await res.json()) as {
           ok?: boolean;
           items?: DemoListItem[];
         };
         const items = Array.isArray(data.items) ? data.items : [];
         setDemoItems(items);
-        if (items.length > 0) {
-          setSelectedDemoId((prev) => prev || items[0].id);
-        }
       } catch {
         setDemoItems([]);
       }
@@ -74,31 +89,90 @@ const Upload: React.FC = () => {
     void loadDemoTitles();
   }, [canUpload, baseUrl]);
 
+  /** Distinct category values from API (trim + case-insensitive dedupe), plus "all". */
   const categories = React.useMemo(() => {
-    const unique = Array.from(
-      new Set(
-        demoItems
-          .map((item) => item.category)
-          .filter((category) => category.length > 0),
-      ),
-    );
-    return ["all", ...unique];
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const item of demoItems) {
+      const c = item.category.trim();
+      if (!c) continue;
+      const key = c.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(c);
+    }
+    return ["all", ...list];
   }, [demoItems]);
 
   const filteredDemos = React.useMemo(() => {
     if (selectedCategory === "all") return demoItems;
-    return demoItems.filter((item) => item.category === selectedCategory);
+    const want = selectedCategory.trim().toLowerCase();
+    return demoItems.filter(
+      (item) => item.category.trim().toLowerCase() === want,
+    );
   }, [demoItems, selectedCategory]);
+
+  const demosListFiltered = React.useMemo(() => {
+    const raw = demoComboInput.trim().toLowerCase();
+    if (!raw) return filteredDemos;
+    const tokens = raw.split(/\s+/).filter((t) => t.length >= 2);
+    const matchesItem = (item: DemoListItem) => {
+      const value = (item.value ?? "").toLowerCase();
+      const haystack = [item.title, item.id, value].join(" ").toLowerCase();
+      if (tokens.length === 0) {
+        return haystack.includes(raw);
+      }
+      if (tokens.length === 1) {
+        const t = tokens[0];
+        return (
+          haystack.includes(t) ||
+          value.replace(/-/g, "").includes(t.replace(/-/g, ""))
+        );
+      }
+      return tokens.every((t) => haystack.includes(t));
+    };
+    return filteredDemos.filter(matchesItem);
+  }, [filteredDemos, demoComboInput]);
 
   React.useEffect(() => {
     if (filteredDemos.length === 0) {
       setSelectedDemoId("");
       return;
     }
-    if (!filteredDemos.some((d) => d.id === selectedDemoId)) {
-      setSelectedDemoId(filteredDemos[0].id);
+    if (selectedDemoId && !filteredDemos.some((d) => d.id === selectedDemoId)) {
+      setSelectedDemoId("");
+      setDemoComboInput("");
     }
   }, [filteredDemos, selectedDemoId]);
+
+  React.useEffect(() => {
+    if (demoPickerOpen) return;
+    const item = filteredDemos.find((d) => d.id === selectedDemoId);
+    if (item) setDemoComboInput(item.title);
+    else if (filteredDemos.length === 0) setDemoComboInput("");
+  }, [selectedDemoId, filteredDemos, demoPickerOpen]);
+
+  React.useEffect(() => {
+    setDemoPickerOpen(false);
+  }, [selectedCategory]);
+
+  React.useEffect(() => {
+    if (!demoPickerOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      const el = demoComboRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setDemoPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [demoPickerOpen]);
+
+  const pickDemo = React.useCallback((item: DemoListItem) => {
+    setSelectedDemoId(item.id);
+    setDemoComboInput(item.title);
+    setDemoPickerOpen(false);
+  }, []);
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -110,7 +184,9 @@ const Upload: React.FC = () => {
 
   const handleFolderSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
-    const zipFiles = list.filter((file) => file.name.toLowerCase().endsWith(".zip"));
+    const zipFiles = list.filter((file) =>
+      file.name.toLowerCase().endsWith(".zip"),
+    );
     if (list.length > 0 && zipFiles.length !== list.length) {
       setError("Only .zip files are allowed for folder upload");
     } else {
@@ -204,10 +280,14 @@ const Upload: React.FC = () => {
       const baseMsg = `Uploaded ${data.uploaded || payloadFiles.length} file(s) to folder ${data.folderName || selectedFolderName}.`;
       const extraMessages: string[] = [];
       if (data.testJsonUpdated) {
-        extraMessages.push("Da ghi cac field upload vao apps/server/src/data/test.json.");
+        extraMessages.push(
+          "Da ghi cac field upload vao apps/server/src/data/test.json.",
+        );
       }
       if (data.creativeDemosUpdated) {
-        extraMessages.push("Da cap nhat fla=true trong apps/server/src/data/creative-demos.json.");
+        extraMessages.push(
+          "Da cap nhat fla=true trong apps/server/src/data/creative-demos.json.",
+        );
       }
       setMessage(
         extraMessages.length > 0
@@ -226,7 +306,9 @@ const Upload: React.FC = () => {
     return (
       <div className="w-full px-8 pt-10">
         <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-6">
-          <h1 className="text-xl font-bold text-rose-300">Upload Permission Denied</h1>
+          <h1 className="text-xl font-bold text-rose-300">
+            Upload Permission Denied
+          </h1>
           <p className="mt-2 text-sm text-rose-200/80">
             This feature is only available for admin or design roles.
           </p>
@@ -238,7 +320,9 @@ const Upload: React.FC = () => {
   return (
     <div className="w-full px-8 pt-10 space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">File Upload</h1>
+        <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">
+          File Upload
+        </h1>
         <p className="text-sm text-[#a3a3a3] mt-1">
           Upload folders to server storage at <code>uploads/file-center</code>.
         </p>
@@ -246,7 +330,9 @@ const Upload: React.FC = () => {
 
       <section className="space-y-4 rounded-3xl border border-white/10 bg-[#020617] p-6">
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">Category filter</label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">
+            Category filter
+          </label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -261,22 +347,103 @@ const Upload: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">Creative Demo Title</label>
-          <select
-            value={selectedDemoId}
-            onChange={(e) => setSelectedDemoId(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-2.5 text-sm text-white outline-none focus:border-[#4cceac]/60"
+          <label
+            htmlFor="creative-demo-combo"
+            className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]"
           >
-            {filteredDemos.length === 0 ? (
-              <option value="">No title available</option>
-            ) : (
-              filteredDemos.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title}
-                </option>
-              ))
+            Creative Demo Title
+          </label>
+          <div className="relative" ref={demoComboRef}>
+            <div className="relative">
+              <input
+                id="creative-demo-combo"
+                type="text"
+                value={demoComboInput}
+                onChange={(e) => {
+                  setDemoComboInput(e.target.value);
+                  setDemoPickerOpen(true);
+                }}
+                onFocus={() => setDemoPickerOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setDemoPickerOpen(false);
+                    e.preventDefault();
+                    return;
+                  }
+                  if (e.key === "Enter") {
+                    const first = demosListFiltered[0];
+                    if (first) pickDemo(first);
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Search or select a demo..."
+                autoComplete="off"
+                spellCheck={false}
+                role="combobox"
+                aria-expanded={demoPickerOpen}
+                aria-controls="creative-demo-listbox"
+                aria-autocomplete="list"
+                className="w-full rounded-xl border border-white/10 bg-[#0b1220] py-2.5 pl-4 pr-10 text-sm text-white placeholder:text-[#64748b] outline-none focus:border-[#4cceac]/60"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={
+                  demoPickerOpen ? "Close demo list" : "Open demo list"
+                }
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setDemoPickerOpen((o) => !o)}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#94a3b8] hover:bg-white/10 hover:text-white"
+              >
+                <svg
+                  className={`h-4 w-4 transition-transform ${demoPickerOpen ? "rotate-180" : ""}`}
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            {demoPickerOpen && (
+              <ul
+                id="creative-demo-listbox"
+                role="listbox"
+                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-[#0b1220] py-1 shadow-lg"
+              >
+                {demosListFiltered.length === 0 ? (
+                  <li className="px-4 py-2.5 text-sm text-[#94a3b8]">
+                    {filteredDemos.length === 0
+                      ? "No title available"
+                      : "No matches"}
+                  </li>
+                ) : (
+                  demosListFiltered.map((item) => (
+                    <li key={item.id} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={item.id === selectedDemoId}
+                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-white/10 ${
+                          item.id === selectedDemoId
+                            ? "bg-white/5 text-[#9ff3de]"
+                            : "text-white"
+                        }`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => pickDemo(item)}
+                      >
+                        {item.title}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
             )}
-          </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -321,7 +488,9 @@ const Upload: React.FC = () => {
         </div>
 
         <div className="text-xs text-[#a3a3a3]">
-          Folder: <span className="text-white">{selectedFolderName || "-"}</span> | Files:{" "}
+          Folder:{" "}
+          <span className="text-white">{selectedFolderName || "-"}</span> |
+          Files:{" "}
           <span className="text-white">{selectedFolderFiles.length}</span>
         </div>
 
@@ -347,7 +516,10 @@ const Upload: React.FC = () => {
         ) : (
           <ul className="mt-3 space-y-2">
             {files.map((file) => (
-              <li key={file} className="rounded-xl border border-white/5 bg-[#0b1220] px-3 py-2 text-sm text-[#e5e7eb]">
+              <li
+                key={file}
+                className="rounded-xl border border-white/5 bg-[#0b1220] px-3 py-2 text-sm text-[#e5e7eb]"
+              >
                 {file}
               </li>
             ))}

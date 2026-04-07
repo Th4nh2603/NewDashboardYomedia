@@ -1,11 +1,65 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useError } from "../contexts/ErrorContext";
+import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 
 type ChatMessage = {
   id: string;
   role: "user" | "model";
   content: string;
 };
+
+/** Đường dẫn tương đối demo (vd `2026/03/.../384x683`) — giống input Open Demo. */
+function tryExtractDemoRemotePath(raw: string): string | null {
+  const normalized = raw
+    .trim()
+    .replace(/\u00d7/g, "x")
+    .replace(/×/g, "x")
+    .replace(/^[`'"\u201c\u201d]+|[`'"\u201c\u201d]+$/g, "");
+  if (!normalized || /\n/.test(normalized)) return null;
+  if (normalized.length > 512) return null;
+
+  const stripped = normalized
+    .replace(/^\/script\/demo\/?/i, "")
+    .replace(/^\/+/, "");
+  const segments = stripped.split("/").filter(Boolean);
+  if (segments.length < 3) return null;
+
+  const last = segments[segments.length - 1] ?? "";
+  if (!/^\d{2,4}x\d{2,4}$/i.test(last)) return null;
+  if (!/^\d{4}$/.test(segments[0] ?? "")) return null;
+
+  return stripped;
+}
+
+function renderPlainWithOptionalLinks(
+  text: string,
+  keyPrefix: string,
+): React.ReactNode[] {
+  const urlRe = /(https?:\/\/[^\s<>`]+)/g;
+  const out: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let i = 0;
+  while ((match = urlRe.exec(text)) !== null) {
+    const idx = match.index;
+    const href = match[1] ?? match[0];
+    if (idx > lastIndex) out.push(text.slice(lastIndex, idx));
+    out.push(
+      <a
+        key={`${keyPrefix}-u-${i++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2 break-all"
+      >
+        {href}
+      </a>,
+    );
+    lastIndex = idx + (match[0]?.length ?? 0);
+  }
+  if (lastIndex < text.length) out.push(text.slice(lastIndex));
+  return out.length ? out : [text];
+}
 
 function renderInlineMarkdown(text: string) {
   // Minimal, safe renderer for: **bold**, `code`, and normal text.
@@ -17,11 +71,21 @@ function renderInlineMarkdown(text: string) {
   while ((match = regex.exec(text)) !== null) {
     const idx = match.index;
     const token = match[0] ?? "";
-    if (idx > lastIndex) parts.push(text.slice(lastIndex, idx));
+    if (idx > lastIndex) {
+      for (const node of renderPlainWithOptionalLinks(
+        text.slice(lastIndex, idx),
+        `${idx}-t`,
+      )) {
+        parts.push(node);
+      }
+    }
 
     if (token.startsWith("**") && token.endsWith("**")) {
       parts.push(
-        <strong key={`${idx}-b`} className="font-semibold text-slate-900 dark:text-slate-100">
+        <strong
+          key={`${idx}-b`}
+          className="font-semibold text-slate-900 dark:text-slate-100"
+        >
           {token.slice(2, -2)}
         </strong>,
       );
@@ -39,7 +103,14 @@ function renderInlineMarkdown(text: string) {
     }
     lastIndex = idx + token.length;
   }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  if (lastIndex < text.length) {
+    for (const node of renderPlainWithOptionalLinks(
+      text.slice(lastIndex),
+      "end-t",
+    )) {
+      parts.push(node);
+    }
+  }
   return parts;
 }
 
@@ -57,7 +128,10 @@ function renderPrettyMessage(content: string) {
     const joined = textLines.join("\n").trimEnd();
     if (!joined) return;
     blocks.push(
-      <div key={key} className="whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200">
+      <div
+        key={key}
+        className="whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200"
+      >
         {joined.split(/\r?\n/).map((l, i) => (
           <div key={`${key}-l-${i}`}>{renderInlineMarkdown(l)}</div>
         ))}
@@ -106,7 +180,8 @@ function renderColoredContent(content: string) {
 
   // Only apply coloring to our structured status messages.
   const hasStructured =
-    lines.some((l) => l.startsWith("Directory:")) || lines.some((l) => l.startsWith("SFTP:"));
+    lines.some((l) => l.startsWith("Directory:")) ||
+    lines.some((l) => l.startsWith("SFTP:"));
   if (!hasStructured) return renderPrettyMessage(content);
 
   return (
@@ -163,7 +238,10 @@ function renderColoredContent(content: string) {
 
         if (line.toLowerCase().includes("không kiểm tra được sftp")) {
           return (
-            <div key={idx} className="text-sm text-amber-700 dark:text-amber-300">
+            <div
+              key={idx}
+              className="text-sm text-amber-700 dark:text-amber-300"
+            >
               {line}
             </div>
           );
@@ -184,7 +262,7 @@ const ChatView = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { handleApiError } = useError();
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -192,14 +270,16 @@ const ChatView = () => {
     }
   }, [messages]);
 
-  const handleSend = async (e) => {
+  const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    const trimmedInput = input.trim();
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: trimmedInput,
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -207,7 +287,7 @@ const ChatView = () => {
     // Nếu input là URL có chứa tham số b=...index.html thì decode và trả lại phần giữa b= và index.html cho user,
     // và không gửi request này lên AI.
     try {
-      const decoded = decodeURIComponent(input);
+      const decoded = decodeURIComponent(trimmedInput);
       const match = decoded.match(/b=([^&]*?)index\.html/);
       if (match && match[1]) {
         const extractedRaw = match[1]; // ví dụ: 2026/03/romano/384x683/
@@ -265,6 +345,45 @@ const ChatView = () => {
       console.error("Failed to decode URL from input", err);
     }
 
+    const demoPath = tryExtractDemoRemotePath(trimmedInput);
+    if (demoPath) {
+      setInput("");
+      setIsLoading(true);
+      const serverApiUrl =
+        import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+      try {
+        const url = await getYomediaDemoPreviewUrl({
+          remotePath: demoPath,
+          serverApiUrl,
+        });
+        const content = url
+          ? `Link preview demo :\n\n${url}`
+          : "Không tạo được link preview demo. Kiểm tra lại đường dẫn.";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content,
+          },
+        ]);
+      } catch (err) {
+        handleApiError(err, "Demo preview link");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content:
+              "Không tạo được link preview demo. Thử lại hoặc kiểm tra kết nối server.",
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     setInput("");
     setIsLoading(true);
 
@@ -275,7 +394,7 @@ const ChatView = () => {
       const res = await fetch(`${baseUrl}/api/rag/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input }),
+        body: JSON.stringify({ question: trimmedInput }),
       });
 
       const data = (await res.json()) as
@@ -417,7 +536,11 @@ const ChatView = () => {
   );
 };
 
-const ChatBubbleBottomCenterTextIcon = ({ className }) => (
+const ChatBubbleBottomCenterTextIcon = ({
+  className,
+}: {
+  className?: string;
+}) => (
   <svg
     className={className}
     fill="none"

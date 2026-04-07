@@ -6,7 +6,12 @@ import { fileURLToPath } from "url";
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const TEST_JSON_PATH = path.join(__dirname, "..", "data", "test.json");
+const CREATIVE_DEMOS_JSON_PATH = path.join(
+  __dirname,
+  "..",
+  "data",
+  "creative-demos.json",
+);
 const WRITE_ROLES = new Set(["admin", "design"]);
 
 function getUserRole(req: Request): string {
@@ -30,13 +35,15 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
   try {
-    let raw = await readFile(TEST_JSON_PATH, "utf8").catch((err: NodeJS.ErrnoException) => {
-      if (err.code === "ENOENT") return "";
-      throw err;
-    });
+    let raw = await readFile(CREATIVE_DEMOS_JSON_PATH, "utf8").catch(
+      (err: NodeJS.ErrnoException) => {
+        if (err.code === "ENOENT") return "";
+        throw err;
+      },
+    );
     const trimmed = raw.trim();
     if (trimmed === "") {
-      return res.json({ ok: true, content: "{}\n" });
+      return res.json({ ok: true, content: '{"demos":[]}\n' });
     }
     JSON.parse(trimmed);
     return res.json({ ok: true, content: raw });
@@ -53,7 +60,8 @@ router.put("/", async (req: Request, res: Response) => {
   if (!WRITE_ROLES.has(role)) {
     res.status(403).json({
       ok: false,
-      error: "Forbidden: only admin/design can update test.json",
+      error:
+        "Forbidden: only admin/design can update creative-demos.json",
     });
     return;
   }
@@ -81,7 +89,7 @@ router.put("/", async (req: Request, res: Response) => {
   const toWrite = text.trim() === "" ? "{}" : text;
   try {
     await writeFile(
-      TEST_JSON_PATH,
+      CREATIVE_DEMOS_JSON_PATH,
       toWrite.endsWith("\n") ? toWrite : `${toWrite}\n`,
       "utf8",
     );

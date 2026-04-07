@@ -64,6 +64,13 @@ function toSafeZipBaseName(title: string): string {
   return normalized || "creative-demo";
 }
 
+/** If source is blank in creative-demos.json, use the same layout as populated rows. */
+function defaultDemoSourceFromId(demoId: string): string {
+  const id = demoId.trim();
+  if (!id) return "";
+  return `yomedia/app/template/data/${id}/banner`;
+}
+
 function getUserRole(req: Request): string {
   const headerRole = req.header("x-user-role");
   if (typeof headerRole === "string" && headerRole.trim()) {
@@ -291,11 +298,23 @@ router.post("/folder", async (req: Request, res: Response) => {
               .trim()
               .toLowerCase() === demoTitleInput.toLowerCase(),
         );
-    const source = String(matchedDemo?.source || "").trim();
+    if (!matchedDemo) {
+      res.status(400).json({
+        ok: false,
+        error: "Demo not found in creative-demos.json",
+      });
+      return;
+    }
+    const idForSource = String(matchedDemo.id ?? "").trim();
+    let source = String(matchedDemo.source || "").trim();
+    if (!source) {
+      source = defaultDemoSourceFromId(idForSource);
+    }
     if (!source) {
       res.status(400).json({
         ok: false,
-        error: "Demo title not found or missing source in creative-demos.json",
+        error:
+          "Demo has no SFTP source path and no id to derive a default in creative-demos.json",
       });
       return;
     }
