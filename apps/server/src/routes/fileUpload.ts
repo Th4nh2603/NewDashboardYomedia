@@ -11,7 +11,8 @@ import {
 const router = Router();
 const FILE_UPLOAD_DIR = path.join(process.cwd(), "uploads", "file-center");
 const ALLOWED_ROLES = new Set(["admin", "design"]);
-const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_FOLDER_EXTENSIONS = new Set(["fla", "psd"]);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CREATIVE_DEMOS_PATH = path.join(
@@ -51,19 +52,6 @@ function mapSourceToSftpRoot(source: string): string {
   return `/script/demo/${normalized}`.replace(/\/{2,}/g, "/");
 }
 
-function toSafeZipBaseName(title: string): string {
-  const normalized = title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9-_ ]+/g, " ")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .toLowerCase();
-
-  return normalized || "creative-demo";
-}
-
 /** If source is blank in creative-demos.json, use the same layout as populated rows. */
 function defaultDemoSourceFromId(demoId: string): string {
   const id = demoId.trim();
@@ -90,6 +78,11 @@ function isTooLarge(buffer: Buffer): boolean {
   return buffer.length > MAX_UPLOAD_SIZE_BYTES;
 }
 
+function hasAllowedFolderExtension(relativePath: string): boolean {
+  const ext = path.posix.extname(relativePath).slice(1).toLowerCase();
+  return ALLOWED_FOLDER_EXTENSIONS.has(ext);
+}
+
 type DemoRow = {
   id?: string;
   title?: string;
@@ -102,7 +95,7 @@ async function recordFolderUploadToTestJson(payload: {
   categoryFilter?: string;
   demoTitle: string;
   folderName: string;
-  zipEntries: { relativePath: string; sizeBytes: number }[];
+  uploadedEntries: { relativePath: string; sizeBytes: number }[];
   demo: DemoRow | undefined;
   source: string;
   sftpBaseDir: string;
@@ -133,7 +126,7 @@ async function recordFolderUploadToTestJson(payload: {
       category: payload.demo?.category ?? null,
       source: payload.source,
     },
-    files: payload.zipEntries.map((z, i) => ({
+    files: payload.uploadedEntries.map((z, i) => ({
       index: i + 1,
       name: z.relativePath,
       sizeBytes: z.sizeBytes,
@@ -227,7 +220,7 @@ router.post("/", async (req: Request, res: Response) => {
     if (isTooLarge(buffer)) {
       res
         .status(400)
-        .json({ ok: false, error: "Uploaded file exceeds 5MB limit" });
+        .json({ ok: false, error: "Uploaded file exceeds 20MB limit" });
       return;
     }
 
@@ -321,7 +314,6 @@ router.post("/folder", async (req: Request, res: Response) => {
     const sftpBaseDir = mapSourceToSftpRoot(source);
     const titleForZip =
       String(matchedDemo?.title || demoTitleInput || "").trim();
-    const zipBaseName = toSafeZipBaseName(titleForZip);
     const overwrite = body.overwrite === true;
 
     const safeFolderName = path.basename(body.folderName);
@@ -334,13 +326,39 @@ router.post("/folder", async (req: Request, res: Response) => {
     await mkdir(rootFolder, { recursive: true });
 
     const uploadedSftpPaths: string[] = [];
-    const zipEntries: { relativePath: string; sizeBytes: number }[] = [];
+    const uploadedEntries: { relativePath: string; sizeBytes: number }[] = [];
     const checkedWritableDirs = new Set<string>();
-    const remoteTargetPaths = body.files.map((_, i) => {
-      const targetZipName =
-        body.files!.length > 1 ? `${zipBaseName}-${i + 1}.zip` : `${zipBaseName}.zip`;
-      return `${sftpBaseDir}/${targetZipName}`.replace(/\/{2,}/g, "/");
-    });
+
+    const parsedFiles: {
+      relativePath: string;
+      content: string;
+      encoding: "base64" | "utf8";
+    }[] = [];
+    for (const file of body.files) {
+      const relativePath = toSafeRelativePath(String(file.relativePath || ""));
+      const content = typeof file.content === "string" ? file.content : "";
+      const encoding = file.encoding === "utf8" ? "utf8" : "base64";
+
+      if (!relativePath || !content) {
+        res.status(400).json({
+          ok: false,
+          error: "Each file needs valid 'relativePath' and 'content'",
+        });
+        return;
+      }
+      if (!hasAllowedFolderExtension(relativePath)) {
+        res.status(400).json({
+          ok: false,
+          error: "Folder upload only accepts .fla or .psd files",
+        });
+        return;
+      }
+      parsedFiles.push({ relativePath, content, encoding });
+    }
+
+    const remoteTargetPaths = parsedFiles.map((pf) =>
+      `${sftpBaseDir}/${pf.relativePath}`.replace(/\/{2,}/g, "/"),
+    );
     if (!overwrite) {
       const existingPaths: string[] = [];
       const uniqueTargets = Array.from(new Set(remoteTargetPaths));
@@ -361,28 +379,8 @@ router.post("/folder", async (req: Request, res: Response) => {
       }
     }
 
-    for (let i = 0; i < body.files.length; i++) {
-      const file = body.files[i];
-      const relativePath = toSafeRelativePath(String(file.relativePath || ""));
-      const content = typeof file.content === "string" ? file.content : "";
-      const encoding = file.encoding === "utf8" ? "utf8" : "base64";
-      const isZip = relativePath?.toLowerCase().endsWith(".zip");
-
-      if (!relativePath || !content) {
-        res.status(400).json({
-          ok: false,
-          error: "Each file needs valid 'relativePath' and 'content'",
-        });
-        return;
-      }
-      if (!isZip) {
-        res.status(400).json({
-          ok: false,
-          error: "Folder upload only accepts .zip files",
-        });
-        return;
-      }
-
+    for (let i = 0; i < parsedFiles.length; i++) {
+      const { relativePath, content, encoding } = parsedFiles[i];
       const targetPath = path.join(rootFolder, relativePath);
       await mkdir(path.dirname(targetPath), { recursive: true });
       const buffer =
@@ -395,12 +393,12 @@ router.post("/folder", async (req: Request, res: Response) => {
       if (isTooLarge(buffer)) {
         res.status(400).json({
           ok: false,
-          error: `Uploaded file '${relativePath}' exceeds 5MB limit`,
+          error: `Uploaded file '${relativePath}' exceeds 20MB limit`,
         });
         return;
       }
       await writeFile(targetPath, buffer);
-      zipEntries.push({
+      uploadedEntries.push({
         relativePath,
         sizeBytes: buffer.length,
       });
@@ -422,7 +420,7 @@ router.post("/folder", async (req: Request, res: Response) => {
         categoryFilter,
         demoTitle: titleForZip,
         folderName: safeFolderName,
-        zipEntries,
+        uploadedEntries,
         demo: matchedDemo,
         source,
         sftpBaseDir,

@@ -8,6 +8,20 @@ type DemoListItem = {
   value?: string;
 };
 
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_UPLOAD_EXTENSIONS = new Set(["fla", "psd"]);
+
+function webkitRelativePath(file: File): string | undefined {
+  const w = file as File & { webkitRelativePath?: string };
+  const p = w.webkitRelativePath;
+  return typeof p === "string" && p.trim() ? p.trim() : undefined;
+}
+
+function hasAllowedUploadExtension(fileName: string): boolean {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  return ALLOWED_UPLOAD_EXTENSIONS.has(ext);
+}
+
 const Upload: React.FC = () => {
   const { user } = useAuth();
   const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
@@ -181,24 +195,57 @@ const Upload: React.FC = () => {
       reader.onerror = () => reject(new Error(`Cannot read ${file.name}`));
       reader.readAsDataURL(file);
     });
+  const hasSelectedDemo = Boolean(selectedDemoId.trim());
 
   const handleFolderSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
-    const zipFiles = list.filter((file) =>
-      file.name.toLowerCase().endsWith(".zip"),
-    );
-    if (list.length > 0 && zipFiles.length !== list.length) {
-      setError("Only .zip files are allowed for folder upload");
-    } else {
+    if (list.length === 0) {
       setError(null);
-    }
-    setSelectedFolderFiles(zipFiles);
-    if (zipFiles.length === 0) {
+      setSelectedFolderFiles([]);
       setSelectedFolderName("");
       return;
     }
-    const first = zipFiles[0];
-    const rootName = first.name.replace(/\.zip$/i, "") || "zip-upload";
+    const missingRel = list.filter((file) => !webkitRelativePath(file));
+    if (missingRel.length > 0) {
+      setError(
+        "Choose a folder (not individual files) so each file keeps its path on SFTP.",
+      );
+      setSelectedFolderFiles([]);
+      setSelectedFolderName("");
+      return;
+    }
+    const oversizedFiles = list.filter(
+      (file) => file.size > MAX_FILE_SIZE_BYTES,
+    );
+    const invalidTypeFiles = list.filter(
+      (file) => !hasAllowedUploadExtension(file.name),
+    );
+    const validFiles = list.filter(
+      (file) =>
+        file.size <= MAX_FILE_SIZE_BYTES && hasAllowedUploadExtension(file.name),
+    );
+    if (invalidTypeFiles.length > 0) {
+      setError(
+        `Only .fla or .psd files are allowed. Invalid: ${invalidTypeFiles.map((f) => webkitRelativePath(f) ?? f.name).join(", ")}`,
+      );
+    } else if (oversizedFiles.length > 0) {
+      setError(
+        `Each file must be 20MB or smaller. Too large: ${oversizedFiles.map((f) => webkitRelativePath(f) ?? f.name).join(", ")}`,
+      );
+    } else {
+      setError(null);
+    }
+    setSelectedFolderFiles(validFiles);
+    if (validFiles.length === 0) {
+      setSelectedFolderName("");
+      return;
+    }
+    const firstRel = webkitRelativePath(validFiles[0]) ?? "";
+    const slash = firstRel.indexOf("/");
+    const rootName =
+      slash > 0
+        ? firstRel.slice(0, slash)
+        : validFiles[0].name.replace(/\.[^.]+$/, "") || "folder-upload";
     setSelectedFolderName(rootName);
   };
 
@@ -218,7 +265,8 @@ const Upload: React.FC = () => {
     try {
       const payloadFiles = await Promise.all(
         selectedFolderFiles.map(async (file) => {
-          const relativePath = file.name;
+          const rel = webkitRelativePath(file);
+          const relativePath = (rel ?? file.name).replace(/\\/g, "/");
           const content = await fileToBase64(file);
           return {
             relativePath,
@@ -461,29 +509,40 @@ const Upload: React.FC = () => {
       <section className="space-y-4 rounded-3xl border border-white/10 bg-[#020617] p-6">
         <h2 className="text-lg font-semibold text-white">Upload Folder</h2>
         <p className="text-xs text-[#94a3b8]">
-          Upload zip file(s) only for this folder flow.
+          Select a folder: files upload directly to SFTP under the demo path
+          (only .fla/.psd, same relative paths, max 20MB per file).
         </p>
+        {!hasSelectedDemo && (
+          <p className="text-xs text-amber-300">
+            Please select Creative Demo Title before choosing a folder.
+          </p>
+        )}
 
         <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-3">
           <input
             id="folder-upload-input"
             type="file"
             multiple
-            accept=".zip,application/zip"
             ref={folderInputRef}
             onChange={handleFolderSelection}
             className="hidden"
+            disabled={!hasSelectedDemo}
+            {...({ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
           />
           <label
             htmlFor="folder-upload-input"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#4cceac]/30 bg-[#4cceac]/15 px-4 py-2 text-sm font-semibold text-[#9ff3de] transition-colors hover:bg-[#4cceac]/25"
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+              hasSelectedDemo
+                ? "cursor-pointer border-[#4cceac]/30 bg-[#4cceac]/15 text-[#9ff3de] hover:bg-[#4cceac]/25"
+                : "cursor-not-allowed border-white/10 bg-white/5 text-[#94a3b8]"
+            }`}
           >
-            Select zip file
+            Select folder
           </label>
           <p className="mt-2 text-xs text-[#94a3b8]">
             {selectedFolderFiles.length > 0
-              ? `${selectedFolderFiles.length} zip file(s) selected`
-              : "No zip file selected"}
+              ? `${selectedFolderFiles.length} file(s) selected`
+              : "No folder selected"}
           </p>
         </div>
 
@@ -497,7 +556,9 @@ const Upload: React.FC = () => {
         <button
           type="button"
           onClick={() => void handleUploadFolder()}
-          disabled={uploadingFolder || selectedFolderFiles.length === 0}
+          disabled={
+            uploadingFolder || selectedFolderFiles.length === 0 || !hasSelectedDemo
+          }
           className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {uploadingFolder ? "Uploading folder..." : "Upload folder"}
