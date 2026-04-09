@@ -203,6 +203,12 @@ interface UploadedFile {
   imageBase64?: ImageBase64Entry;
 }
 
+interface DemoTitleOption {
+  id: string;
+  title: string;
+  size: string | string[];
+}
+
 /** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
 function readAllDirEntries(
   reader: FileSystemDirectoryReader,
@@ -384,6 +390,10 @@ const BuildDemo: React.FC = () => {
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendingToSftp, setSendingToSftp] = useState(false);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [demoTitleOptions, setDemoTitleOptions] = useState<DemoTitleOption[]>(
+    [],
+  );
+  const [selectedDemoTitle, setSelectedDemoTitle] = useState("");
   const [metrics, setMetrics] = useState({
     gpu: 12,
     ram: 2.4,
@@ -400,6 +410,9 @@ const BuildDemo: React.FC = () => {
 
   const normalizePathToken = (value: string) =>
     value.trim().replace(/\s+/g, "-").replace(/\/+/g, "-");
+
+  const normalizeMatchToken = (value: string) =>
+    value.trim().replace(/\.[^.]+$/, "").toLowerCase();
 
   const getUploadedNameToken = () => {
     const firstHtml = files.find((f) =>
@@ -423,6 +436,17 @@ const BuildDemo: React.FC = () => {
     directoryExists ||
     (files.length > 0 &&
       (autoUploadNameToken.length === 0 || autoUploadNameToken.length <= 5));
+
+  const fileNameTokens = React.useMemo(() => {
+    const out = new Set<string>();
+    for (const item of files) {
+      const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      if (ext !== ".html" && ext !== ".htm") continue;
+      const token = normalizeMatchToken(String(item.file.name ?? ""));
+      if (token) out.add(token);
+    }
+    return out;
+  }, [files]);
 
   const getBrandColorClass = (name: string) => {
     const lower = name.toLowerCase();
@@ -511,6 +535,71 @@ const BuildDemo: React.FC = () => {
       cancelled = true;
     };
   }, [sourceUrl, files.length, baseUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDemoTitles = async () => {
+      try {
+        const res = await fetch(
+          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
+        );
+        const data = (await res.json()) as {
+          ok?: boolean;
+          items?: Array<{ id?: string; title?: string; size?: string | string[] }>;
+        };
+        const items = Array.isArray(data.items)
+          ? data.items
+              .map((item) => ({
+                id: String(item?.id ?? "").trim(),
+                title: String(item?.title ?? "").trim(),
+                size: Array.isArray(item?.size)
+                  ? item.size
+                  : String(item?.size ?? "").trim(),
+              }))
+              .filter((item) => item.id && item.title)
+          : [];
+        if (!cancelled) {
+          setDemoTitleOptions(items);
+        }
+      } catch {
+        if (!cancelled) {
+          setDemoTitleOptions([]);
+        }
+      }
+    };
+    void loadDemoTitles();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (
+      selectedDemoTitle &&
+      !demoTitleOptions.some((item) => item.title === selectedDemoTitle)
+    ) {
+      setSelectedDemoTitle("");
+    }
+  }, [demoTitleOptions, selectedDemoTitle]);
+
+  const filteredDemoTitleOptions = React.useMemo(() => {
+    return demoTitleOptions.filter((item) => {
+      const sizesRaw = Array.isArray(item.size) ? item.size : [item.size];
+      return sizesRaw.some((s) => {
+        const token = normalizeMatchToken(String(s ?? ""));
+        return token && fileNameTokens.has(token);
+      });
+    });
+  }, [demoTitleOptions, fileNameTokens]);
+
+  useEffect(() => {
+    if (
+      selectedDemoTitle &&
+      !filteredDemoTitleOptions.some((item) => item.title === selectedDemoTitle)
+    ) {
+      setSelectedDemoTitle("");
+    }
+  }, [filteredDemoTitleOptions, selectedDemoTitle]);
 
   useEffect(() => {
     const monthLabel = getItemLabelById(months, config.mode).padStart(2, "0");
@@ -870,6 +959,12 @@ const BuildDemo: React.FC = () => {
     }
     if (!config.model?.trim()) {
       setSendError("Please select a brand before uploading to SFTP.");
+      return;
+    }
+    if (!selectedDemoTitle.trim()) {
+      setSendError(
+        "Please select a Creative Demo before replacing base64 and uploading to SFTP.",
+      );
       return;
     }
     if (files.length === 0) {
@@ -1320,6 +1415,33 @@ const BuildDemo: React.FC = () => {
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Creative Demo
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={selectedDemoTitle}
+                  onChange={(e) => setSelectedDemoTitle(e.target.value)}
+                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                >
+                  <option value="">
+                    {filteredDemoTitleOptions.length > 0
+                      ? "Select creative demo..."
+                      : "No matched demo title"}
+                  </option>
+                  {filteredDemoTitleOptions.map((item) => (
+                    <option key={item.id} value={item.title}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
                   Brand
@@ -1472,6 +1594,7 @@ const BuildDemo: React.FC = () => {
               type="button"
               onClick={handleReplaceBase64AndUploadSftp}
               disabled={
+                !selectedDemoTitle.trim() ||
                 !config.model?.trim() ||
                 !uploadNameValid ||
                 !sourceUrl.trim() ||

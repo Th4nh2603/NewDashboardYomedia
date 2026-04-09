@@ -146,7 +146,9 @@ app.get("/api/creative-demos", (_req, res) => {
 app.get("/api/creative-demo-titles", (req, res) => {
   const activeOnlyRaw = String(req.query.activeOnly ?? "").toLowerCase();
   const activeOnly =
-    activeOnlyRaw === "1" || activeOnlyRaw === "true" || activeOnlyRaw === "yes";
+    activeOnlyRaw === "1" ||
+    activeOnlyRaw === "true" ||
+    activeOnlyRaw === "yes";
   let demos = loadCreativeDemos();
   if (activeOnly) {
     demos = demos.filter(
@@ -159,6 +161,12 @@ app.get("/api/creative-demo-titles", (req, res) => {
       title: typeof d?.title === "string" ? d.title.trim() : "",
       category: typeof d?.category === "string" ? d.category.trim() : "",
       value: typeof d?.value === "string" ? d.value.trim() : "",
+      size: Array.isArray(d?.size)
+        ? d.size.map((s: unknown) => String(s ?? "").trim()).filter(Boolean)
+        : typeof d?.size === "string"
+          ? d.size.trim()
+          : "",
+      fla: d?.fla === true,
     }))
     .filter((item) => item.id && item.title);
   return res.json({ ok: true, items });

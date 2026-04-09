@@ -6,20 +6,92 @@ type DemoListItem = {
   title: string;
   category: string;
   value?: string;
+  fla?: boolean;
 };
 
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+/** Mỗi file tối đa (không vượt quá tổng batch). */
+const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
+/** Tổng dung lượng mọi file trong một lần upload. */
+const MAX_BATCH_TOTAL_BYTES = 30 * 1024 * 1024;
 const ALLOWED_UPLOAD_EXTENSIONS = new Set(["fla", "psd"]);
-
-function webkitRelativePath(file: File): string | undefined {
-  const w = file as File & { webkitRelativePath?: string };
-  const p = w.webkitRelativePath;
-  return typeof p === "string" && p.trim() ? p.trim() : undefined;
-}
 
 function hasAllowedUploadExtension(fileName: string): boolean {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
   return ALLOWED_UPLOAD_EXTENSIONS.has(ext);
+}
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(2)} MB`;
+}
+
+type FolderUploadItem = { file: File; relativePath: string };
+
+/** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
+function readAllDirEntries(
+  reader: FileSystemDirectoryReader,
+): Promise<FileSystemEntry[]> {
+  return new Promise((resolve, reject) => {
+    const acc: FileSystemEntry[] = [];
+    const readBatch = () => {
+      reader.readEntries(
+        (batch) => {
+          if (batch.length === 0) {
+            resolve(acc);
+            return;
+          }
+          acc.push(...batch);
+          readBatch();
+        },
+        (err) => reject(err),
+      );
+    };
+    readBatch();
+  });
+}
+
+function collectFilesFromEntry(
+  entry: FileSystemEntry,
+  pathPrefix: string,
+): Promise<FolderUploadItem[]> {
+  return new Promise((resolve, reject) => {
+    if (entry.isFile) {
+      (entry as FileSystemFileEntry).file(
+        (file: File) => {
+          const relativePath = `${pathPrefix}${file.name}`.replace(/\\/g, "/");
+          resolve([{ file, relativePath }]);
+        },
+        (err) => reject(err),
+      );
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      const dirPath = `${pathPrefix}${entry.name}/`;
+      void readAllDirEntries(reader)
+        .then(async (entries) => {
+          const nested = await Promise.all(
+            entries.map((e) => collectFilesFromEntry(e, dirPath)),
+          );
+          resolve(nested.flat());
+        })
+        .catch(reject);
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+/** File giả (0 byte, không đuôi) khi kéo thả folder trên một số bản Chrome/Windows. */
+function isDroppedFolderPlaceholder(file: File): boolean {
+  if (file.size !== 0) return false;
+  const base = file.name.split(/[/\\]/).pop() ?? file.name;
+  if (base.includes(".")) return false;
+  const t = file.type || "";
+  if (t !== "" && t !== "application/octet-stream") return false;
+  return true;
 }
 
 const Upload: React.FC = () => {
@@ -36,21 +108,19 @@ const Upload: React.FC = () => {
   const [files, setFiles] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [uploadingFolder, setUploadingFolder] = React.useState(false);
-  const [selectedFolderFiles, setSelectedFolderFiles] = React.useState<File[]>(
-    [],
-  );
+  const [selectedFolderItems, setSelectedFolderItems] = React.useState<
+    FolderUploadItem[]
+  >([]);
   const [selectedFolderName, setSelectedFolderName] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isFolderDropActive, setIsFolderDropActive] = React.useState(false);
   const demoComboRef = React.useRef<HTMLDivElement | null>(null);
+  const folderDropDepthRef = React.useRef(0);
 
   const resetFolderForm = React.useCallback(() => {
-    setSelectedFolderFiles([]);
+    setSelectedFolderItems([]);
     setSelectedFolderName("");
-    if (folderInputRef.current) {
-      folderInputRef.current.value = "";
-    }
   }, []);
 
   const loadFiles = React.useCallback(async () => {
@@ -197,65 +267,163 @@ const Upload: React.FC = () => {
     });
   const hasSelectedDemo = Boolean(selectedDemoId.trim());
 
-  const handleFolderSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const list = e.target.files ? Array.from(e.target.files) : [];
-    if (list.length === 0) {
-      setError(null);
-      setSelectedFolderFiles([]);
-      setSelectedFolderName("");
-      return;
-    }
-    const missingRel = list.filter((file) => !webkitRelativePath(file));
-    if (missingRel.length > 0) {
-      setError(
-        "Choose a folder (not individual files) so each file keeps its path on SFTP.",
+  const stagedTotalBytes = React.useMemo(
+    () => selectedFolderItems.reduce((s, it) => s + it.file.size, 0),
+    [selectedFolderItems],
+  );
+
+  const applyFolderItems = React.useCallback((items: FolderUploadItem[]) => {
+      if (items.length === 0) {
+        setError(null);
+        setSelectedFolderItems([]);
+        setSelectedFolderName("");
+        return;
+      }
+      const oversizedFiles = items.filter(
+        (it) => it.file.size > MAX_FILE_SIZE_BYTES,
       );
-      setSelectedFolderFiles([]);
-      setSelectedFolderName("");
-      return;
-    }
-    const oversizedFiles = list.filter(
-      (file) => file.size > MAX_FILE_SIZE_BYTES,
-    );
-    const invalidTypeFiles = list.filter(
-      (file) => !hasAllowedUploadExtension(file.name),
-    );
-    const validFiles = list.filter(
-      (file) =>
-        file.size <= MAX_FILE_SIZE_BYTES && hasAllowedUploadExtension(file.name),
-    );
-    if (invalidTypeFiles.length > 0) {
-      setError(
-        `Only .fla or .psd files are allowed. Invalid: ${invalidTypeFiles.map((f) => webkitRelativePath(f) ?? f.name).join(", ")}`,
+      const invalidTypeFiles = items.filter(
+        (it) => !hasAllowedUploadExtension(it.file.name),
       );
-    } else if (oversizedFiles.length > 0) {
-      setError(
-        `Each file must be 20MB or smaller. Too large: ${oversizedFiles.map((f) => webkitRelativePath(f) ?? f.name).join(", ")}`,
+      const validItems = items.filter(
+        (it) =>
+          it.file.size <= MAX_FILE_SIZE_BYTES &&
+          hasAllowedUploadExtension(it.file.name),
       );
-    } else {
-      setError(null);
-    }
-    setSelectedFolderFiles(validFiles);
-    if (validFiles.length === 0) {
-      setSelectedFolderName("");
-      return;
-    }
-    const firstRel = webkitRelativePath(validFiles[0]) ?? "";
-    const slash = firstRel.indexOf("/");
-    const rootName =
-      slash > 0
-        ? firstRel.slice(0, slash)
-        : validFiles[0].name.replace(/\.[^.]+$/, "") || "folder-upload";
-    setSelectedFolderName(rootName);
-  };
+      const batchTotal = validItems.reduce((s, it) => s + it.file.size, 0);
+      if (invalidTypeFiles.length > 0) {
+        setError(
+          `Only .fla or .psd files are allowed. Invalid: ${invalidTypeFiles.map((it) => it.relativePath).join(", ")}`,
+        );
+      } else if (oversizedFiles.length > 0) {
+        setError(
+          `Each file must be 30MB or smaller. Too large: ${oversizedFiles.map((it) => it.relativePath).join(", ")}`,
+        );
+      } else if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
+        setError(
+          `Total size of selected files must be 30MB or less (currently ${formatFileSize(batchTotal)}).`,
+        );
+      } else {
+        setError(null);
+      }
+
+      if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
+        setSelectedFolderItems([]);
+        setSelectedFolderName("");
+        return;
+      }
+
+      setSelectedFolderItems(validItems);
+      if (validItems.length === 0) {
+        setSelectedFolderName("");
+        return;
+      }
+      const firstRel = validItems[0].relativePath;
+      const slash = firstRel.indexOf("/");
+      const rootName =
+        slash > 0
+          ? firstRel.slice(0, slash)
+          : validItems[0].file.name.replace(/\.[^.]+$/, "") || "folder-upload";
+      setSelectedFolderName(rootName);
+    },
+    [],
+  );
+
+  const handleFolderDrop = React.useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      folderDropDepthRef.current = 0;
+      setIsFolderDropActive(false);
+      if (!hasSelectedDemo) {
+        setError("Please select a creative demo before dropping files.");
+        return;
+      }
+
+      type DropSnap =
+        | { kind: "entry"; entry: FileSystemEntry }
+        | { kind: "file"; file: File };
+
+      const fileListFallback = Array.from(e.dataTransfer.files ?? []).filter(
+        (f) => !isDroppedFolderPlaceholder(f),
+      );
+
+      const snapshots: DropSnap[] = [];
+      const items = e.dataTransfer.items;
+      if (items?.length) {
+        for (let i = 0; i < items.length; i++) {
+          const dtItem = items[i];
+          const entry = (
+            dtItem as DataTransferItem & {
+              webkitGetAsEntry?: () => FileSystemEntry | null;
+            }
+          ).webkitGetAsEntry?.();
+          if (entry) {
+            snapshots.push({ kind: "entry", entry });
+          } else if (dtItem.kind === "file") {
+            const f = dtItem.getAsFile();
+            if (f && !isDroppedFolderPlaceholder(f)) {
+              snapshots.push({ kind: "file", file: f });
+            }
+          }
+        }
+      }
+
+      const collected: FolderUploadItem[] = [];
+
+      for (const snap of snapshots) {
+        if (snap.kind === "entry") {
+          try {
+            // File lẻ: path = tên file (không thêm thư mục ảo); thư mục: giữ cây như Explorer.
+            const fromEntry = await collectFilesFromEntry(snap.entry, "");
+            collected.push(...fromEntry);
+          } catch {
+            /* ignore broken entry */
+          }
+        } else {
+          collected.push({
+            file: snap.file,
+            relativePath: snap.file.name.replace(/\\/g, "/"),
+          });
+        }
+      }
+
+      for (const file of fileListFallback) {
+        const already = collected.some((it) => it.file === file);
+        if (!already) {
+          collected.push({
+            file,
+            relativePath: file.name.replace(/\\/g, "/"),
+          });
+        }
+      }
+
+      const dedupe = new Map<string, FolderUploadItem>();
+      for (const it of collected) {
+        const key = `${it.relativePath}\0${it.file.size}\0${it.file.lastModified}`;
+        if (!dedupe.has(key)) dedupe.set(key, it);
+      }
+      const merged = [...dedupe.values()];
+
+      if (merged.length === 0) return;
+      applyFolderItems(merged);
+    },
+    [applyFolderItems, hasSelectedDemo],
+  );
 
   const handleUploadFolder = async () => {
     if (!selectedDemoId.trim()) {
       setError("Please select a creative demo");
       return;
     }
-    if (selectedFolderFiles.length === 0 || !selectedFolderName.trim()) {
+    if (selectedFolderItems.length === 0 || !selectedFolderName.trim()) {
       setError("Please select a folder first");
+      return;
+    }
+    if (stagedTotalBytes > MAX_BATCH_TOTAL_BYTES) {
+      setError(
+        `Total size must be 30MB or less (currently ${formatFileSize(stagedTotalBytes)}).`,
+      );
       return;
     }
 
@@ -264,12 +432,10 @@ const Upload: React.FC = () => {
     setError(null);
     try {
       const payloadFiles = await Promise.all(
-        selectedFolderFiles.map(async (file) => {
-          const rel = webkitRelativePath(file);
-          const relativePath = (rel ?? file.name).replace(/\\/g, "/");
+        selectedFolderItems.map(async ({ file, relativePath }) => {
           const content = await fileToBase64(file);
           return {
-            relativePath,
+            relativePath: relativePath.replace(/\\/g, "/"),
             content,
             encoding: "base64" as const,
           };
@@ -476,7 +642,7 @@ const Upload: React.FC = () => {
                         type="button"
                         role="option"
                         aria-selected={item.id === selectedDemoId}
-                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-white/10 ${
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-white/10 ${
                           item.id === selectedDemoId
                             ? "bg-white/5 text-[#9ff3de]"
                             : "text-white"
@@ -484,7 +650,18 @@ const Upload: React.FC = () => {
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => pickDemo(item)}
                       >
-                        {item.title}
+                        <span className="min-w-0 truncate">{item.title}</span>
+                        {item.fla ? (
+                          <span
+                            className="shrink-0 text-sm font-semibold text-emerald-300"
+                            aria-label="Has FLA"
+                            title="Has FLA"
+                          >
+                            ✔
+                          </span>
+                        ) : (
+                          <span className="shrink-0 opacity-0">✔</span>
+                        )}
                       </button>
                     </li>
                   ))
@@ -509,55 +686,126 @@ const Upload: React.FC = () => {
       <section className="space-y-4 rounded-3xl border border-white/10 bg-[#020617] p-6">
         <h2 className="text-lg font-semibold text-white">Upload Folder</h2>
         <p className="text-xs text-[#94a3b8]">
-          Select a folder: files upload directly to SFTP under the demo path
-          (only .fla/.psd, same relative paths, max 20MB per file).
+          Drag-and-drop a folder or multiple .fla/.psd files to SFTP under the
+          demo path. Max 30MB per file, max 30MB total per upload; dropped
+          folders keep relative paths.
         </p>
         {!hasSelectedDemo && (
           <p className="text-xs text-amber-300">
-            Please select Creative Demo Title before choosing a folder.
+            Please select Creative Demo Title before dropping files here.
           </p>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-[#0b1220] p-3">
-          <input
-            id="folder-upload-input"
-            type="file"
-            multiple
-            ref={folderInputRef}
-            onChange={handleFolderSelection}
-            className="hidden"
-            disabled={!hasSelectedDemo}
-            {...({ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
-          />
-          <label
-            htmlFor="folder-upload-input"
-            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
-              hasSelectedDemo
-                ? "cursor-pointer border-[#4cceac]/30 bg-[#4cceac]/15 text-[#9ff3de] hover:bg-[#4cceac]/25"
-                : "cursor-not-allowed border-white/10 bg-white/5 text-[#94a3b8]"
-            }`}
-          >
-            Select folder
-          </label>
-          <p className="mt-2 text-xs text-[#94a3b8]">
-            {selectedFolderFiles.length > 0
-              ? `${selectedFolderFiles.length} file(s) selected`
-              : "No folder selected"}
+        <div
+          className={`rounded-2xl border border-dashed bg-[#0b1220] p-4 transition-colors ${
+            !hasSelectedDemo
+              ? "border-white/10 opacity-80"
+              : isFolderDropActive
+                ? "border-[#4cceac]/70 bg-[#4cceac]/10 ring-2 ring-[#4cceac]/30"
+                : "border-white/10"
+          }`}
+          onDragEnter={(e) => {
+            if (!hasSelectedDemo) return;
+            e.preventDefault();
+            e.stopPropagation();
+            folderDropDepthRef.current += 1;
+            setIsFolderDropActive(true);
+          }}
+          onDragLeave={(e) => {
+            if (!hasSelectedDemo) return;
+            e.preventDefault();
+            e.stopPropagation();
+            folderDropDepthRef.current -= 1;
+            if (folderDropDepthRef.current <= 0) {
+              folderDropDepthRef.current = 0;
+              setIsFolderDropActive(false);
+            }
+          }}
+          onDragOver={(e) => {
+            if (!hasSelectedDemo) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => void handleFolderDrop(e)}
+        >
+          <p className="text-sm text-[#cbd5e1]">
+            {hasSelectedDemo ? (
+              <>
+                Kéo thả thư mục hoặc nhiều file{" "}
+                <span className="text-[#9ff3de]">.fla</span> /{" "}
+                <span className="text-[#9ff3de]">.psd</span> vào vùng này (tổng
+                tối đa 30MB).
+              </>
+            ) : (
+              "Chọn Creative Demo Title trước, sau đó kéo thả file hoặc thư mục vào đây."
+            )}
           </p>
+          <p className="mt-2 text-xs text-[#94a3b8]">
+            {selectedFolderItems.length > 0
+              ? `${selectedFolderItems.length} file(s) · total ${formatFileSize(stagedTotalBytes)} / ${formatFileSize(MAX_BATCH_TOTAL_BYTES)}`
+              : "No files selected"}
+          </p>
+          {selectedFolderItems.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748b]">
+                Files staged (path · size)
+              </p>
+              <ul
+                className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-white/5 bg-[#020617] p-2"
+                aria-label="Selected files for upload"
+              >
+                {selectedFolderItems.map((it, idx) => (
+                  <li
+                    key={`${it.relativePath}\0${it.file.size}\0${it.file.lastModified}\0${idx}`}
+                    className="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-white/[0.04]"
+                  >
+                    <span
+                      className="min-w-0 break-all text-[#e2e8f0]"
+                      title={it.file.name}
+                    >
+                      {it.relativePath}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-[#94a3b8]">
+                      {formatFileSize(it.file.size)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="text-xs text-[#a3a3a3]">
           Folder:{" "}
           <span className="text-white">{selectedFolderName || "-"}</span> |
           Files:{" "}
-          <span className="text-white">{selectedFolderFiles.length}</span>
+          <span className="text-white">{selectedFolderItems.length}</span>
+          {selectedFolderItems.length > 0 && (
+            <>
+              {" "}
+              | Total:{" "}
+              <span
+                className={
+                  stagedTotalBytes > MAX_BATCH_TOTAL_BYTES
+                    ? "text-rose-400"
+                    : "text-white"
+                }
+              >
+                {formatFileSize(stagedTotalBytes)}
+              </span>{" "}
+              / {formatFileSize(MAX_BATCH_TOTAL_BYTES)}
+            </>
+          )}
         </div>
 
         <button
           type="button"
           onClick={() => void handleUploadFolder()}
           disabled={
-            uploadingFolder || selectedFolderFiles.length === 0 || !hasSelectedDemo
+            uploadingFolder ||
+            selectedFolderItems.length === 0 ||
+            !hasSelectedDemo
           }
           className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
