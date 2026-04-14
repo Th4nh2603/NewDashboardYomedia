@@ -9,21 +9,35 @@ import {
   CodeBracketIcon,
   GlobeAltIcon,
   CheckCircleIcon,
+  PencilSquareIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 import {
   loadActiveCreativeDemos,
   type CreativeDemoItem,
 } from "../data/creativeDemos";
+import rolePermissions from "../data/rolePermissions.json";
+import { getServerBaseUrl } from "../lib/sftpBrowser";
 
 const BASE_REMOTE_PATH = "/script/demo";
-
-function getServerBaseUrl(): string {
-  return import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
-}
+type RolePermissionConfig = Record<
+  string,
+  {
+    manageDemo?: {
+      canUseFileActionButtons?: boolean;
+    };
+  }
+>;
 
 const ManageDemo: React.FC = () => {
-  useAuth();
+  const { user } = useAuth();
+  const normalizedRole = (user?.role || "").toLowerCase();
+  const permissions = rolePermissions as RolePermissionConfig;
+  const canUseFileActionButtons =
+    permissions[normalizedRole]?.manageDemo?.canUseFileActionButtons ??
+    permissions.default?.manageDemo?.canUseFileActionButtons ??
+    false;
   const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
     const id = String(i + 1).padStart(2, "0");
     return { id, label: id };
@@ -71,6 +85,11 @@ const ManageDemo: React.FC = () => {
   const [directoryHasSizeJs, setDirectoryHasSizeJs] = React.useState<
     Record<string, boolean>
   >({});
+  const [editorPath, setEditorPath] = React.useState<string | null>(null);
+  const [editorContent, setEditorContent] = React.useState<string>("");
+  const [savingFile, setSavingFile] = React.useState(false);
+  const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
+  const [reloadTick, setReloadTick] = React.useState(0);
   const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
   const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
   const [config, setConfig] = React.useState({
@@ -314,6 +333,11 @@ const ManageDemo: React.FC = () => {
     return match?.className || "text-[#e5e7eb]";
   };
 
+  const formatSizeInMb = React.useCallback((bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }, []);
+
   React.useEffect(() => {
     const pathToList = currentPath;
     let cancelled = false;
@@ -368,7 +392,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPath]);
+  }, [currentPath, reloadTick]);
 
   React.useEffect(() => {
     const dirs = listEntries.filter((entry) => entry.type === "d");
@@ -418,6 +442,119 @@ const ManageDemo: React.FC = () => {
   }, [listEntries, currentPath, buildEntryFullPath]);
 
   const listBusy = loadingList || isNavigating;
+  const roleHeader = React.useMemo(
+    () =>
+      normalizedRole
+        ? ({
+            "x-user-role": normalizedRole,
+          } as const)
+        : undefined,
+    [normalizedRole],
+  );
+
+  const isEditableFileName = React.useCallback((name: string) => {
+    const lower = name.toLowerCase();
+    return /\.(html?|js|mjs|ts|css|json|txt|xml)$/i.test(lower);
+  }, []);
+
+  const handleOpenEditor = React.useCallback(async (fullPath: string) => {
+    try {
+      const baseUrl = getServerBaseUrl();
+      const res = await fetch(
+        `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`,
+      );
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        setListError(data?.error || "Unable to read file content");
+        return;
+      }
+      setEditorPath(fullPath);
+      setEditorContent(String(data.content ?? ""));
+      setListError(null);
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Unknown network error",
+      );
+    }
+  }, []);
+
+  const handleSaveEditor = React.useCallback(async () => {
+    if (!editorPath || !canUseFileActionButtons) return;
+    setSavingFile(true);
+    try {
+      const baseUrl = getServerBaseUrl();
+      const res = await fetch(`${baseUrl}/api/sftp/write`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(roleHeader ?? {}),
+        },
+        body: JSON.stringify({
+          path: editorPath,
+          content: editorContent,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        setListError(data?.error || "Unable to save file");
+        return;
+      }
+      setListError(null);
+      setReloadTick((prev) => prev + 1);
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Unknown network error",
+      );
+    } finally {
+      setSavingFile(false);
+    }
+  }, [editorPath, editorContent, canUseFileActionButtons, roleHeader]);
+
+  const handleDeletePath = React.useCallback(
+    async (fullPath: string, isDir: boolean) => {
+      if (!canUseFileActionButtons || deletingPath) return;
+      const confirmed = window.confirm(
+        `${isDir ? "Delete directory" : "Delete file"} on SFTP?\n${fullPath}`,
+      );
+      if (!confirmed) return;
+      setDeletingPath(fullPath);
+      try {
+        const baseUrl = getServerBaseUrl();
+        const res = await fetch(`${baseUrl}/api/sftp/delete`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(roleHeader ?? {}),
+          },
+          body: JSON.stringify({ path: fullPath }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          setListError(data?.error || "Unable to delete path");
+          return;
+        }
+        setListEntries((prev) =>
+          prev.filter(
+            (entry) => buildEntryFullPath(entry.name, currentPath) !== fullPath,
+          ),
+        );
+        setListError(null);
+      } catch (err) {
+        setListError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
+      } finally {
+        setDeletingPath(null);
+      }
+    },
+    [
+      canUseFileActionButtons,
+      deletingPath,
+      roleHeader,
+      buildEntryFullPath,
+      currentPath,
+    ],
+  );
 
   return (
     <div className="w-full px-4 sm:px-6   space-y-6 sm:space-y-8">
@@ -572,6 +709,14 @@ const ManageDemo: React.FC = () => {
                 >
                   Back
                 </button>
+                <button
+                  type="button"
+                  onClick={openCurrentDemo}
+                  disabled={!previewUrl}
+                  className="rounded-2xl bg-[#4cceac]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Open demo
+                </button>
               </div>
             </div>
             <div className="flex items-center gap-2 ml-1">
@@ -587,12 +732,13 @@ const ManageDemo: React.FC = () => {
             )}
             <div className="rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
               <div className="overflow-x-auto">
-                <div className="min-w-[640px]">
+                <div className="min-w-[760px]">
                   <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80">
-                    <div className="col-span-6">Name</div>
+                    <div className="col-span-5">Name</div>
                     <div className="col-span-2 text-center">Type</div>
                     <div className="col-span-2 text-right">Size</div>
                     <div className="col-span-2 text-right">Modified</div>
+                    <div className="col-span-1 text-right">Actions</div>
                   </div>
                   <div className="max-h-[24rem] sm:max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
                     {loadingList && listEntries.length === 0 ? (
@@ -655,7 +801,7 @@ const ManageDemo: React.FC = () => {
                             }`}
                           >
                             <div
-                              className={`col-span-6 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
+                              className={`col-span-5 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
                             >
                               <span className="inline-flex items-center gap-1.5">
                                 <span className="truncate">{item.name}</span>
@@ -676,7 +822,7 @@ const ManageDemo: React.FC = () => {
                               )}
                             </div>
                             <div className="col-span-2 text-right text-[#9ca3af]">
-                              {isDir ? "—" : item.size}
+                              {isDir ? "—" : formatSizeInMb(item.size)}
                             </div>
                             <div className="col-span-2 text-right text-[#6b7280]">
                               {item.modifyTime
@@ -686,6 +832,39 @@ const ManageDemo: React.FC = () => {
                                   )
                                 : "—"}
                             </div>
+                            <div className="col-span-1 flex items-center justify-end gap-1">
+                              {!isDir &&
+                                canUseFileActionButtons &&
+                                isEditableFileName(item.name) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handleOpenEditor(fullPath);
+                                    }}
+                                    className="rounded-md bg-[#4cceac]/10 p-1 text-[#4cceac] hover:bg-[#4cceac]/20"
+                                    title="Edit file"
+                                  >
+                                    <PencilSquareIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              {canUseFileActionButtons && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleDeletePath(fullPath, isDir);
+                                  }}
+                                  disabled={deletingPath === fullPath}
+                                  className="rounded-md bg-rose-500/10 p-1 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                                  title={
+                                    isDir ? "Delete directory" : "Delete file"
+                                  }
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -694,21 +873,45 @@ const ManageDemo: React.FC = () => {
                 </div>
               </div>
             </div>
+            {editorPath && canUseFileActionButtons && (
+              <div className="rounded-3xl border border-[#1f2937] bg-[#020617] p-4 space-y-3 shadow-lg">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-[#e5e7eb] font-mono truncate">
+                    {editorPath}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditorPath(null);
+                        setEditorContent("");
+                      }}
+                      className="rounded-xl bg-white/5 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveEditor()}
+                      disabled={savingFile}
+                      className="rounded-xl bg-[#4cceac]/20 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-50"
+                    >
+                      {savingFile ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={editorContent}
+                  onChange={(e) => setEditorContent(e.target.value)}
+                  className="w-full min-h-[220px] bg-[#020617] border border-[#1f2937] rounded-2xl px-4 py-3 text-xs font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
+                />
+              </div>
+            )}
           </div>
         </div>
 
         <aside className="xl:sticky xl:h-[calc(100vh-5rem)]">
-          <div className="h-full min-h-[22rem] xl:min-h-0 max-h-[32rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-3 sm:p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={openCurrentDemo}
-                disabled={!previewUrl}
-                className="w-full sm:w-auto rounded-2xl bg-[#4cceac]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Open demo
-              </button>
-            </div>
+          <div className="h-[calc(100vh-5rem)] min-h-[22rem] xl:min-h-0 max-h-[32rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-3 sm:p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
             <div className="flex-1 min-h-0 flex justify-center">
               <div
                 className={`w-full h-full max-h-[calc(100vh-15rem)] bg-[#0f172a] ring-1 ring-white/10 ${

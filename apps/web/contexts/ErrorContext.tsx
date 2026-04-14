@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { isBackendRequestError } from '../lib/apiError';
 
 export type ErrorSeverity = 'error' | 'warning' | 'info';
 
@@ -14,7 +14,7 @@ interface ErrorContextType {
   notifications: AppNotification[];
   notify: (message: string, severity?: ErrorSeverity, title?: string) => void;
   dismiss: (id: string) => void;
-  handleApiError: (error: any, context?: string) => void;
+  handleApiError: (error: unknown, context?: string) => void;
 }
 
 const ErrorContext = createContext<ErrorContextType | undefined>(undefined);
@@ -34,27 +34,62 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTimeout(() => dismiss(id), 6000);
   }, [dismiss]);
 
-  const handleApiError = useCallback((error: any, context: string = 'Operation') => {
+  const handleApiError = useCallback((error: unknown, context: string = 'Operation') => {
     console.error(`[${context}] API Error:`, error);
-    
-    let message = error.message || 'An unexpected error occurred.';
-    let severity: ErrorSeverity = 'error';
-    let title = `${context} Failed`;
 
-    // Categorize common API errors
-    if (message.includes('429') || message.toLowerCase().includes('rate limit')) {
-      message = 'Too many requests. Please wait a moment before trying again.';
+    let message =
+      error instanceof Error ? error.message : 'An unexpected error occurred.';
+    let severity: ErrorSeverity = 'error';
+    let title = `${context} failed`;
+
+    const backend = isBackendRequestError(error) ? error : null;
+    if (backend) {
+      if (backend.status === 429) {
+        message =
+          'Too many requests. Please wait a moment before trying again.';
+        severity = 'warning';
+        title = 'Rate limit';
+      } else if (backend.status === 403 || backend.code === 'FORBIDDEN') {
+        title = 'Access denied';
+        severity = 'warning';
+      } else if (
+        backend.status === 404 ||
+        backend.code === 'NOT_FOUND' ||
+        backend.code === 'ENOENT'
+      ) {
+        title = 'Not found';
+        severity = 'warning';
+      } else if (backend.status === 409 || backend.code === 'CONFLICT') {
+        title = 'Conflict';
+        severity = 'warning';
+      } else if (backend.status === 400 || backend.status === 422) {
+        title = 'Invalid request';
+        severity = 'warning';
+      } else if (backend.status >= 500) {
+        title = 'Server error';
+        severity = 'error';
+      }
+      notify(message, severity, title);
+      return;
+    }
+
+    if (/429|rate limit/i.test(message)) {
+      message =
+        'Too many requests. Please wait a moment before trying again.';
       severity = 'warning';
-      title = 'Rate Limit Reached';
-    } else if (message.includes('401') || message.includes('403')) {
-      message = 'Authentication failed. Please check your API key settings.';
-      title = 'Access Denied';
+      title = 'Rate limit';
+    } else if (/\b401\b|\b403\b|forbidden/i.test(message)) {
+      message = 'Access denied. Check permissions or API credentials.';
+      title = 'Access denied';
     } else if (message.includes('Requested entity was not found')) {
-      message = 'The requested model or resource was not found. This might be an API key project issue.';
-      title = 'Resource Not Found';
-    } else if (message.includes('500') || message.includes('503')) {
-      message = 'The AI server is currently overloaded or experiencing issues. Retrying might help.';
-      title = 'Server Error';
+      message =
+        'The requested model or resource was not found. This might be an API key project issue.';
+      title = 'Resource not found';
+      severity = 'warning';
+    } else if (/\b500\b|\b503\b|overloaded/i.test(message)) {
+      message =
+        'The AI server is busy or returned an error. Retrying might help.';
+      title = 'Server error';
     }
 
     notify(message, severity, title);

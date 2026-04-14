@@ -688,51 +688,51 @@ const CreativeShowcase: React.FC = () => {
                         </button>
                       </h3>
 
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
                           <div className="flex items-center gap-2">
                             <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Size
                             </span>
                           </div>
-                          <span className="text-xs font-medium text-white">
+                          <span className="mt-1 block text-xs font-medium text-white">
                             {displayPrimarySize(item)}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
                           <div className="flex items-center gap-2">
                             <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Position
                             </span>
                           </div>
-                          <span className="text-xs font-medium text-white">
+                          <span className="mt-1 block text-xs font-medium text-white">
                             {item.position}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
                           <div className="flex items-center gap-2">
                             <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               File Type
                             </span>
                           </div>
-                          <span className="text-xs font-medium text-white">
+                          <span className="mt-1 block text-xs font-medium text-white">
                             {item.fileType}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
                           <div className="flex items-center gap-2">
                             <VideoCameraIcon className="w-4 h-4 text-[#a3a3a3]" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Video
                             </span>
                           </div>
-                          <span className="text-xs font-medium text-white uppercase">
+                          <span className="mt-1 block text-xs font-medium text-white uppercase">
                             {item.video === "mp4"
                               ? "mp4"
                               : (item.video ?? "none")}

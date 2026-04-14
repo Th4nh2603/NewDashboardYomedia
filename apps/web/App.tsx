@@ -1,6 +1,7 @@
 import React from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { ErrorProvider } from "./contexts/ErrorContext";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./components/DashboardLayout";
@@ -17,6 +18,7 @@ import ImageGenerator from "./pages/ImageGenerator";
 import Login from "./pages/Login";
 import BuildDemo from "./pages/BuildDemo";
 import ManageDemo from "./pages/ManageDemo";
+import ManageSftp from "./pages/ManageSftp";
 import Upload from "./pages/Upload";
 import Bar from "./pages/Bar";
 import AIGmail from "./pages/AIGmail";
@@ -28,6 +30,7 @@ const App: React.FC = () => {
     <ThemeProvider>
       <AuthProvider>
         <ErrorProvider>
+          <AppErrorBoundary>
           <HashRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -54,6 +57,14 @@ const App: React.FC = () => {
                           element={<Documentation />}
                         />
                         <Route path="/manage-demo" element={<ManageDemo />} />
+                        <Route
+                          path="/manage-sftp"
+                          element={
+                            <RoleRoute allow={["admin"]}>
+                              <ManageSftp />
+                            </RoleRoute>
+                          }
+                        />
                         <Route
                           path="/build-demo"
                           element={
@@ -90,6 +101,7 @@ const App: React.FC = () => {
               />
             </Routes>
           </HashRouter>
+          </AppErrorBoundary>
         </ErrorProvider>
       </AuthProvider>
     </ThemeProvider>

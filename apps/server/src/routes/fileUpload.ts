@@ -1,4 +1,6 @@
 import { Router, Request, Response } from "express";
+import { asyncHandler, HttpError } from "../lib/httpErrors.js";
+import { getUserRole } from "../lib/authRole.js";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,11 +9,17 @@ import {
   sftpPathExists,
   verifySftpWritableDirectory,
 } from "../lib/sftpClient.js";
+import {
+  isCompressibleVideoFilename,
+  maybeCompressVideoUpload,
+} from "../lib/videoCompress.js";
 
 const router = Router();
 const FILE_UPLOAD_DIR = path.join(process.cwd(), "uploads", "file-center");
 const ALLOWED_ROLES = new Set(["admin", "design"]);
-const MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_BYTES = 30 * 1024 * 1024;
+/** Tổng dung lượng mọi file trong một request upload folder. */
+const MAX_FOLDER_BATCH_TOTAL_BYTES = 30 * 1024 * 1024;
 const ALLOWED_FOLDER_EXTENSIONS = new Set(["fla", "psd"]);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,21 +65,6 @@ function defaultDemoSourceFromId(demoId: string): string {
   const id = demoId.trim();
   if (!id) return "";
   return `yomedia/app/template/data/${id}/banner`;
-}
-
-function getUserRole(req: Request): string {
-  const headerRole = req.header("x-user-role");
-  if (typeof headerRole === "string" && headerRole.trim()) {
-    return headerRole.trim().toLowerCase();
-  }
-
-  const bodyRole =
-    typeof req.body?.role === "string" ? req.body.role : undefined;
-  if (bodyRole?.trim()) {
-    return bodyRole.trim().toLowerCase();
-  }
-
-  return "";
 }
 
 function isTooLarge(buffer: Buffer): boolean {
@@ -157,20 +150,29 @@ async function recordFolderUploadToTestJson(payload: {
   );
 }
 
-router.use((req: Request, res: Response, next) => {
+router.use((req: Request, _res: Response, next) => {
   const role = getUserRole(req);
   if (!ALLOWED_ROLES.has(role)) {
-    res.status(403).json({
-      ok: false,
-      error: "Forbidden: only admin/design can upload files",
-    });
+    next(
+      new HttpError(403, "Forbidden: only admin/design can upload files", {
+        code: "FORBIDDEN",
+      }),
+    );
     return;
   }
   next();
 });
 
-router.get("/", async (_req: Request, res: Response) => {
-  try {
+const DOWNLOAD_MIME_BY_EXT: Record<string, string> = {
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".m4v": "video/x-m4v",
+};
+
+router.get(
+  "/",
+  asyncHandler(async (_req: Request, res: Response) => {
     await mkdir(FILE_UPLOAD_DIR, { recursive: true });
     const entries = await readdir(FILE_UPLOAD_DIR, { withFileTypes: true });
     const files = entries
@@ -178,15 +180,40 @@ router.get("/", async (_req: Request, res: Response) => {
       .map((entry) => entry.name)
       .sort((a, b) => a.localeCompare(b));
     res.json({ ok: true, files });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "List files failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-router.post("/", async (req: Request, res: Response) => {
-  try {
+/** Tải một file phẳng trong uploads/file-center (query ?name=). */
+router.get(
+  "/file",
+  asyncHandler(async (req: Request, res: Response) => {
+    const raw = req.query.name as string | undefined;
+    const safeName = path.basename(raw || "");
+    if (!safeName || safeName === "." || safeName === "..") {
+      throw new HttpError(400, "Invalid file name", { code: "BAD_REQUEST" });
+    }
+    const filePath = path.join(FILE_UPLOAD_DIR, safeName);
+    let buf: Buffer;
+    try {
+      buf = await readFile(filePath);
+    } catch {
+      throw new HttpError(404, "File not found", { code: "NOT_FOUND" });
+    }
+    const ext = path.extname(safeName).toLowerCase();
+    const mime = DOWNLOAD_MIME_BY_EXT[ext] ?? "application/octet-stream";
+    res.setHeader("Content-Type", mime);
+    const asciiName = safeName.replace(/[^\x20-\x7E]/g, "_");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(safeName)}`,
+    );
+    res.send(buf);
+  }),
+);
+
+router.post(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
     const body = req.body as {
       name?: string;
       content?: string;
@@ -194,16 +221,16 @@ router.post("/", async (req: Request, res: Response) => {
     };
 
     if (!body?.name || !body?.content) {
-      res.status(400).json({ ok: false, error: "Missing 'name' or 'content'" });
-      return;
+      throw new HttpError(400, "Missing 'name' or 'content'", {
+        code: "BAD_REQUEST",
+      });
     }
 
     await mkdir(FILE_UPLOAD_DIR, { recursive: true });
 
     const safeName = path.basename(body.name);
     if (!safeName) {
-      res.status(400).json({ ok: false, error: "Invalid file name" });
-      return;
+      throw new HttpError(400, "Invalid file name", { code: "BAD_REQUEST" });
     }
 
     const filePath = path.join(FILE_UPLOAD_DIR, safeName);
@@ -218,28 +245,44 @@ router.post("/", async (req: Request, res: Response) => {
         : Buffer.from(payload, "utf8");
 
     if (isTooLarge(buffer)) {
-      res
-        .status(400)
-        .json({ ok: false, error: "Uploaded file exceeds 20MB limit" });
-      return;
+      throw new HttpError(400, "Uploaded file exceeds 30MB limit", {
+        code: "PAYLOAD_TOO_LARGE",
+      });
     }
 
-    await writeFile(filePath, buffer);
+    let outBuffer = buffer;
+    let videoMeta:
+      | {
+          originalBytes: number;
+          compressedBytes: number;
+          videoCompressed: boolean;
+        }
+      | undefined;
+    if (isCompressibleVideoFilename(safeName)) {
+      const compressed = await maybeCompressVideoUpload(buffer, safeName);
+      outBuffer = compressed.buffer;
+      videoMeta = {
+        originalBytes: compressed.originalBytes,
+        compressedBytes: compressed.compressedBytes,
+        videoCompressed: compressed.videoCompressed,
+      };
+    }
+
+    await writeFile(filePath, outBuffer);
 
     res.json({
       ok: true,
       name: safeName,
       path: filePath,
       storage: "file-center",
+      ...(videoMeta ? { video: videoMeta } : {}),
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Upload failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-router.post("/folder", async (req: Request, res: Response) => {
-  try {
+router.post(
+  "/folder",
+  asyncHandler(async (req: Request, res: Response) => {
     const body = req.body as {
       folderName?: string;
       demoId?: string;
@@ -258,20 +301,17 @@ router.post("/folder", async (req: Request, res: Response) => {
       !Array.isArray(body.files) ||
       body.files.length === 0
     ) {
-      res.status(400).json({
-        ok: false,
-        error: "Missing 'folderName' or 'files' in body",
+      throw new HttpError(400, "Missing 'folderName' or 'files' in body", {
+        code: "BAD_REQUEST",
       });
-      return;
     }
     const demoId = typeof body.demoId === "string" ? body.demoId.trim() : "";
     const demoTitleInput =
       typeof body.demoTitle === "string" ? body.demoTitle.trim() : "";
     if (!demoId && !demoTitleInput) {
-      res
-        .status(400)
-        .json({ ok: false, error: "Missing 'demoId' or 'demoTitle' in body" });
-      return;
+      throw new HttpError(400, "Missing 'demoId' or 'demoTitle' in body", {
+        code: "BAD_REQUEST",
+      });
     }
 
     const demosRaw = await readFile(CREATIVE_DEMOS_PATH, "utf8");
@@ -292,11 +332,9 @@ router.post("/folder", async (req: Request, res: Response) => {
               .toLowerCase() === demoTitleInput.toLowerCase(),
         );
     if (!matchedDemo) {
-      res.status(400).json({
-        ok: false,
-        error: "Demo not found in creative-demos.json",
+      throw new HttpError(400, "Demo not found in creative-demos.json", {
+        code: "BAD_REQUEST",
       });
-      return;
     }
     const idForSource = String(matchedDemo.id ?? "").trim();
     let source = String(matchedDemo.source || "").trim();
@@ -304,12 +342,11 @@ router.post("/folder", async (req: Request, res: Response) => {
       source = defaultDemoSourceFromId(idForSource);
     }
     if (!source) {
-      res.status(400).json({
-        ok: false,
-        error:
-          "Demo has no SFTP source path and no id to derive a default in creative-demos.json",
-      });
-      return;
+      throw new HttpError(
+        400,
+        "Demo has no SFTP source path and no id to derive a default in creative-demos.json",
+        { code: "BAD_REQUEST" },
+      );
     }
     const sftpBaseDir = mapSourceToSftpRoot(source);
     const titleForZip =
@@ -318,8 +355,7 @@ router.post("/folder", async (req: Request, res: Response) => {
 
     const safeFolderName = path.basename(body.folderName);
     if (!safeFolderName) {
-      res.status(400).json({ ok: false, error: "Invalid folder name" });
-      return;
+      throw new HttpError(400, "Invalid folder name", { code: "BAD_REQUEST" });
     }
 
     const rootFolder = path.join(FILE_UPLOAD_DIR, safeFolderName);
@@ -340,63 +376,81 @@ router.post("/folder", async (req: Request, res: Response) => {
       const encoding = file.encoding === "utf8" ? "utf8" : "base64";
 
       if (!relativePath || !content) {
-        res.status(400).json({
-          ok: false,
-          error: "Each file needs valid 'relativePath' and 'content'",
-        });
-        return;
+        throw new HttpError(
+          400,
+          "Each file needs valid 'relativePath' and 'content'",
+          { code: "BAD_REQUEST" },
+        );
       }
       if (!hasAllowedFolderExtension(relativePath)) {
-        res.status(400).json({
-          ok: false,
-          error: "Folder upload only accepts .fla or .psd files",
-        });
-        return;
+        throw new HttpError(
+          400,
+          "Folder upload only accepts .fla or .psd files",
+          { code: "BAD_REQUEST" },
+        );
       }
       parsedFiles.push({ relativePath, content, encoding });
     }
 
-    const remoteTargetPaths = parsedFiles.map((pf) =>
-      `${sftpBaseDir}/${pf.relativePath}`.replace(/\/{2,}/g, "/"),
+    const decodedBuffers: { relativePath: string; buffer: Buffer }[] = [];
+    for (const pf of parsedFiles) {
+      const buffer =
+        pf.encoding === "base64"
+          ? Buffer.from(
+              pf.content.includes(",")
+                ? pf.content.split(",")[1]
+                : pf.content,
+              "base64",
+            )
+          : Buffer.from(pf.content, "utf8");
+      if (isTooLarge(buffer)) {
+        throw new HttpError(
+          400,
+          `Uploaded file '${pf.relativePath}' exceeds 30MB limit`,
+          { code: "PAYLOAD_TOO_LARGE" },
+        );
+      }
+      decodedBuffers.push({ relativePath: pf.relativePath, buffer });
+    }
+
+    const batchTotalBytes = decodedBuffers.reduce(
+      (sum, x) => sum + x.buffer.length,
+      0,
+    );
+    if (batchTotalBytes > MAX_FOLDER_BATCH_TOTAL_BYTES) {
+      throw new HttpError(
+        400,
+        `Total upload size exceeds 30MB limit (${batchTotalBytes} bytes)`,
+        { code: "PAYLOAD_TOO_LARGE" },
+      );
+    }
+
+    const remoteTargetPaths = decodedBuffers.map((d) =>
+      `${sftpBaseDir}/${d.relativePath}`.replace(/\/{2,}/g, "/"),
     );
     if (!overwrite) {
       const existingPaths: string[] = [];
       const uniqueTargets = Array.from(new Set(remoteTargetPaths));
       for (const targetPath of uniqueTargets) {
-        const existsInfo = await sftpPathExists(targetPath, {}, { scope: "demo" });
+        const existsInfo = await sftpPathExists(targetPath, {}, {
+          scope: "demo",
+        });
         if (existsInfo.exists) {
           existingPaths.push(existsInfo.checkedPath || targetPath);
         }
       }
       if (existingPaths.length > 0) {
-        res.status(409).json({
-          ok: false,
-          conflict: true,
-          error: "Remote file already exists on SFTP",
-          existingPaths,
+        throw new HttpError(409, "Remote file already exists on SFTP", {
+          code: "CONFLICT",
+          details: { conflict: true, existingPaths },
         });
-        return;
       }
     }
 
-    for (let i = 0; i < parsedFiles.length; i++) {
-      const { relativePath, content, encoding } = parsedFiles[i];
+    for (let i = 0; i < decodedBuffers.length; i++) {
+      const { relativePath, buffer } = decodedBuffers[i];
       const targetPath = path.join(rootFolder, relativePath);
       await mkdir(path.dirname(targetPath), { recursive: true });
-      const buffer =
-        encoding === "base64"
-          ? Buffer.from(
-              content.includes(",") ? content.split(",")[1] : content,
-              "base64",
-            )
-          : Buffer.from(content, "utf8");
-      if (isTooLarge(buffer)) {
-        res.status(400).json({
-          ok: false,
-          error: `Uploaded file '${relativePath}' exceeds 20MB limit`,
-        });
-        return;
-      }
       await writeFile(targetPath, buffer);
       uploadedEntries.push({
         relativePath,
@@ -460,11 +514,7 @@ router.post("/folder", async (req: Request, res: Response) => {
       testJsonUpdated,
       creativeDemosUpdated,
     });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Folder upload failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
 export const fileUploadRouter = router;

@@ -24957,5 +24957,135 @@
     "/script/cdn/media/2021/01/maxkleen/on-image-pc/ngang/images",
     "/script/cdn/media/2021/01/romano-ecom",
     "/script/cdn/media/2021/01/romano-ecom/mb-footer"
+  ],
+  "lastUpload": {
+    "at": "2026-04-09T04:50:42.410Z",
+    "fields": {
+      "categoryFilter": "all",
+      "demoTitle": "Display IAB",
+      "folderName": "970x250"
+    },
+    "demo": {
+      "id": "0001",
+      "title": "Display IAB",
+      "category": "Display",
+      "source": "yomedia/app/template/data/0001/banner"
+    },
+    "files": [
+      {
+        "index": 1,
+        "name": "970x250.fla",
+        "sizeBytes": 8696038
+      },
+      {
+        "index": 2,
+        "name": "384x683.psd",
+        "sizeBytes": 192944
+      }
+    ],
+    "upload": {
+      "uploadedCount": 2,
+      "sftpBaseDir": "/script/demo/yomedia/app/template/data/0001/banner",
+      "sftpUploadedPaths": [
+        "/script/demo/yomedia/app/template/data/0001/banner/970x250.fla",
+        "/script/demo/yomedia/app/template/data/0001/banner/384x683.psd"
+      ],
+      "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\970x250"
+    }
+  },
+  "uploadHistory": [
+    {
+      "at": "2026-04-09T04:50:42.410Z",
+      "fields": {
+        "categoryFilter": "all",
+        "demoTitle": "Display IAB",
+        "folderName": "970x250"
+      },
+      "demo": {
+        "id": "0001",
+        "title": "Display IAB",
+        "category": "Display",
+        "source": "yomedia/app/template/data/0001/banner"
+      },
+      "files": [
+        {
+          "index": 1,
+          "name": "970x250.fla",
+          "sizeBytes": 8696038
+        },
+        {
+          "index": 2,
+          "name": "384x683.psd",
+          "sizeBytes": 192944
+        }
+      ],
+      "upload": {
+        "uploadedCount": 2,
+        "sftpBaseDir": "/script/demo/yomedia/app/template/data/0001/banner",
+        "sftpUploadedPaths": [
+          "/script/demo/yomedia/app/template/data/0001/banner/970x250.fla",
+          "/script/demo/yomedia/app/template/data/0001/banner/384x683.psd"
+        ],
+        "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\970x250"
+      }
+    },
+    {
+      "at": "2026-04-09T04:45:42.536Z",
+      "fields": {
+        "categoryFilter": "all",
+        "demoTitle": "Display IAB",
+        "folderName": "970x250"
+      },
+      "demo": {
+        "id": "0001",
+        "title": "Display IAB",
+        "category": "Display",
+        "source": "yomedia/app/template/data/0001/banner"
+      },
+      "files": [
+        {
+          "index": 1,
+          "name": "970x250.fla",
+          "sizeBytes": 8696038
+        }
+      ],
+      "upload": {
+        "uploadedCount": 1,
+        "sftpBaseDir": "/script/demo/yomedia/app/template/data/0001/banner",
+        "sftpUploadedPaths": [
+          "/script/demo/yomedia/app/template/data/0001/banner/970x250.fla"
+        ],
+        "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\970x250"
+      }
+    },
+    {
+      "at": "2026-04-09T04:41:38.692Z",
+      "fields": {
+        "categoryFilter": "all",
+        "demoTitle": "Display IAB",
+        "folderName": "dropped-upload"
+      },
+      "demo": {
+        "id": "0001",
+        "title": "Display IAB",
+        "category": "Display",
+        "source": "yomedia/app/template/data/0001/banner"
+      },
+      "files": [
+        {
+          "index": 1,
+          "name": "dropped-upload/970x250.fla",
+          "sizeBytes": 8696038
+        }
+      ],
+      "upload": {
+        "uploadedCount": 1,
+        "sftpBaseDir": "/script/demo/yomedia/app/template/data/0001/banner",
+        "sftpUploadedPaths": [
+          "/script/demo/yomedia/app/template/data/0001/banner/dropped-upload/970x250.fla"
+        ],
+        "localRootFolder": "D:\\Th4nh\\App\\NewDashboardYomedia\\apps\\server\\uploads\\file-center\\dropped-upload"
+      }
+    }
   ]
 }

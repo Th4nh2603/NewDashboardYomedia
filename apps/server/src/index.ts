@@ -9,6 +9,7 @@ import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
 import { fileUploadRouter } from "./routes/fileUpload.js";
 import { testDataRouter } from "./routes/testData.js";
+import { errorHandler, notFoundHandler } from "./lib/httpErrors.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -171,6 +172,9 @@ app.get("/api/creative-demo-titles", (req, res) => {
     .filter((item) => item.id && item.title);
   return res.json({ ok: true, items });
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

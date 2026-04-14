@@ -1,4 +1,6 @@
 import { Router, Request, Response } from "express";
+import { asyncHandler, HttpError } from "../lib/httpErrors.js";
+import { getUserRole } from "../lib/authRole.js";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,9 +13,14 @@ import {
   readSftpFile,
   sftpPathExists,
   writeSftpFile,
+  deleteSftpPath,
   uploadSftpBuffer,
   downloadSftpDirectoryAsZip,
 } from "../lib/sftpClient.js";
+import {
+  isCompressibleVideoFilename,
+  maybeCompressVideoUpload,
+} from "../lib/videoCompress.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,8 +36,19 @@ function flattenDirPaths(node: SftpDirTreeNode): string[] {
 
 export const sftpRouter = Router();
 
-sftpRouter.post("/connect", async (req: Request, res: Response) => {
-  try {
+function requireAdminRole(req: Request): void {
+  const role = getUserRole(req);
+  if (role !== "admin") {
+    throw new HttpError(
+      403,
+      "Forbidden: only admin can edit/delete SFTP files",
+    );
+  }
+}
+
+sftpRouter.post(
+  "/connect",
+  asyncHandler(async (req: Request, res: Response) => {
     const body = (req.body || {}) as {
       host?: string;
       port?: number;
@@ -44,42 +62,33 @@ sftpRouter.post("/connect", async (req: Request, res: Response) => {
       password: body.password,
     });
     res.json(result);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-sftpRouter.get("/connect", async (_req: Request, res: Response) => {
-  try {
+sftpRouter.get(
+  "/connect",
+  asyncHandler(async (_req: Request, res: Response) => {
     const result = await testSftpConnection({});
     res.json(result);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-sftpRouter.get("/list", async (req: Request, res: Response) => {
-  try {
+sftpRouter.get(
+  "/list",
+  asyncHandler(async (req: Request, res: Response) => {
     const pathParam = (req.query.path as string) ?? "/";
     const entries = await listSftpDirectory(pathParam);
     res.json({ ok: true, path: pathParam, entries });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
 /**
  * Kết nối SFTP, duyệt toàn bộ cây thư mục (giới hạn maxDepth / maxNodes)
  * và ghi vào apps/server/src/data/test.json .
  */
-sftpRouter.post("/sync-directory-map-to-test-json", async (req: Request, res: Response) => {
-  try {
+sftpRouter.post(
+  "/sync-directory-map-to-test-json",
+  asyncHandler(async (req: Request, res: Response) => {
     const body = (req.body || {}) as {
       path?: string;
       maxDepth?: number;
@@ -128,16 +137,13 @@ sftpRouter.post("/sync-directory-map-to-test-json", async (req: Request, res: Re
       directoryCount: payload.directoryCount,
       sftpRoot: payload.sftpRoot,
     });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
 /** Giống POST sync; query: path, maxDepth, maxNodes (tiện cho curl/browser). */
-sftpRouter.get("/sync-directory-map-to-test-json", async (req: Request, res: Response) => {
-  try {
+sftpRouter.get(
+  "/sync-directory-map-to-test-json",
+  asyncHandler(async (req: Request, res: Response) => {
     const rootPath = typeof req.query.path === "string" ? req.query.path : "/";
     const maxDepthRaw = parseInt(String(req.query.maxDepth ?? ""), 10);
     const maxNodesRaw = parseInt(String(req.query.maxNodes ?? ""), 10);
@@ -167,16 +173,13 @@ sftpRouter.get("/sync-directory-map-to-test-json", async (req: Request, res: Res
       directoryCount: payload.directoryCount,
       sftpRoot: payload.sftpRoot,
     });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
 /** DFS: thư mục con có tên hoặc đường dẫn tương đối (từ `path`) chứa `q`. */
-sftpRouter.get("/search-directories", async (req: Request, res: Response) => {
-  try {
+sftpRouter.get(
+  "/search-directories",
+  asyncHandler(async (req: Request, res: Response) => {
     const rootPath = (req.query.path as string) ?? "/script/demo";
     const q = typeof req.query.q === "string" ? req.query.q : "";
     const maxDepthRaw = parseInt(String(req.query.maxDepth ?? ""), 10);
@@ -193,7 +196,11 @@ sftpRouter.get("/search-directories", async (req: Request, res: Response) => {
         ok: true,
         path: rootPath,
         query: "",
-        matches: [] as { fullPath: string; relativePath: string; matchedName: string }[],
+        matches: [] as {
+          fullPath: string;
+          relativePath: string;
+          matchedName: string;
+        }[],
       });
       return;
     }
@@ -203,89 +210,112 @@ sftpRouter.get("/search-directories", async (req: Request, res: Response) => {
       limit,
     });
     res.json({ ok: true, path: rootPath, query: q.trim(), matches });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-sftpRouter.get("/read", async (req: Request, res: Response) => {
-  try {
-    const path = req.query.path as string | undefined;
-    if (!path) {
-      res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
-      return;
+sftpRouter.get(
+  "/read",
+  asyncHandler(async (req: Request, res: Response) => {
+    const filePath = req.query.path as string | undefined;
+    if (!filePath) {
+      throw new HttpError(400, "Missing 'path' query parameter", {
+        code: "BAD_REQUEST",
+      });
     }
-    const content = await readSftpFile(path);
-    res.json({ ok: true, path, content });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+    const content = await readSftpFile(filePath);
+    res.json({ ok: true, path: filePath, content });
+  }),
+);
 
-sftpRouter.get("/exists", async (req: Request, res: Response) => {
-  try {
-    const path = req.query.path as string | undefined;
-    const scope = (req.query.scope as string | undefined) === "demo" ? "demo" : "media";
-    if (!path) {
-      res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
-      return;
+sftpRouter.get(
+  "/exists",
+  asyncHandler(async (req: Request, res: Response) => {
+    const filePath = req.query.path as string | undefined;
+    const scope =
+      (req.query.scope as string | undefined) === "demo" ? "demo" : "media";
+    if (!filePath) {
+      throw new HttpError(400, "Missing 'path' query parameter", {
+        code: "BAD_REQUEST",
+      });
     }
 
-    const result = await sftpPathExists(path, {}, { scope });
-    res.json({ ok: true, path, ...result });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+    const result = await sftpPathExists(filePath, {}, { scope });
+    res.json({ ok: true, path: filePath, ...result });
+  }),
+);
 
-sftpRouter.post("/write", async (req: Request, res: Response) => {
-  try {
+sftpRouter.post(
+  "/write",
+  asyncHandler(async (req: Request, res: Response) => {
+    requireAdminRole(req);
     const body = req.body as {
       path?: string;
       content?: string;
       encoding?: "utf8" | "base64";
     };
     if (!body?.path) {
-      res.status(400).json({ ok: false, error: "Missing 'path' field in body" });
-      return;
+      throw new HttpError(400, "Missing 'path' field in body", {
+        code: "BAD_REQUEST",
+      });
     }
     if (body.encoding === "base64") {
       const raw = String(body.content ?? "");
       const normalized = raw.includes(",") ? raw.split(",")[1] : raw;
-      const buffer = Buffer.from(normalized, "base64");
+      let buffer = Buffer.from(normalized, "base64");
+      const base = path.basename(body.path || "");
+      let videoMeta:
+        | {
+            originalBytes: number;
+            compressedBytes: number;
+            videoCompressed: boolean;
+          }
+        | undefined;
+      if (base && isCompressibleVideoFilename(base)) {
+        const compressed = await maybeCompressVideoUpload(buffer, base);
+        buffer = compressed.buffer;
+        videoMeta = {
+          originalBytes: compressed.originalBytes,
+          compressedBytes: compressed.compressedBytes,
+          videoCompressed: compressed.videoCompressed,
+        };
+      }
       await uploadSftpBuffer(body.path, buffer);
-    } else {
-      await writeSftpFile(body.path, body.content ?? "");
-    }
-    res.json({ ok: true, path: body.path });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
-
-sftpRouter.get("/download-directory", async (req: Request, res: Response) => {
-  try {
-    const path = req.query.path as string | undefined;
-    if (!path) {
-      res.status(400).json({ ok: false, error: "Missing 'path' query parameter" });
+      res.json({ ok: true, path: body.path, ...(videoMeta ? { video: videoMeta } : {}) });
       return;
     }
+    await writeSftpFile(body.path, body.content ?? "");
+    res.json({ ok: true, path: body.path });
+  }),
+);
 
-    const { zipBuffer, zipName } = await downloadSftpDirectoryAsZip(path);
+sftpRouter.post(
+  "/delete",
+  asyncHandler(async (req: Request, res: Response) => {
+    requireAdminRole(req);
+    const body = req.body as { path?: string };
+    if (!body?.path) {
+      throw new HttpError(400, "Missing 'path' field in body", {
+        code: "BAD_REQUEST",
+      });
+    }
+    const result = await deleteSftpPath(body.path);
+    res.json(result);
+  }),
+);
+
+sftpRouter.get(
+  "/download-directory",
+  asyncHandler(async (req: Request, res: Response) => {
+    const dirPath = req.query.path as string | undefined;
+    if (!dirPath) {
+      throw new HttpError(400, "Missing 'path' query parameter", {
+        code: "BAD_REQUEST",
+      });
+    }
+
+    const { zipBuffer, zipName } = await downloadSftpDirectoryAsZip(dirPath);
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
     res.send(zipBuffer);
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown SFTP error";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);

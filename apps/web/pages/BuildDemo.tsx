@@ -14,6 +14,7 @@ import {
 import demoConfig from "../data/demoConfig.json";
 import brandColors from "../data/brandColors.json";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
+import { useAuth } from "../contexts/AuthContext";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -302,6 +303,8 @@ function mergeDroppedFiles(list: File[]): File[] {
 }
 
 const BuildDemo: React.FC = () => {
+  const { user } = useAuth();
+  const normalizedRole = (user?.role || "").toLowerCase();
   const brands = (demoConfig as any).ListBrands ?? [];
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
@@ -402,6 +405,9 @@ const BuildDemo: React.FC = () => {
   });
   const productCateOptions = getProductCateOptionsByBrand(config.model);
   const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const sftpRoleHeaders = normalizedRole
+    ? { "x-user-role": normalizedRole }
+    : undefined;
 
   const getItemLabelById = (list: any[], id: string) => {
     const found = list.find((item: any) => item.id === id);
@@ -506,6 +512,7 @@ const BuildDemo: React.FC = () => {
       try {
         const res = await fetch(
           `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(`/script/demo/${targetPath}`)}`,
+          { headers: sftpRoleHeaders },
         );
         const data = await res.json();
         if (!cancelled) {
@@ -690,6 +697,16 @@ const BuildDemo: React.FC = () => {
   const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
   const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
   const TEXT_EXTS = [".html", ".htm", ".js", ".mjs"];
+  const formatBytes = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const exponent = Math.min(
+      Math.floor(Math.log(value) / Math.log(1024)),
+      units.length - 1,
+    );
+    const size = value / Math.pow(1024, exponent);
+    return `${size >= 10 ? size.toFixed(0) : size.toFixed(1)} ${units[exponent]}`;
+  };
 
   const handleFiles = async (newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -1001,6 +1018,7 @@ const BuildDemo: React.FC = () => {
     try {
       const checkRes = await fetch(
         `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
+        { headers: sftpRoleHeaders },
       );
       const checkData = await checkRes.json();
       if (!checkRes.ok || !checkData?.ok) {
@@ -1033,6 +1051,7 @@ const BuildDemo: React.FC = () => {
       // để tránh ghi đè.
       let indexHtmlUploaded = false;
       const sftpErrors: string[] = [];
+      const videoCompressionLogs: string[] = [];
       let uploadedCount = 0;
       const normalizeRelativePath = (item: UploadedFile) =>
         (item.relativePath || item.file.name)
@@ -1063,7 +1082,10 @@ const BuildDemo: React.FC = () => {
 
           const res = await fetch(`${baseUrl}/api/sftp/write`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(sftpRoleHeaders ?? {}),
+            },
             body: JSON.stringify({
               path: remoteFilePath,
               content: convertedContent,
@@ -1101,7 +1123,10 @@ const BuildDemo: React.FC = () => {
             );
           const res = await fetch(`${baseUrl}/api/sftp/write`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(sftpRoleHeaders ?? {}),
+            },
             body: JSON.stringify({
               path: remoteFilePath,
               content: base64,
@@ -1114,6 +1139,34 @@ const BuildDemo: React.FC = () => {
               `${item.file.name}: ${data?.error || "video upload failed"}`,
             );
             continue;
+          }
+          const videoMeta = data?.video as
+            | {
+                originalBytes?: number;
+                compressedBytes?: number;
+                videoCompressed?: boolean;
+              }
+            | undefined;
+          if (
+            videoMeta &&
+            Number.isFinite(videoMeta.originalBytes) &&
+            Number.isFinite(videoMeta.compressedBytes)
+          ) {
+            const originalBytes = Number(videoMeta.originalBytes);
+            const compressedBytes = Number(videoMeta.compressedBytes);
+            if (videoMeta.videoCompressed) {
+              const savedRatio =
+                originalBytes > 0
+                  ? Math.max(0, (1 - compressedBytes / originalBytes) * 100)
+                  : 0;
+              videoCompressionLogs.push(
+                `${item.file.name}: compressed ${formatBytes(originalBytes)} -> ${formatBytes(compressedBytes)} (${savedRatio.toFixed(1)}% saved)`,
+              );
+            } else {
+              videoCompressionLogs.push(
+                `${item.file.name}: kept original (${formatBytes(originalBytes)})`,
+              );
+            }
           }
           uploadedCount++;
         } catch (err) {
@@ -1132,14 +1185,18 @@ const BuildDemo: React.FC = () => {
             : "Upload to SFTP failed.",
         );
       } else {
+        const compressionNote =
+          videoCompressionLogs.length > 0
+            ? `\nVideo processing:\n${videoCompressionLogs.join("\n")}`
+            : "";
         if (sftpErrors.length > 0) {
           setSendSuccess(
-            `Uploaded ${uploadedCount} of ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 applied where applicable).`,
+            `Uploaded ${uploadedCount} of ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 applied where applicable).${compressionNote}`,
           );
           setSendError(`Failed:\n${sftpErrors.join("\n")}`);
         } else {
           setSendSuccess(
-            `Uploaded ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 replacement + video upload).`,
+            `Uploaded ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 replacement + video upload).${compressionNote}`,
           );
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));

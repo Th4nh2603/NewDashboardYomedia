@@ -466,6 +466,74 @@ export async function writeSftpFile(
   }
 }
 
+export async function deleteSftpPath(
+  targetPath: string,
+  config: SftpConfig = {},
+) {
+  const client = new SftpClient();
+
+  const host = config.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const port = config.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const username = config.username ?? process.env.SFTP_USER ?? "www-demo";
+  const password = config.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!host || !username || !password) {
+    throw new Error("Missing SFTP credentials (host/username/password).");
+  }
+
+  const normalizedPath = (targetPath || "")
+    .trim()
+    .replace(/\\+/g, "/")
+    .replace(/\/{2,}/g, "/")
+    .replace(/\/+$/, "");
+
+  if (!normalizedPath) {
+    throw new Error("Missing SFTP path to delete.");
+  }
+
+  try {
+    await client.connect({
+      host,
+      port,
+      username,
+      password,
+    });
+
+    const existsType = (await (client as any).exists(normalizedPath)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+
+    if (!existsType) {
+      throw new Error(`Path does not exist on SFTP: ${normalizedPath}`);
+    }
+
+    if (existsType === "d") {
+      await (client as any).rmdir(normalizedPath, true);
+    } else {
+      await (client as any).delete(normalizedPath);
+    }
+
+    return {
+      ok: true as const,
+      path: normalizedPath,
+      kind:
+        existsType === "d"
+          ? ("directory" as const)
+          : existsType === "-"
+            ? ("file" as const)
+            : ("symlink" as const),
+    };
+  } finally {
+    try {
+      await client.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
 export async function uploadSftpBuffer(
   path: string,
   content: Buffer,
