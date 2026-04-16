@@ -1,9 +1,14 @@
 {
   "ListBrands": [
-    { "id": "Enchantuer", "label": "Enchantuer" },
+    { "id": "Enchanteur", "label": "Enchanteur" },
     { "id": "Maxkleen", "label": "Maxkleen" },
     { "id": "Romano", "label": "Romano" },
-    { "id": "Aiken", "label": "Aiken" }
+    { "id": "Aiken", "label": "Aiken" },
+    { "id": "Bio", "label": "Bio" },
+    { "id": "Carrie Junior", "label": "Carrie Junior" },
+    { "id": "Gervenne", "label": "Gervenne" },
+    { "id": "Sacombank", "label": "Sacombank" },
+    { "id": "BBHH", "label": "BBHH" }
   ],
   "ListYears": [
     { "id": "2020", "label": "2020" },
@@ -29,9 +34,55 @@
     { "id": "12", "label": "12" }
   ],
   "ListProductCate": [
-    { "id": "laundry", "label": "Laundry" },
-    { "id": "personal-care", "label": "Personal Care" },
-    { "id": "home-care", "label": "Home Care" },
-    { "id": "others", "label": "Others" }
-  ]
+    { "id": "all", "label": "ALL" },
+    { "id": "softergent", "label": "SOFTERGENT" },
+    { "id": "thematic", "label": "THEMATIC" },
+    { "id": "colourcare", "label": "COLOUR CARE" },
+    { "id": "podrange", "label": "POD RANGE" },
+    { "id": "floorcleaner", "label": "FLOOR CLEANER" },
+    { "id": "lingeriewash", "label": "LINGERIE WASH" },
+    { "id": "shower", "label": "SHOWER" },
+    { "id": "naturalle-shower", "label": "NATURELLE SHOWER" },
+    { "id": "naturalle-serum", "label": "NATURELLE SERUM" },
+    { "id": "scrub", "label": "SCRUB" },
+    { "id": "deodorants", "label": "DEODORANTS" },
+    { "id": "shampoo", "label": "SHAMPOO" },
+    { "id": "cleanser", "label": "CLEANSER" },
+    { "id": "facewash", "label": "FACE WASH" },
+    { "id": "2in1", "label": "2 IN 1" },
+    { "id": "deodorant", "label": "DEODORANT" },
+    { "id": "spray", "label": "SPRAY" },
+    { "id": "wax", "label": "WAX" },
+    { "id": "genz", "label": "GEN Z" },
+    { "id": "vip", "label": "VIP" }
+  ],
+  "ProductCateIdsByBrand": {
+    "Maxkleen": [
+      "softergent",
+      "thematic",
+      "colourcare",
+      "podrange",
+      "floorcleaner",
+      "lingeriewash"
+    ],
+    "Enchanteur": [
+      "shower",
+      "naturalle-shower",
+      "naturalle-serum",
+      "scrub",
+      "deodorants",
+      "shampoo"
+    ],
+    "Romano": [
+      "shampoo",
+      "cleanser",
+      "facewash",
+      "2in1",
+      "deodorant",
+      "spray",
+      "wax",
+      "genz",
+      "vip"
+    ]
+  }
 }

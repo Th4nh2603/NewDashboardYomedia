@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
+import { useError } from "../contexts/ErrorContext";
+import { BackendRequestError } from "../lib/apiError";
 import {
   SparklesIcon,
   LockClosedIcon,
@@ -14,6 +16,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const { login, isAuthenticated } = useAuth();
+  const { handleApiError } = useError();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -28,7 +31,7 @@ const Login: React.FC = () => {
 
     try {
       const baseUrl =
-        (import.meta.env as any).VITE_SERVER_URL || window.location.origin.replace(/:3000$/, ":3001");
+        (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
 
       const response = await fetch(`${baseUrl}/api/login`, {
         method: "POST",
@@ -50,12 +53,13 @@ const Login: React.FC = () => {
           email: data.user.email || email,
           picture: undefined,
           role: data.user.role,
+          roleTitle: data.user.roleTitle,
         },
         { remember: rememberMe },
       );
       navigate("/");
     } catch (err) {
-      window.alert("Login failed. Please try again.");
+      handleApiError(err, "Login");
     } finally {
       setIsLoading(false);
     }

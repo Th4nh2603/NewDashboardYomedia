@@ -6,19 +6,12 @@ import {
   HomeIcon,
   UsersIcon,
   UserPlusIcon,
-  IdentificationIcon,
   DocumentTextIcon,
-  UserIcon,
-  CalendarIcon,
   QuestionMarkCircleIcon,
-  ArrowsPointingInIcon,
-  ChartBarIcon,
-  ChartPieIcon,
-  PresentationChartLineIcon,
-  GlobeAltIcon,
   Bars3Icon,
-  PhotoIcon,
-  SparklesIcon,
+  ArrowUpTrayIcon,
+  ClipboardDocumentListIcon,
+  ServerStackIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
 } from "@heroicons/react/24/outline";
@@ -32,13 +25,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   if (!user) return null; // Hoặc hiển thị nút Login
+  const normalizedRole = (user?.role || "").toLowerCase();
+  const canAccessBuildDemo =
+    normalizedRole === "admin" || normalizedRole === "design";
 
-  const displayRole =
-    user?.role === "adsop"
-      ? "Ad Operations Executive"
-      : user?.role === "adsopmanager"
-      ? "Deputy Head of Programmatic"
-      : user?.role || "Creative Director";
+  const roleTitleFromServer =
+    "roleTitle" in user
+      ? (user as { roleTitle?: string }).roleTitle
+      : undefined;
+  const displayRole = roleTitleFromServer || user?.role || "Creative Director";
   const sections = [
     {
       title: null,
@@ -46,40 +41,42 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     },
     {
       title: "AI Intelligence",
-      items: [
-        { name: "AI Chat", path: "/chat", icon: QuestionMarkCircleIcon },
-        { name: "Vision AI", path: "/vision", icon: GlobeAltIcon },
-        { name: "Image Gen", path: "/image-generator", icon: PhotoIcon },
-        { name: "Cinema AI", path: "/cinema", icon: PresentationChartLineIcon },
-        { name: "Live Stream", path: "/live", icon: SparklesIcon },
-      ],
+      items: [{ name: "AI Chat", path: "/chat", icon: QuestionMarkCircleIcon }],
     },
     {
-      title: "Data Management",
+      title: "Demo Showcases",
       items: [
         {
           name: "Creative Showcase",
           path: "/creative-showcase",
           icon: SparklesIconFilled,
         },
-        { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
-        { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
-        { name: "Team Hub", path: "/manage-team", icon: IdentificationIcon },
-        { name: "Contacts", path: "/contacts", icon: IdentificationIcon },
-        { name: "Invoices", path: "/invoices", icon: DocumentTextIcon },
       ],
     },
     {
-      title: "Analytics",
+      title: "Data Management",
       items: [
-        { name: "Performance", path: "/bar", icon: ChartBarIcon },
-        { name: "Distribution", path: "/pie", icon: ChartPieIcon },
-        { name: "Trends", path: "/line", icon: PresentationChartLineIcon },
-        { name: "Global", path: "/geography", icon: GlobeAltIcon },
+        { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
+        {
+          name: "Manage SFTP",
+          path: "/manage-sftp",
+          icon: ServerStackIcon,
+        },
+        { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
+        { name: "Upload", path: "/upload", icon: ArrowUpTrayIcon },
+        {
+          name: "Test data",
+          path: "/test-data",
+          icon: ClipboardDocumentListIcon,
+        },
+        {
+          name: "Documentation",
+          path: "/documentation",
+          icon: DocumentTextIcon,
+        },
       ],
     },
   ];
-
   return (
     <motion.nav
       initial={false}
@@ -91,9 +88,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     >
       {/* Header / Logo */}
       <div
-        className={`h-20 flex items-center px-6 mb-4 ${isCollapsed ? "justify-center" : "justify-between"}`}
+        className={`h-20 flex items-center px-6 mb-4 ${isCollapsed ? "justify-center" : "justify-start"}`}
       >
-        {!isCollapsed && (
+        {isCollapsed ? (
+          <div className="w-10 h-10 bg-gradient-to-br from-[#4cceac] to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-[#4cceac]/20 shrink-0">
+            <CommandLineIcon className="w-6 h-6 text-white" />
+          </div>
+        ) : (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -107,14 +108,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             </span>
           </motion.div>
         )}
-        <motion.button
-          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.05)" }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl text-[#a3a3a3] hover:text-white transition-colors"
-        >
-          <Bars3Icon className="w-6 h-6" />
-        </motion.button>
       </div>
 
       {/* Profile Section */}
@@ -171,11 +164,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             )}
             <div className="space-y-1.5">
               {section.items.map((item) => {
-                // Hide "Build Demo" for adsop roles
+                if (item.path === "/build-demo" && !canAccessBuildDemo) {
+                  return null;
+                }
                 if (
-                  item.path === "/build-demo" &&
-                  (user?.role === "adsop" || user?.role === "adsopmanager")
+                  item.path === "/manage-sftp" &&
+                  normalizedRole !== "admin"
                 ) {
+                  return null;
+                }
+                if (
+                  item.path === "/upload" &&
+                  normalizedRole !== "admin" &&
+                  normalizedRole !== "design"
+                ) {
+                  return null;
+                }
+                if (item.path === "/test-data" && normalizedRole === "guest") {
                   return null;
                 }
                 const isActive = location.pathname === item.path;

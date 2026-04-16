@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { asyncHandler, HttpError } from "../lib/httpErrors.js";
 import { writeFile, mkdir, readFile, readdir, unlink } from "fs/promises";
 import path from "path";
 
@@ -15,6 +16,7 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
 };
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 
 function isHtmlOrJs(filename: string): boolean {
   return HTML_JS_EXT.includes(path.extname(filename).toLowerCase());
@@ -28,19 +30,23 @@ function isImageFile(filename: string): boolean {
   return IMAGE_EXT.includes(path.extname(filename).toLowerCase());
 }
 
+function isTooLarge(buffer: Buffer): boolean {
+  return buffer.length > MAX_UPLOAD_SIZE_BYTES;
+}
+
 /** GET ?name=file.html → read one file. GET (no name) → list HTML/JS files. */
-router.get("/", async (req: Request, res: Response) => {
-  try {
+router.get(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
     const name = req.query.name as string | undefined;
     await mkdir(UPLOAD_DIR, { recursive: true });
 
     if (name) {
       const safeName = path.basename(name);
       if (!safeName) {
-        res
-          .status(400)
-          .json({ ok: false, error: "Missing or invalid 'name' query parameter" });
-        return;
+        throw new HttpError(400, "Missing or invalid 'name' query parameter", {
+          code: "BAD_REQUEST",
+        });
       }
       const filePath = path.join(UPLOAD_DIR, safeName);
       let content = await readFile(filePath, "utf8");
@@ -74,9 +80,11 @@ router.get("/", async (req: Request, res: Response) => {
               nextQuoteIndex === -1
                 ? line.slice(afterNameIndex)
                 : line.slice(nextQuoteIndex);
-            const suffixAfterQuote = suffix.startsWith('"') ? suffix.slice(1) : suffix;
+            const suffixAfterQuote = suffix.startsWith('"')
+              ? suffix.slice(1)
+              : suffix;
             lines[i] =
-              `{type:createjs.Types.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
+              `{type:createjs.AbstractLoader.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
             imageLineIndexes.push({ name: img.name, lineIndex: i });
             break;
           }
@@ -105,35 +113,33 @@ router.get("/", async (req: Request, res: Response) => {
       .map((e) => e.name)
       .sort();
     res.json({ ok: true, files });
-  } catch (error: unknown) {
-    const err = error as NodeJS.ErrnoException;
-    if (err?.code === "ENOENT") {
-      res.status(404).json({ ok: false, error: "File not found" });
-      return;
-    }
-    const message = error instanceof Error ? error.message : "Read failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-router.post("/", async (req: Request, res: Response) => {
-  try {
+router.post(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
     const body = req.body as {
       name?: string;
       content?: string;
       images?: { name: string; base64: string }[];
     };
     if (!body?.name || body.content === undefined) {
-      res
-        .status(400)
-        .json({ ok: false, error: "Missing 'name' or 'content' in body" });
-      return;
+      throw new HttpError(400, "Missing 'name' or 'content' in body", {
+        code: "BAD_REQUEST",
+      });
     }
     const uploadDir = path.join(process.cwd(), "uploads");
     await mkdir(uploadDir, { recursive: true });
     const safeName = path.basename(body.name) || "upload.txt";
     const filePath = path.join(uploadDir, safeName);
-    await writeFile(filePath, body.content, "utf8");
+    const contentBuffer = Buffer.from(body.content, "utf8");
+    if (isTooLarge(contentBuffer)) {
+      throw new HttpError(400, "Uploaded file exceeds 5MB limit", {
+        code: "PAYLOAD_TOO_LARGE",
+      });
+    }
+    await writeFile(filePath, contentBuffer);
 
     if (Array.isArray(body.images) && body.images.length > 0) {
       await Promise.all(
@@ -142,20 +148,23 @@ router.post("/", async (req: Request, res: Response) => {
             ? img.base64.split(",")[1]
             : img.base64;
           const buffer = Buffer.from(raw, "base64");
+          if (isTooLarge(buffer)) {
+            throw new HttpError(400, "Uploaded image exceeds 5MB limit", {
+              code: "PAYLOAD_TOO_LARGE",
+            });
+          }
           const imgName = path.basename(img.name || "image.png");
           await writeFile(path.join(uploadDir, imgName), buffer);
         }),
       );
     }
     res.json({ ok: true, name: safeName, path: filePath });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Upload failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
-router.delete("/", async (_req: Request, res: Response) => {
-  try {
+router.delete(
+  "/",
+  asyncHandler(async (_req: Request, res: Response) => {
     await mkdir(UPLOAD_DIR, { recursive: true });
     const entries = await readdir(UPLOAD_DIR, { withFileTypes: true });
     await Promise.all(
@@ -164,10 +173,7 @@ router.delete("/", async (_req: Request, res: Response) => {
         .map((e) => unlink(path.join(UPLOAD_DIR, e.name)).catch(() => {})),
     );
     res.json({ ok: true, cleared: true });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Clear failed";
-    res.status(500).json({ ok: false, error: message });
-  }
-});
+  }),
+);
 
 export const uploadRouter = router;

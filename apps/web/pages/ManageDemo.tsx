@@ -1,546 +1,959 @@
-import React from 'react';
+import React from "react";
+import { useAuth } from "../contexts/AuthContext";
+import brandColors from "../data/brandColors.json";
 import {
+  PhotoIcon,
+  SignalIcon,
   FolderIcon,
   DocumentTextIcon,
   CodeBracketIcon,
-  ArchiveBoxIcon,
   GlobeAltIcon,
-  QuestionMarkCircleIcon,
-} from '@heroicons/react/24/outline';
-import { useAuth } from '../contexts/AuthContext';
+  CheckCircleIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
+import {
+  loadActiveCreativeDemos,
+  type CreativeDemoItem,
+} from "../data/creativeDemos";
+import rolePermissions from "../data/rolePermissions.json";
+import { getServerBaseUrl } from "../lib/sftpBrowser";
 
-type SftpStatus = {
-  ok: boolean;
-  message: string;
-} | null;
-
-const BASE_REMOTE_PATH = '/script/demo';
+const BASE_REMOTE_PATH = "/script/demo";
+type RolePermissionConfig = Record<
+  string,
+  {
+    manageDemo?: {
+      canUseFileActionButtons?: boolean;
+    };
+  }
+>;
 
 const ManageDemo: React.FC = () => {
   const { user } = useAuth();
-  const isAdsop =
-    user?.role === 'adsop' || user?.role === 'adsopmanager';
-  const [testingSftp, setTestingSftp] = React.useState(false);
-  const [sftpStatus, setSftpStatus] = React.useState<SftpStatus>(null);
-  const [remotePath, setRemotePath] = React.useState<string>(BASE_REMOTE_PATH);
-  const [entries, setEntries] = React.useState<
-    { name: string; type: string; size: number; modifyTime?: number }[]
-  >([]);
+  const normalizedRole = (user?.role || "").toLowerCase();
+  const permissions = rolePermissions as RolePermissionConfig;
+  const canUseFileActionButtons =
+    permissions[normalizedRole]?.manageDemo?.canUseFileActionButtons ??
+    permissions.default?.manageDemo?.canUseFileActionButtons ??
+    false;
+  const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
+    const id = String(i + 1).padStart(2, "0");
+    return { id, label: id };
+  });
+  const now = new Date();
+  const currentYearLabel = String(now.getFullYear());
+  const currentMonthLabel = String(now.getMonth() + 1).padStart(2, "0");
+
+  const presentYear = now.getFullYear();
+  const manageYearOptions: { id: string; label: string }[] = [];
+  for (let y = 2019; y <= presentYear; y++) {
+    manageYearOptions.push({ id: String(y), label: String(y) });
+  }
+
+  const currentYearId =
+    manageYearOptions.find(
+      (y) => y.id === currentYearLabel || y.label === currentYearLabel,
+    )?.id ??
+    manageYearOptions[manageYearOptions.length - 1]?.id ??
+    "2019";
+
+  const currentMonthId =
+    manageMonthOptions.find(
+      (m) => m.id === currentMonthLabel || m.label === currentMonthLabel,
+    )?.id ?? "01";
+
+  const getItemLabelById = (list: any[], id: string) => {
+    const found = list.find((item: any) => item.id === id);
+    return String(found?.label ?? found?.id ?? id ?? "").trim();
+  };
+
+  type SftpEntry = {
+    name: string;
+    type: string;
+    size: number;
+    modifyTime?: number;
+  };
+
+  const [listEntries, setListEntries] = React.useState<SftpEntry[]>([]);
   const [loadingList, setLoadingList] = React.useState(false);
+  const [isNavigating, setIsNavigating] = React.useState(false);
+  const [listError, setListError] = React.useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [resolvingPreview, setResolvingPreview] = React.useState(false);
+  const [directoryHasSizeJs, setDirectoryHasSizeJs] = React.useState<
+    Record<string, boolean>
+  >({});
   const [editorPath, setEditorPath] = React.useState<string | null>(null);
-  const [editorContent, setEditorContent] = React.useState<string>('');
-  const [editorMode, setEditorMode] = React.useState<'view' | 'edit'>('view');
+  const [editorContent, setEditorContent] = React.useState<string>("");
   const [savingFile, setSavingFile] = React.useState(false);
+  const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
+  const [reloadTick, setReloadTick] = React.useState(0);
+  const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
+  const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
+  const [config, setConfig] = React.useState({
+    quality: currentYearId,
+    mode: currentMonthId,
+    formatValue: "",
+    category: "Mobile" as "Mobile" | "Display",
+  });
+
+  const demoPaths = React.useMemo(() => {
+    const year = getItemLabelById(manageYearOptions, config.quality);
+    const month = getItemLabelById(manageMonthOptions, config.mode).padStart(
+      2,
+      "0",
+    );
+    const pathYearMonth = `${BASE_REMOTE_PATH}/${year}/${month}`.replace(
+      /\/{2,}/g,
+      "/",
+    );
+    return { pathYearMonth, month };
+  }, [config.quality, config.mode, manageYearOptions, manageMonthOptions]);
+
+  const [currentPath, setCurrentPath] = React.useState<string>(
+    demoPaths.pathYearMonth,
+  );
+
+  React.useEffect(() => {
+    setCurrentPath(demoPaths.pathYearMonth);
+  }, [demoPaths.pathYearMonth]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const demos = await loadActiveCreativeDemos();
+        if (!cancelled) setActiveDemos(demos);
+      } catch {
+        if (!cancelled) setActiveDemos([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const detectedSizes = React.useMemo(() => {
+    const sizeRegex = /(\d{2,4})x(\d{2,4})/gi;
+    const detected = new Set<string>();
+    const collect = (input: string) => {
+      for (const match of input.matchAll(sizeRegex)) {
+        detected.add(`${match[1]}x${match[2]}`.toLowerCase());
+      }
+    };
+    collect(currentPath);
+    listEntries.forEach((entry) => collect(entry.name));
+    return detected;
+  }, [currentPath, listEntries]);
+
+  React.useEffect(() => {
+    const values = Array.from(
+      new Set(
+        activeDemos
+          .filter((demo) => {
+            const sizes = Array.isArray(demo.size)
+              ? demo.size
+              : demo.size
+                ? [demo.size]
+                : [];
+            return sizes.some((s) =>
+              detectedSizes.has(String(s).trim().toLowerCase()),
+            );
+          })
+          .map((d) => (d.format ? String(d.format).trim() : ""))
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+    setFormatOptions(values);
+  }, [activeDemos, detectedSizes]);
+
+  const autoDetectedCategory = React.useMemo<
+    "Mobile" | "Display" | null
+  >(() => {
+    const matchedCategories = new Set<"Mobile" | "Display">();
+    activeDemos.forEach((demo) => {
+      const sizes = Array.isArray(demo.size)
+        ? demo.size
+        : demo.size
+          ? [demo.size]
+          : [];
+      const hasMatchedSize = sizes.some((s) =>
+        detectedSizes.has(String(s).trim().toLowerCase()),
+      );
+      if (!hasMatchedSize) return;
+      if (demo.category === "Mobile" || demo.category === "Display") {
+        matchedCategories.add(demo.category);
+      }
+    });
+
+    if (matchedCategories.has("Mobile") && !matchedCategories.has("Display")) {
+      return "Mobile";
+    }
+    if (matchedCategories.has("Display") && !matchedCategories.has("Mobile")) {
+      return "Display";
+    }
+    if (matchedCategories.has(config.category)) return config.category;
+    return null;
+  }, [activeDemos, detectedSizes, config.category]);
+
+  React.useEffect(() => {
+    if (!autoDetectedCategory) return;
+    if (config.category === autoDetectedCategory) return;
+    setConfig((prev) => ({ ...prev, category: autoDetectedCategory }));
+  }, [autoDetectedCategory, config.category]);
+
+  React.useEffect(() => {
+    if (config.formatValue && !formatOptions.includes(config.formatValue)) {
+      setConfig((prev) => ({ ...prev, formatValue: "" }));
+    }
+  }, [config.formatValue, formatOptions]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setResolvingPreview(true);
+    void (async () => {
+      try {
+        const serverApiUrl =
+          import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+        const url = await getYomediaDemoPreviewUrl({
+          remotePath: currentPath,
+          formatValue: config.formatValue || undefined,
+          baseRemotePath: BASE_REMOTE_PATH,
+          forceDevice: config.category === "Display" ? "pc" : "mb",
+          serverApiUrl,
+        });
+        if (!cancelled) {
+          if (url) {
+            try {
+              const u = new URL(url);
+              u.searchParams.set("qr", "false");
+              const withQrFlagDisabled = u.toString();
+              console.log(
+                "[ManageDemo] iframe preview URL (qr=false):",
+                withQrFlagDisabled,
+              );
+              setPreviewUrl(withQrFlagDisabled);
+            } catch {
+              // Fallback: best-effort append if URL parsing fails.
+              const withQrFlagDisabled = url.includes("?")
+                ? `${url}&qr=false`
+                : `${url}?qr=false`;
+              console.log(
+                "[ManageDemo] iframe preview URL (qr=false fallback):",
+                withQrFlagDisabled,
+              );
+              setPreviewUrl(withQrFlagDisabled);
+            }
+          } else {
+            setPreviewUrl(null);
+          }
+        }
+      } catch {
+        if (!cancelled) setPreviewUrl(null);
+      } finally {
+        if (!cancelled) setResolvingPreview(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPath, config.formatValue, config.category]);
+
+  const pathForDisplay = currentPath.replace(
+    /(\/script\/demo\/)\d{4}(\/)/,
+    "$1…$2",
+  );
 
   const buildRemoteRelativePath = (fullPath: string) => {
     if (fullPath.startsWith(BASE_REMOTE_PATH)) {
-      return fullPath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, '');
+      return fullPath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, "");
     }
-    return fullPath.replace(/^\/+/, '');
+    return fullPath.replace(/^\/+/, "");
   };
 
-  const handleTestSftp = async () => {
-    setTestingSftp(true);
-    setSftpStatus(null);
+  const buildEntryFullPath = React.useCallback(
+    (entryName: string, basePath: string) => {
+      const base = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+      return base === "/" ? `/${entryName}` : `${base}/${entryName}`;
+    },
+    [],
+  );
 
-    try {
-      const baseUrl =
-        import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+  const getParentPath = React.useCallback((path: string) => {
+    const trimmed = path.endsWith("/") ? path.slice(0, -1) : path;
+    if (trimmed === "/" || trimmed === BASE_REMOTE_PATH) return null;
+    const lastSlash = trimmed.lastIndexOf("/");
+    if (lastSlash <= 0) return "/";
+    return trimmed.slice(0, lastSlash) || "/";
+  }, []);
 
-      const response = await fetch(`${baseUrl}/api/sftp/connect`);
-      const data = await response.json();
+  const navigateToPath = React.useCallback(
+    (nextPath: string) => {
+      if (!nextPath || nextPath === currentPath) return;
+      if (loadingList || isNavigating) return;
+      setIsNavigating(true);
+      setCurrentPath(nextPath);
+    },
+    [currentPath, loadingList, isNavigating],
+  );
 
-      if (response.ok && data.ok) {
-        const message = `Connected to ${data.host}:${data.port}${
-          data.cwd ? ` (cwd: ${data.cwd})` : ''
-        }`;
-        setSftpStatus({ ok: true, message });
-      } else {
-        setSftpStatus({
-          ok: false,
-          message: data.error || 'Unknown error',
-        });
-      }
-    } catch (err) {
-      setSftpStatus({
-        ok: false,
-        message:
-          err instanceof Error ? err.message : 'Unknown network error',
-      });
-    } finally {
-      setTestingSftp(false);
-    }
-  };
+  const openRemoteMedia = React.useCallback(
+    (fullPath: string) => {
+      const relative = buildRemoteRelativePath(fullPath);
+      const baseUrl = "https://demo.yomedia.vn";
+      const url = relative ? `${baseUrl}/${encodeURI(relative)}` : baseUrl;
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [buildRemoteRelativePath],
+  );
 
-  const handleLoadDirectory = async (pathOverride?: string) => {
-    const targetPath = (pathOverride ?? remotePath) || '/';
-    setRemotePath(targetPath);
-    setLoadingList(true);
-    try {
-      const baseUrl =
-        import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
-      const response = await fetch(
-        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(targetPath)}`,
-      );
-      const data = await response.json();
-      if (response.ok && data.ok) {
-        const list = (data.entries as typeof entries) ?? [];
-        const filtered = list.filter(
-          (e) => !e.name.startsWith(".") && !e.name.startsWith(".bash"),
-        );
-        const sorted = filtered.slice().sort((a, b) => {
-          const nameA = a.name.toLowerCase();
-          const nameB = b.name.toLowerCase();
-
-          const isDirA = a.type === 'd';
-          const isDirB = b.type === 'd';
-          const startsWithDigitA = /^[0-9]/.test(nameA);
-          const startsWithDigitB = /^[0-9]/.test(nameB);
-
-          // Đẩy các thư mục có tên bắt đầu bằng số (ví dụ 2019, 2020...)
-          // lên trước, sau đó mới đến các mục còn lại theo thứ tự A-Z.
-          const isNumericDirA = isDirA && startsWithDigitA;
-          const isNumericDirB = isDirB && startsWithDigitB;
-
-          if (isNumericDirA && !isNumericDirB) return -1;
-          if (!isNumericDirA && isNumericDirB) return 1;
-
-          return nameA.localeCompare(nameB);
-        });
-        setEntries(sorted);
-      } else {
-        setEntries([]);
-        setSftpStatus({
-          ok: false,
-          message: data.error || 'Unable to list directory',
-        });
-      }
-    } catch (err) {
-      setEntries([]);
-      setSftpStatus({
-        ok: false,
-        message:
-          err instanceof Error ? err.message : 'Unknown network error',
-      });
-    } finally {
-      setLoadingList(false);
-    }
-  };
-
-  const handleOpenDemo = () => {
-    const relative = buildRemoteRelativePath(remotePath);
-    const baseUrl = 'https://demo.yomedia.vn';
-    const url = relative ? `${baseUrl}/${relative}` : baseUrl;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  const openCurrentDemo = React.useCallback(() => {
+    if (!previewUrl) return;
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  }, [previewUrl]);
 
   const getBrandColorClass = (name: string) => {
     const lower = name.toLowerCase();
-    if (lower.includes('enchanteur') || lower.includes('enc'))
-      return 'text-yellow-300';
-    if (lower.includes('romano')) return 'text-green-300';
-    if (lower.includes('maxkleen')) return 'text-violet-300';
-    return 'text-[#e5e7eb]';
+    const match = (
+      brandColors as {
+        keyword: string;
+        className: string;
+        match?: "start" | "any";
+      }[]
+    ).find((item) => {
+      const kw = item.keyword.toLowerCase();
+      if (!kw) return false;
+      if (item.match === "start") {
+        return lower.startsWith(kw);
+      }
+      return lower.includes(kw);
+    });
+    return match?.className || "text-[#e5e7eb]";
   };
 
-  React.useEffect(() => {
-    // Load default directory on first mount
-    handleLoadDirectory(remotePath);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const formatSizeInMb = React.useCallback((bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }, []);
 
+  React.useEffect(() => {
+    const pathToList = currentPath;
+    let cancelled = false;
+    setLoadingList(true);
+    setListError(null);
+    const baseUrl = getServerBaseUrl();
+
+    const sortEntries = (list: SftpEntry[]) => {
+      const filtered = list.filter(
+        (e) => !e.name.startsWith(".") && !e.name.startsWith(".bash"),
+      );
+      return filtered.slice().sort((a, b) => {
+        const isDirA = a.type === "d";
+        const isDirB = b.type === "d";
+        if (isDirA && !isDirB) return -1;
+        if (!isDirA && isDirB) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    };
+
+    const fetchList = async (path: string): Promise<SftpEntry[]> => {
+      const res = await fetch(
+        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
+      );
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `Unable to list ${path}`);
+      }
+      return sortEntries((data.entries as SftpEntry[]) ?? []);
+    };
+
+    void (async () => {
+      try {
+        const entries = await fetchList(pathToList);
+        if (cancelled) return;
+        setListEntries(entries);
+        setListError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setListEntries([]);
+          setListError(
+            err instanceof Error ? err.message : "Unknown network error",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingList(false);
+          setIsNavigating(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPath, reloadTick]);
+
+  React.useEffect(() => {
+    const dirs = listEntries.filter((entry) => entry.type === "d");
+    if (dirs.length === 0) {
+      setDirectoryHasSizeJs({});
+      return;
+    }
+
+    let cancelled = false;
+    const baseUrl = getServerBaseUrl();
+    const sizeJsRegex = /^\d{2,4}x\d{2,4}\.js$/i;
+
+    void (async () => {
+      const checks = await Promise.all(
+        dirs.map(async (dir) => {
+          const fullPath = buildEntryFullPath(dir.name, currentPath);
+          try {
+            const res = await fetch(
+              `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`,
+            );
+            const data = await res.json();
+            if (!res.ok || !data?.ok || !Array.isArray(data?.entries)) {
+              return [fullPath, false] as const;
+            }
+            const expectedByDirName = `${String(dir.name).toLowerCase()}.js`;
+            const hasSizeJs = (data.entries as SftpEntry[]).some((entry) => {
+              if (entry.type === "d") return false;
+              const fileName = String(entry.name ?? "").toLowerCase();
+              return (
+                sizeJsRegex.test(fileName) || fileName === expectedByDirName
+              );
+            });
+            return [fullPath, hasSizeJs] as const;
+          } catch {
+            return [fullPath, false] as const;
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setDirectoryHasSizeJs(Object.fromEntries(checks));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [listEntries, currentPath, buildEntryFullPath]);
+
+  const listBusy = loadingList || isNavigating;
+  const roleHeader = React.useMemo(
+    () =>
+      normalizedRole
+        ? ({
+            "x-user-role": normalizedRole,
+          } as const)
+        : undefined,
+    [normalizedRole],
+  );
+
+  const isEditableFileName = React.useCallback((name: string) => {
+    const lower = name.toLowerCase();
+    return /\.(html?|js|mjs|ts|css|json|txt|xml)$/i.test(lower);
+  }, []);
+
+  const handleOpenEditor = React.useCallback(async (fullPath: string) => {
+    try {
+      const baseUrl = getServerBaseUrl();
+      const res = await fetch(
+        `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`,
+      );
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        setListError(data?.error || "Unable to read file content");
+        return;
+      }
+      setEditorPath(fullPath);
+      setEditorContent(String(data.content ?? ""));
+      setListError(null);
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Unknown network error",
+      );
+    }
+  }, []);
+
+  const handleSaveEditor = React.useCallback(async () => {
+    if (!editorPath || !canUseFileActionButtons) return;
+    setSavingFile(true);
+    try {
+      const baseUrl = getServerBaseUrl();
+      const res = await fetch(`${baseUrl}/api/sftp/write`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(roleHeader ?? {}),
+        },
+        body: JSON.stringify({
+          path: editorPath,
+          content: editorContent,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        setListError(data?.error || "Unable to save file");
+        return;
+      }
+      setListError(null);
+      setReloadTick((prev) => prev + 1);
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Unknown network error",
+      );
+    } finally {
+      setSavingFile(false);
+    }
+  }, [editorPath, editorContent, canUseFileActionButtons, roleHeader]);
+
+  const handleDeletePath = React.useCallback(
+    async (fullPath: string, isDir: boolean) => {
+      if (!canUseFileActionButtons || deletingPath) return;
+      const confirmed = window.confirm(
+        `${isDir ? "Delete directory" : "Delete file"} on SFTP?\n${fullPath}`,
+      );
+      if (!confirmed) return;
+      setDeletingPath(fullPath);
+      try {
+        const baseUrl = getServerBaseUrl();
+        const res = await fetch(`${baseUrl}/api/sftp/delete`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(roleHeader ?? {}),
+          },
+          body: JSON.stringify({ path: fullPath }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          setListError(data?.error || "Unable to delete path");
+          return;
+        }
+        setListEntries((prev) =>
+          prev.filter(
+            (entry) => buildEntryFullPath(entry.name, currentPath) !== fullPath,
+          ),
+        );
+        setListError(null);
+      } catch (err) {
+        setListError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
+      } finally {
+        setDeletingPath(null);
+      }
+    },
+    [
+      canUseFileActionButtons,
+      deletingPath,
+      roleHeader,
+      buildEntryFullPath,
+      currentPath,
+    ],
+  );
+
   return (
-    <div className="w-full px-8 pt-10 space-y-8">
+    <div className="w-full px-4 sm:px-6   space-y-6 sm:space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#e0e0e0] tracking-tight">
           Manage Demo
         </h1>
-        <p className="text-sm text-[#a3a3a3] max-w-xl">
-          Use this panel to verify connectivity to the SFTP server and manage
-          demo assets stored on SFTP.
-        </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 rounded-3xl bg-[#020617]/80 border border-white/5 shadow-xl flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-[#e0e0e0]">
-            SFTP Connection
-          </h2>
-          <p className="text-xs text-[#a3a3a3]">
-            This will call the server endpoint <code>/api/sftp/connect</code>{' '}
-            and report back the status.
-          </p>
-          <button
-            onClick={handleTestSftp}
-            disabled={testingSftp}
-            className="mt-1 inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-[#4cceac] text-[#141b2d] text-sm font-semibold hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-          >
-            {testingSftp ? 'Testing SFTP…' : 'Test SFTP'}
-          </button>
-        </div>
-
-        <div className="p-6 rounded-3xl bg-[#020617]/60 border border-white/5 text-xs text-[#a3a3a3] space-y-2">
-          <p>
-            Make sure your <code>apps/server</code> project is running and that
-            the SFTP credentials in its <code>.env.local</code> file are valid.
-          </p>
-          <p>
-            If the web client is served from a different origin, configure{' '}
-            <code>VITE_SERVER_URL</code> in the web app environment to point to
-            the server base URL.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-              Remote directory
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-[#64748b]">
-            <span>Path on SFTP server</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-3">
-          <input
-            type="text"
-            value={
-              buildRemoteRelativePath(remotePath)
-            }
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              const full =
-                raw === ''
-                  ? BASE_REMOTE_PATH
-                  : `${BASE_REMOTE_PATH}/${raw.replace(/^\/+/, '')}`;
-              setRemotePath(full);
-            }}
-            className="flex-1 bg-[#020617] border border-white/5 rounded-2xl px-4 py-2.5 text-xs text-[#e5e7eb] outline-none focus:border-[#4cceac]/60 transition-colors"
-            placeholder="2019/01/demo-name"
-          />
-          <button
-            onClick={handleOpenDemo}
-            className="px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            View demo
-          </button>
-        </div>
-
-        <div className="mt-2 rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
-          <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80 backdrop-blur-sm">
-            <div className="col-span-6">Name</div>
-            <div className="col-span-2 text-center">Type</div>
-            <div className="col-span-2 text-right">Size</div>
-            <div className="col-span-1 text-right">Modified</div>
-            <div className="col-span-1 text-right">Actions</div>
-          </div>
-          <div className="max-h-[32rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
-            {entries.length === 0 ? (
-              <div className="px-4 py-4 text-center text-[#6b7280]">
-                No entries loaded. Choose a path and click <span className="text-[#4cceac] font-semibold">View demo</span> to open the demo in a new tab.
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(560px,760px)_minmax(0,1fr)] gap-8 items-start">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)]">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Year
+                </label>
               </div>
-            ) : (
-              entries.map((item) => {
-                const isDir = item.type === 'd';
-                const isViewableFile =
-                  !isDir &&
-                  (item.name.endsWith('.html') ||
-                    item.name.endsWith('.htm') ||
-                    item.name.endsWith('.js'));
-                const ext = isDir
-                  ? ''
-                  : item.name.split('.').pop()?.toLowerCase() ?? '';
-
-                return (
-                <div
-                  key={item.name}
-                  className="px-4 py-2 grid grid-cols-12 border-t border-[#020617] hover:bg-white/5 cursor-pointer transition-colors"
-                  onDoubleClick={() => {
-                    if (isDir) {
-                      const base = remotePath.endsWith('/')
-                        ? remotePath.slice(0, -1)
-                        : remotePath;
-                      const nextPath =
-                        base === '/' ? `/${item.name}` : `${base}/${item.name}`;
-                      void handleLoadDirectory(nextPath);
-                    }
-                  }}
+              <div className="relative group">
+                <select
+                  value={config.quality}
+                  onChange={(e) =>
+                    setConfig({ ...config, quality: e.target.value })
+                  }
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
                 >
-                  <div className={`col-span-6 truncate ${getBrandColorClass(item.name)}`}>
-                    {item.name}
+                  {manageYearOptions.map((item) => (
+                    <option
+                      key={item.id}
+                      value={item.id}
+                      className="bg-[#0b1730]"
+                    >
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none rounded-lg border border-indigo-400/20 bg-indigo-500/10 p-1.5">
+                  <PhotoIcon className="w-3.5 h-3.5 text-indigo-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)]">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Month
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={config.mode}
+                  onChange={(e) =>
+                    setConfig({ ...config, mode: e.target.value })
+                  }
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                >
+                  {manageMonthOptions.map((item) => (
+                    <option
+                      key={item.id}
+                      value={item.id}
+                      className="bg-[#0b1730]"
+                    >
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none rounded-lg border border-rose-400/20 bg-rose-500/10 p-1.5">
+                  <SignalIcon className="w-3.5 h-3.5 text-rose-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)] md:col-span-2">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Format
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={config.formatValue}
+                  onChange={(e) =>
+                    setConfig({ ...config, formatValue: e.target.value })
+                  }
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                >
+                  <option value="" className="bg-[#0b1730]">
+                    Auto detect
+                  </option>
+                  {formatOptions.map((format) => (
+                    <option
+                      key={format}
+                      value={format}
+                      className="bg-[#0b1730]"
+                    >
+                      {format}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)] md:col-span-2">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Category
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={config.category}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      category: e.target.value as "Mobile" | "Display",
+                    }))
+                  }
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                >
+                  <option value="Mobile" className="bg-[#0b1730]">
+                    Mobile
+                  </option>
+                  <option value="Display" className="bg-[#0b1730]">
+                    Display
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3 pb-8 sm:pb-12">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  SFTP folder
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parent = getParentPath(currentPath);
+                    if (parent) navigateToPath(parent);
+                  }}
+                  disabled={!getParentPath(currentPath) || listBusy}
+                  className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={openCurrentDemo}
+                  disabled={!previewUrl}
+                  className="rounded-2xl bg-[#4cceac]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Open demo
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">
+                Month · {demoPaths.month}
+              </span>
+            </div>
+            <p className="text-xs font-mono text-[#64748b] break-all px-1">
+              {pathForDisplay}
+            </p>
+            {listError && (
+              <p className="text-sm text-amber-400/90 px-1">{listError}</p>
+            )}
+            <div className="rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <div className="min-w-[760px]">
+                  <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80">
+                    <div className="col-span-5">Name</div>
+                    <div className="col-span-2 text-center">Type</div>
+                    <div className="col-span-2 text-right">Size</div>
+                    <div className="col-span-2 text-right">Modified</div>
+                    <div className="col-span-1 text-right">Actions</div>
                   </div>
-                  <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
-                    {isDir ? (
-                      <FolderIcon className="w-4 h-4" />
-                    ) : ext === 'html' || ext === 'htm' ? (
-                      <GlobeAltIcon className="w-4 h-4" />
-                    ) : ext === 'js' || ext === 'ts' ? (
-                      <CodeBracketIcon className="w-4 h-4" />
-                    ) : ext === 'php' ? (
-                      <CodeBracketIcon className="w-4 h-4" />
-                    ) : ext === 'txt' || ext === 'xml' ? (
-                      <DocumentTextIcon className="w-4 h-4" />
-                    ) : ext === 'zip' ||
-                      ext === 'rar' ||
-                      ext === '7z' ||
-                      ext === 'tar' ? (
-                      <ArchiveBoxIcon className="w-4 h-4" />
+                  <div className="max-h-[24rem] sm:max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
+                    {loadingList && listEntries.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-[#6b7280]">
+                        Loading…
+                      </div>
+                    ) : listEntries.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-[#6b7280] space-y-3">
+                        <p>No entries in this directory.</p>
+                        {currentPath !== demoPaths.pathYearMonth && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigateToPath(demoPaths.pathYearMonth)
+                            }
+                            disabled={listBusy}
+                            className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                          >
+                            Back to month folder
+                          </button>
+                        )}
+                      </div>
                     ) : (
-                      <QuestionMarkCircleIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className="col-span-2 text-right text-[#9ca3af]">
-                    {isDir ? '-' : item.size}
-                  </div>
-                  <div className="col-span-1 text-right text-[#6b7280]">
-                    {item.modifyTime
-                      ? new Date(item.modifyTime).toLocaleDateString()
-                      : '-'}
-                  </div>
-                  <div className="col-span-1 flex items-center justify-end gap-1">
-                    {isViewableFile && !isAdsop && (
-                      <>
-                        <button
-                          type="button"
-                          className="px-1.5 py-0.5 rounded-md bg-white/5 text-[10px] text-[#e5e7eb] hover:bg-white/10"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const baseUrl =
-                              import.meta.env.VITE_SERVER_URL ||
-                              'http://localhost:3000';
-                            const base = remotePath.endsWith('/')
-                              ? remotePath.slice(0, -1)
-                              : remotePath;
-                            const fullPath =
-                              base === '/'
-                                ? `/${item.name}`
-                                : `${base}/${item.name}`;
-                            try {
-                              const res = await fetch(
-                                `${baseUrl}/api/sftp/read?path=${encodeURIComponent(
-                                  fullPath,
-                                )}`,
-                              );
-                              const data = await res.json();
-                              if (res.ok && data.ok) {
-                                setEditorPath(fullPath);
-                                setEditorContent(data.content ?? '');
-                                setEditorMode('view');
-                              } else {
-                                setSftpStatus({
-                                  ok: false,
-                                  message:
-                                    data.error || 'Unable to read file content',
-                                });
+                      listEntries.map((item) => {
+                        const isDir = item.type === "d";
+                        const fullPath = buildEntryFullPath(
+                          item.name,
+                          currentPath,
+                        );
+                        const ext = isDir
+                          ? ""
+                          : (item.name.split(".").pop()?.toLowerCase() ?? "");
+
+                        return (
+                          <div
+                            key={fullPath}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              if (isDir) {
+                                navigateToPath(fullPath);
                               }
-                            } catch (err) {
-                              setSftpStatus({
-                                ok: false,
-                                message:
-                                  err instanceof Error
-                                    ? err.message
-                                    : 'Unknown network error',
-                              });
-                            }
-                          }}
-                        >
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          className="px-1.5 py-0.5 rounded-md bg-[#4cceac]/10 text-[10px] text-[#4cceac] hover:bg-[#4cceac]/20"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const baseUrl =
-                              import.meta.env.VITE_SERVER_URL ||
-                              'http://localhost:3000';
-                            const base = remotePath.endsWith('/')
-                              ? remotePath.slice(0, -1)
-                              : remotePath;
-                            const fullPath =
-                              base === '/'
-                                ? `/${item.name}`
-                                : `${base}/${item.name}`;
-                            try {
-                              const res = await fetch(
-                                `${baseUrl}/api/sftp/read?path=${encodeURIComponent(
-                                  fullPath,
-                                )}`,
-                              );
-                              const data = await res.json();
-                              if (res.ok && data.ok) {
-                                setEditorPath(fullPath);
-                                setEditorContent(data.content ?? '');
-                                setEditorMode('edit');
-                              } else {
-                                setSftpStatus({
-                                  ok: false,
-                                  message:
-                                    data.error || 'Unable to read file content',
-                                });
+                            }}
+                            onDoubleClick={() => {
+                              if (!isDir) {
+                                openRemoteMedia(fullPath);
                               }
-                            } catch (err) {
-                              setSftpStatus({
-                                ok: false,
-                                message:
-                                  err instanceof Error
-                                    ? err.message
-                                    : 'Unknown network error',
-                              });
-                            }
-                          }}
-                        >
-                          Edit
-                        </button>
-                      </>
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter" && e.key !== " ") return;
+                              e.preventDefault();
+                              if (isDir) {
+                                navigateToPath(fullPath);
+                                return;
+                              }
+                              openRemoteMedia(fullPath);
+                            }}
+                            className={`px-4 py-2.5 grid grid-cols-12 border-t border-[#0f172a] hover:bg-white/[0.04] transition-colors cursor-pointer ${
+                              listBusy ? "pointer-events-none opacity-80" : ""
+                            }`}
+                          >
+                            <div
+                              className={`col-span-5 truncate pr-2 cursor-pointer ${getBrandColorClass(item.name)}`}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="truncate">{item.name}</span>
+                                {isDir && directoryHasSizeJs[fullPath] && (
+                                  <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                )}
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex items-center justify-center text-[#9ca3af]">
+                              {isDir ? (
+                                <FolderIcon className="w-4 h-4" />
+                              ) : ext === "html" || ext === "htm" ? (
+                                <GlobeAltIcon className="w-4 h-4" />
+                              ) : ext === "js" || ext === "ts" ? (
+                                <CodeBracketIcon className="w-4 h-4" />
+                              ) : (
+                                <DocumentTextIcon className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="col-span-2 text-right text-[#9ca3af]">
+                              {isDir ? "—" : formatSizeInMb(item.size)}
+                            </div>
+                            <div className="col-span-2 text-right text-[#6b7280]">
+                              {item.modifyTime
+                                ? new Date(item.modifyTime).toLocaleDateString(
+                                    undefined,
+                                    { day: "2-digit", month: "2-digit" },
+                                  )
+                                : "—"}
+                            </div>
+                            <div className="col-span-1 flex items-center justify-end gap-1">
+                              {!isDir &&
+                                canUseFileActionButtons &&
+                                isEditableFileName(item.name) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handleOpenEditor(fullPath);
+                                    }}
+                                    className="rounded-md bg-[#4cceac]/10 p-1 text-[#4cceac] hover:bg-[#4cceac]/20"
+                                    title="Edit file"
+                                  >
+                                    <PencilSquareIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              {canUseFileActionButtons && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleDeletePath(fullPath, isDir);
+                                  }}
+                                  disabled={deletingPath === fullPath}
+                                  className="rounded-md bg-rose-500/10 p-1 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                                  title={
+                                    isDir ? "Delete directory" : "Delete file"
+                                  }
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
-              );
-            })
+              </div>
+            </div>
+            {editorPath && canUseFileActionButtons && (
+              <div className="rounded-3xl border border-[#1f2937] bg-[#020617] p-4 space-y-3 shadow-lg">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-[#e5e7eb] font-mono truncate">
+                    {editorPath}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditorPath(null);
+                        setEditorContent("");
+                      }}
+                      className="rounded-xl bg-white/5 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveEditor()}
+                      disabled={savingFile}
+                      className="rounded-xl bg-[#4cceac]/20 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-50"
+                    >
+                      {savingFile ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={editorContent}
+                  onChange={(e) => setEditorContent(e.target.value)}
+                  className="w-full min-h-[220px] bg-[#020617] border border-[#1f2937] rounded-2xl px-4 py-3 text-xs font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
+                />
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {editorPath && (
-        <div className="mt-6 rounded-3xl border border-[#1f2937] bg-[#020617] p-5 space-y-3 shadow-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                {editorMode === 'edit' ? 'Edit file' : 'View file'}
-              </span>
-              <span className="text-xs text-[#e5e7eb] truncate max-w-[420px]">
-                {editorPath}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {editorMode === 'edit' && (
-                <button
-                  type="button"
-                  disabled={savingFile}
-                  onClick={async () => {
-                    if (!editorPath) return;
-                    setSavingFile(true);
-                    try {
-                      const baseUrl =
-                        import.meta.env.VITE_SERVER_URL ||
-                        'http://localhost:3000';
-                      const res = await fetch(`${baseUrl}/api/sftp/write`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          path: editorPath,
-                          content: editorContent,
-                        }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok || !data.ok) {
-                        setSftpStatus({
-                          ok: false,
-                          message:
-                            data.error ||
-                            'Unable to save file content to SFTP server',
-                        });
-                      } else {
-                        setSftpStatus({
-                          ok: true,
-                          message: `Saved file ${editorPath}`,
-                        });
-                      }
-                    } catch (err) {
-                      setSftpStatus({
-                        ok: false,
-                        message:
-                          err instanceof Error
-                            ? err.message
-                            : 'Unknown network error',
-                      });
-                    } finally {
-                      setSavingFile(false);
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#4cceac] text-[#020617] text-[10px] font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {savingFile ? 'Saving…' : 'Save changes'}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setEditorPath(null);
-                  setEditorContent('');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-white/5 text-[10px] text-[#e5e7eb] uppercase tracking-widest hover:bg-white/10"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-          <textarea
-            value={editorContent}
-            onChange={(e) =>
-              editorMode === 'edit'
-                ? setEditorContent(e.target.value)
-                : undefined
-            }
-            readOnly={editorMode === 'view'}
-            className="w-full min-h-[320px] bg-[#020617] border border-[#1f2937] rounded-2xl px-4 py-3 text-sm font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
-          />
-        </div>
-      )}
-
-      {sftpStatus && (
-        <div className="fixed top-4 right-4 z-50">
-          <div className="w-80 rounded-2xl bg-[#020617] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] p-4 relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#4cceac]/10 blur-3xl" />
-            <div className="relative flex items-start gap-3">
+        <aside className="xl:sticky xl:h-[calc(100vh-5rem)]">
+          <div className="h-[calc(100vh-5rem)] min-h-[22rem] xl:min-h-0 max-h-[32rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-3 sm:p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
+            <div className="flex-1 min-h-0 flex justify-center">
               <div
-                className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center ${
-                  sftpStatus.ok
-                    ? 'bg-[#4cceac]/20 text-[#4cceac]'
-                    : 'bg-rose-500/20 text-rose-300'
+                className={`w-full h-full max-h-[calc(100vh-15rem)] bg-[#0f172a] ring-1 ring-white/10 ${
+                  config.category === "Display"
+                    ? "rounded-2xl p-2"
+                    : "rounded-[2.25rem] p-2.5"
                 }`}
               >
-                <span className="text-lg">
-                  {sftpStatus.ok ? '✓' : '!'}
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-xs font-semibold text-white">
-                      {sftpStatus.ok ? 'SFTP Connected' : 'SFTP Connection Failed'}
-                    </h2>
-                    <p className="text-[11px] text-[#94a3b8] mt-0.5">
-                      {sftpStatus.ok
-                        ? 'Connection established successfully.'
-                        : 'Unable to reach the SFTP endpoint.'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSftpStatus(null)}
-                    className="text-[#64748b] hover:text-white text-xs"
-                    aria-label="Close notification"
-                  >
-                    ×
-                  </button>
+                <div
+                  className={`relative overflow-hidden bg-black h-full ${
+                    config.category === "Display"
+                      ? "rounded-xl"
+                      : "rounded-[1.8rem]"
+                  }`}
+                >
+                  {previewUrl ? (
+                    <iframe
+                      src={previewUrl}
+                      title={`${config.category.toLowerCase()}-preview`}
+                      className="absolute inset-0 h-full w-full border-0 bg-white"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      allow="autoplay; fullscreen; encrypted-media"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-white/70 px-3 text-center">
+                      Preview unavailable for current path.
+                    </div>
+                  )}
+                  {resolvingPreview && (
+                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/35 text-[10px] font-bold uppercase tracking-widest text-white">
+                      Loading preview...
+                    </div>
+                  )}
                 </div>
-                <p className="mt-2 text-[11px] text-[#e5e7eb] break-words leading-relaxed">
-                  {sftpStatus.message}
-                </p>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </aside>
+      </div>
     </div>
   );
 };
 
 export default ManageDemo;
-

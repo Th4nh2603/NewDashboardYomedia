@@ -58,11 +58,14 @@ const ImageGenerator: React.FC = () => {
         },
       });
 
-      let imageUrl = null;
-      if (response.candidates && response.candidates[0] && response.candidates[0].content) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+      let imageUrl: string | null = null;
+      const candidate = response.candidates?.[0];
+      const parts = candidate?.content?.parts;
+      if (candidate?.content && parts) {
+        for (const part of parts) {
+          const data = part.inlineData?.data;
+          if (data) {
+            imageUrl = `data:image/png;base64,${data}`;
             break;
           }
         }

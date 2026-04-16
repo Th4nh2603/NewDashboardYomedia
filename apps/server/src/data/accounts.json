@@ -6,6 +6,7 @@
       "email": "thanh.ntm@pinetech.vn",
       "phone": "0902392603",
       "role": "admin",
+      "roleTitle": "Administrator",
       "status": "active"
     },
     {
@@ -14,6 +15,7 @@
       "email": "tien.nht@pinetech.vn",
       "phone": "0972719647",
       "role": "adsop",
+      "roleTitle": "Ad Operations Executive",
       "status": "active"
     },
     {
@@ -22,6 +24,7 @@
       "email": "dung.lvp@pinetech.vn",
       "phone": " 0919417739",
       "role": "adsop",
+      "roleTitle": "Ad Operations Executive",
       "status": "active"
     },
     {
@@ -30,16 +33,44 @@
       "email": "linh.ltm@pinetech.vn",
       "phone": " 0979614993",
       "role": "adsop",
+      "roleTitle": "Ad Operations Executive",
       "status": "active"
     },
     {
       "id": "u_005",
       "name": "Quan Huynh Anh",
-      "email": "anh.qha@pinetech.vn",
-      "phone": " 0939174589",
+      "email": "anh.qh@pinetech.vn",
+      "phone": "0939174589",
       "role": "adsopmanager",
+      "roleTitle": "Deputy Head of Programmatic",
+      "status": "active"
+    },
+    {
+      "id": "u_006",
+      "name": "Pham Le Tran",
+      "email": "tran.pl@pinetech.vn",
+      "phone": "0794546511",
+      "role": "design",
+      "roleTitle": "Design",
+      "status": "active"
+    },
+    {
+      "id": "u_007",
+      "name": "Guest",
+      "email": "media@pinetech.vn",
+      "phone": "0123456789",
+      "role": "guest",
+      "roleTitle": "Guest",
+      "status": "active"
+    },
+    {
+      "id": "u_008",
+      "name": "Nguyen Hoa",
+      "email": "hoa.nguyen@pinetech.vn",
+      "phone": "0963694328",
+      "role": "adsopmanager",
+      "roleTitle": "Media Director",
       "status": "active"
     }
   ]
 }
-

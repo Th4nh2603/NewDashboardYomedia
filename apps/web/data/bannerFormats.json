@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Mobile Inpage",
+    "size": "384x683",
+    "position": "Middle Center",
+    "fileType": "HTML5",
+    "category": "Mobile",
+    "value": "inpage-mb",
+    "device": "mb"
+  },
+  {
+    "name": "Mobile Masthead",
+    "size": "480x270",
+    "position": "Top Center",
+    "fileType": "HTML5",
+    "category": "Mobile",
+    "value": "masthead-mb",
+    "device": "mb"
+  },
+  {
+    "name": "Desktop Masthead",
+    "size": "970x250",
+    "position": "Top Center",
+    "fileType": "HTML5",
+    "category": "Display",
+    "value": "masthead-pc",
+    "device": "pc"
+  }
+]

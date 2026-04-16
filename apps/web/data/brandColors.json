@@ -1,0 +1,57 @@
+[
+  {
+    "keyword": "enchanteur",
+    "className": "text-yellow-300",
+    "match": "any"
+  },
+  {
+    "keyword": "enc",
+    "className": "text-yellow-300",
+    "match": "start"
+  },
+  {
+    "keyword": "romano",
+    "className": "text-green-300",
+    "match": "any"
+  },
+  {
+    "keyword": "maxkleen",
+    "className": "text-violet-300",
+    "match": "any"
+  },
+  {
+    "keyword": "cj",
+    "className": "text-blue-200",
+    "match": "any"
+  },
+  {
+    "keyword": "carrie",
+    "className": "text-blue-200",
+    "match": "any"
+  },
+  {
+    "keyword": "gervenne",
+    "className": "text-pink-300",
+    "match": "any"
+  },
+  {
+    "keyword": "bio",
+    "className": "text-blue-400",
+    "match": "any"
+  },
+  {
+    "keyword": "bbhh",
+    "className": "text-red-300",
+    "match": "any"
+  },
+  {
+    "keyword": "big-bang",
+    "className": "text-red-300",
+    "match": "any"
+  },
+  {
+    "keyword": "sacombank",
+    "className": "text-blue-500",
+    "match": "any"
+  }
+]

@@ -1,26 +1,188 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import JSZip from "jszip";
 import {
   CloudArrowUpIcon,
   PhotoIcon,
   XMarkIcon,
-  CheckCircleIcon,
-  CpuChipIcon,
   BoltIcon,
   SignalIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
-  ArrowDownTrayIcon,
   ClipboardDocumentIcon,
+  FolderOpenIcon,
 } from "@heroicons/react/24/outline";
 import demoConfig from "../data/demoConfig.json";
-import defaultImages from "../data/defaultImages.json";
-import scriptReplacements from "../data/scriptReplacements.json";
+import brandColors from "../data/brandColors.json";
+import { openYomediaDemoPreview } from "../components/OpenDemo";
+import { useAuth } from "../contexts/AuthContext";
+
+/** Default manifest entry: replace file path with inlined PNG (s_on). */
+const S_ON_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzACXMChfymT9mWbJMv3+McuXYpbWoq14AAAHlSURBVEjHvZaJjoMwDES9gYSE+5j//9alpsaUhk1opbVUIIWn8Tgn/cSitEbC2jL6CcUgOoWxZRK0FA9zRimJKXoJlheIonHQUDLKM6hyKVEFlcsKewYN3SRJuXsk5XLe7xVS0FI65u61QJRZmAZoXkjKNNgDGI7J0pXg2PujPybrgyTFBX0HVNKo3cPfAhQHSYoKBgf9zLvN3wT0KkkRQb8AO6j+AjDvkiv4xtUzDmC7/oa1td4LYNxHAb1lWgECsr+BGGlYsttzJSv5hUcQERTcjbUsuTYcPeOHNoujA8cJZH3Xcv8PXNiwcXuiCy5A6vih5mvQPrJqLA5Klo6zPJhMgZJlAbDjOR/sWaYCiPF8MPDTf4Ljp+DCfdDxu/kOOAGjDBr5M9WPMnS4Nwu+NgI+NfsYKC8qxgduDDLkRLMpOM5gWO+z57ncslFZPc7T6gyODq7mAjX0wCepTWQiD+5lPjb1im9TpDqM8djS0XYHkGHHheV8xWJ8sQqTgML1JPlymKvl0VfQGeRnDFudnBfB6wW5LRBIyFHyFcE/twApvOa7kAqmNx3lGmnYG9ucn5UztzZWv3NUfruVc5SfHB5uaZbvJyubxyl4gzRXh0CTY+/7Y+f3B11NOI0peH0sN/HT/C/3pivwmDak6QAAAABJRU5ErkJggg==";
+
+/** Default manifest entry: replace file path with inlined PNG (s_off). */
+const S_OFF_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzAJkmGWYOsj8H8thZf+W/jHJMzPy/nOYAAAFuSURBVEjHrdZZkoMwDATQJhIGk7CO7n/WgTKgYrxhMv2TBR4CF7aFKhTDTHuYTfAUH1om/AmxzUJGOGQ8mGNKo9AgHbJhyMjGBqDFnbBCdSVSIaFQQl2ZRHhc8iOEYgc6oUVZ+ICEwhgHDUJppzp5s4gUrAeRJVUSwYLtS9a8UiURKjgPkoawK/TLjSI5yBWM93SdXGEPveZ83iv4BFsW4CUKXf3mdG85rlKB3F8/+7ke3A40pxOp93E9ykkMfrpDfga9BjgNVernLajHmqsD3YDo3U91eahSXQF0QytdWwwb9/vdFkB1TpbASUdVJedhv4/LVfJecwlD5/TNUWmOmmMMNtd3tfu479608iCay+yYz2lVPZqPvEIOLzj5pcPAyzJmIEWXx3obwSkKTWJBnrp3vGByC6jbeMGnm86X21yxtA+3cvN186CyoJ7Cm89pn7VkFGkCLaUdP2w77f82uhpDPsu01mpZMSjczf8CCMYlsaG5I9IAAAAASUVORK5CYII=";
+
+const BTN_REPLAY_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAM1BMVEUAAAD///////////////////////////////////////////////////////////////+3leKCAAAAEHRSTlMAf+8/Dx8vv49vX9+fT6/P7uaPeAAAANZJREFUOMvtkd0SxBAMRiOon6rm/Z92TadEo2bc7MXO7LkThy8BfhebXDRr6oGU1lS7Ex5L5oZEatmMMkdfBHXR+qTBNCcxZys7IrRDTMNxtayyCA8sdhPsZbk9s5HFwOV8LxlFjO7KrRPOYIw4/5iFOoDxUjyIcTJo1mLmsqWpGBOprjwXNaQo3sy9Prcq289RyPeiriJuQ4yGHqzmXk3r7wJMfga9NiVf1aMHyL8e4VFklyNoQBJevQ1G/OglC29EFNcpmGB8r3XXjdjg8LJytPDnC3wA/ZYX0JaBReoAAAAASUVORK5CYII=";
+
+const BTN_PLAY_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEMAAABOCAMAAABMilufAAAAVFBMVEUAAAD///////////////////////////////////////////////////////////////////////////////////////////////////////////8wXzyWAAAAG3RSTlMADPUc33ftqifPtpVRQuZrODHVx7+djIRiWRRgp4d+AAABBklEQVRYw6TQyRWCQAAEUQYERxBZ3O3887QvvA6gKoB/qGasDU6aCjc0LNhw+4wNh7bo6FWogbZI6TJjw50rMbKFG7p9iJEtwMiWjhtq3wUY2QKMbFmJkS3EyBZquNMXG+6+EiNbuKG2L8DIFmBky4YN9+yIkS3Y8JYrNtxjI0a2ACNbiJEtxMgWbLjpxw0NPTeULSKNFRrZItiw2MDt/2bM5AagEASiEcMSDvjN96D9N2oRHmYa4EBglkcxw5Rgpxn4GzMl+Lk18RokSqDJa+I9SrThPfv/8BlGtOEz3Xu2rEOQtb3ju0dtgi7mHd9NaxN0dQ88u7BBwHIy8GzLBgHry3fmeAH5pBXvjExH/QAAAABJRU5ErkJggg==";
+
+const BG_VIDEOS_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAQMAAABrVFYkAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAACZJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAACIOkBWAAFeWY6hAAAAAElFTkSuQmCC";
+
+/**
+ * Ảnh đã có bản data URL cố định (s_on, s_off, nút, nền video) — không ghi đè bằng base64 từ file upload.
+ */
+const BUNDLED_DEMO_ASSET_IMAGE_BASENAMES = new Set(
+  [
+    "s_on copy.png",
+    "s_off copy.png",
+    "preplaytvc0001.png",
+    "playbtn0001.png",
+    "htt.png",
+  ].map((s) => s.toLowerCase()),
+);
+
+function isBundledDemoAssetImageName(name: string): boolean {
+  const leaf = (name.split(/[/\\]/).pop() ?? name).trim().toLowerCase();
+  return BUNDLED_DEMO_ASSET_IMAGE_BASENAMES.has(leaf);
+}
+
+/** Thay manifest ảnh chuẩn bằng data URL cố định (nháy đơn / nháy kép, %20 hoặc space). */
+function replaceBundledDemoStaticImages(content: string): string {
+  let c = content;
+  const sq = [
+    [
+      `'id': 's_on', 'src':'images/s_on%20copy.png'`,
+      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_on', 'src':'images/s_on copy.png'`,
+      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_off', 'src':'images/s_off%20copy.png'`,
+      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_off', 'src':'images/s_off copy.png'`,
+      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
+    ],
+    [
+      `'id': 'btn_replay', 'src':'images/preplaytvc0001.png'`,
+      `'id': 'btn_replay',\n            'src': '${BTN_REPLAY_DATA_URL}'`,
+    ],
+    [
+      `'id': 'btn_play', 'src':'images/playBtn0001.png'`,
+      `'id': 'btn_play',\n            'src': '${BTN_PLAY_DATA_URL}'`,
+    ],
+    [
+      `'id': 'bg_videos', 'src':'images/htt.png'`,
+      `'id': 'bg_videos',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
+    ],
+  ] as const;
+  for (const [from, to] of sq) c = c.replaceAll(from, to);
+
+  const dqOn = `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`;
+  const dqOff = `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`;
+  const dqReplay = `"id": "btn_replay",\n            "src": "${BTN_REPLAY_DATA_URL}"`;
+  const dqPlay = `"id": "btn_play",\n            "src": "${BTN_PLAY_DATA_URL}"`;
+  const dqBg = `"id": "bg_videos",\n            "src": "${BG_VIDEOS_DATA_URL}"`;
+  for (const [from, to] of [
+    [`"id": "s_on", "src": "images/s_on%20copy.png"`, dqOn],
+    [`"id": "s_on", "src":"images/s_on%20copy.png"`, dqOn],
+    [`"id": "s_on", "src": "images/s_on copy.png"`, dqOn],
+    [`"id": "s_on", "src":"images/s_on copy.png"`, dqOn],
+    [`"id": "s_off", "src": "images/s_off%20copy.png"`, dqOff],
+    [`"id": "s_off", "src":"images/s_off%20copy.png"`, dqOff],
+    [`"id": "s_off", "src": "images/s_off copy.png"`, dqOff],
+    [`"id": "s_off", "src":"images/s_off copy.png"`, dqOff],
+    [`"id": "btn_replay", "src": "images/preplaytvc0001.png"`, dqReplay],
+    [`"id": "btn_replay", "src":"images/preplaytvc0001.png"`, dqReplay],
+    [`"id": "btn_play", "src": "images/playBtn0001.png"`, dqPlay],
+    [`"id": "btn_play", "src":"images/playBtn0001.png"`, dqPlay],
+    [`"id": "bg_videos", "src": "images/htt.png"`, dqBg],
+    [`"id": "bg_videos", "src":"images/htt.png"`, dqBg],
+  ] as const) {
+    c = c.replaceAll(from, to);
+  }
+  // Fallback cho object literal nhiều dòng (id và src không cùng 1 dòng).
+  c = c.replace(
+    /(id\s*:\s*["']s_on["'][\s\S]*?src\s*:\s*["'])images\/s_on(?:%20| )copy\.png(["'])/g,
+    `$1${S_ON_DATA_URL}$2`,
+  );
+  c = c.replace(
+    /(id\s*:\s*["']s_off["'][\s\S]*?src\s*:\s*["'])images\/s_off(?:%20| )copy\.png(["'])/g,
+    `$1${S_OFF_DATA_URL}$2`,
+  );
+  c = c.replace(
+    /(id\s*:\s*["']btn_replay["'][\s\S]*?src\s*:\s*["'])images\/preplaytvc0001\.png(["'])/g,
+    `$1${BTN_REPLAY_DATA_URL}$2`,
+  );
+  c = c.replace(
+    /(id\s*:\s*["']btn_play["'][\s\S]*?src\s*:\s*["'])images\/playBtn0001\.png(["'])/g,
+    `$1${BTN_PLAY_DATA_URL}$2`,
+  );
+  c = c.replace(
+    /(id\s*:\s*["']bg_videos["'][\s\S]*?src\s*:\s*["'])images\/htt\.png(["'])/g,
+    `$1${BG_VIDEOS_DATA_URL}$2`,
+  );
+  return c;
+}
+
+const DEMO_MANIFEST_JQUERY_SRC =
+  "https://media.yomedia.vn/createjs/jquery-2022.min.js?1726036079413";
+const DEMO_MANIFEST_ANWIDGET_SRC =
+  "https://demo.yomedia.vn/yomedia/components/sdk/anwidget.js?1726036079413";
+const DEMO_MANIFEST_VIDEO_JS_SRC =
+  "https://demo.yomedia.vn/yomedia/components/video/src/video.js?1726036079413";
+const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
+  "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
+
+/** CDN / relative script URLs in createjs manifest → fixed demo.yomedia / media.yomedia URLs. */
+function replaceDemoManifestScriptUrls(content: string): string {
+  let c = content;
+  c = c.replace(
+    /src:\s*"https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^"]*"/g,
+    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*'https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^']*'/g,
+    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*"components\/sdk\/anwidget\.js[^"]*"/g,
+    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*'components\/sdk\/anwidget\.js[^']*'/g,
+    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*"components\/video\/src\/video\.js[^"]*"/g,
+    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*'components\/video\/src\/video\.js[^']*'/g,
+    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*"components\/ui\/src\/image\.js[^"]*"/g,
+    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
+  );
+  c = c.replace(
+    /src:\s*'components\/ui\/src\/image\.js[^']*'/g,
+    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
+  );
+  return c;
+}
 
 interface ErrorState {
   message: string;
-  type: "validation" | "processing" | "system";
+  type: "validation" | "processing" | "system" | "partial";
   action?: () => void;
   actionLabel?: string;
 }
@@ -34,6 +196,7 @@ interface ImageBase64Entry {
 interface UploadedFile {
   id: string;
   file: File;
+  relativePath: string;
   preview: string;
   status: "uploading" | "success" | "error";
   timestamp: number;
@@ -41,16 +204,152 @@ interface UploadedFile {
   imageBase64?: ImageBase64Entry;
 }
 
+interface DemoTitleOption {
+  id: string;
+  title: string;
+  size: string | string[];
+}
+
+/** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
+function readAllDirEntries(
+  reader: FileSystemDirectoryReader,
+): Promise<FileSystemEntry[]> {
+  return new Promise((resolve, reject) => {
+    const acc: FileSystemEntry[] = [];
+    const readBatch = () => {
+      reader.readEntries(
+        (batch) => {
+          if (batch.length === 0) {
+            resolve(acc);
+            return;
+          }
+          acc.push(...batch);
+          readBatch();
+        },
+        (err) => reject(err),
+      );
+    };
+    readBatch();
+  });
+}
+
+/** Đường dẫn tương đối khi kéo-thả folder — không gán vào File (webkitRelativePath chỉ đọc). */
+const dropRelativePathByFile = new WeakMap<File, string>();
+
+/**
+ * Thu thập mọi file trong cây thư mục (kéo-thả folder).
+ * Lưu relative path trong WeakMap để dedupe đúng khi trùng tên ở subfolder.
+ */
+function readEntry(
+  entry: FileSystemEntry,
+  pathPrefix: string,
+): Promise<File[]> {
+  return new Promise((resolve, reject) => {
+    if (entry.isFile) {
+      (entry as FileSystemFileEntry).file(
+        (file: File) => {
+          dropRelativePathByFile.set(file, `${pathPrefix}${file.name}`);
+          resolve([file]);
+        },
+        (err) => reject(err),
+      );
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      const dirPath = `${pathPrefix}${entry.name}/`;
+      void readAllDirEntries(reader)
+        .then(async (entries) => {
+          const nested = await Promise.all(
+            entries.map((e) => readEntry(e, dirPath)),
+          );
+          resolve(nested.flat());
+        })
+        .catch(reject);
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+/**
+ * Khi kéo thả folder từ Explorer, dataTransfer.files đôi khi có File giả (0 byte, không đuôi).
+ */
+function isDroppedFolderPlaceholder(file: File): boolean {
+  if (file.size !== 0) return false;
+  const base = file.name.split(/[/\\]/).pop() ?? file.name;
+  if (base.includes(".")) return false;
+  const t = file.type || "";
+  if (t !== "" && t !== "application/octet-stream") return false;
+  return true;
+}
+
+function fileDedupeKey(f: File): string {
+  const rel =
+    dropRelativePathByFile.get(f)?.trim() ||
+    (f as File & { webkitRelativePath?: string }).webkitRelativePath?.trim();
+  if (rel) return `${rel}\0${f.size}\0${f.lastModified}`;
+  return `${f.name}\0${f.size}\0${f.lastModified}`;
+}
+
+function mergeDroppedFiles(list: File[]): File[] {
+  const seen = new Set<string>();
+  const out: File[] = [];
+  for (const f of list) {
+    const k = fileDedupeKey(f);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(f);
+  }
+  return out;
+}
+
 const BuildDemo: React.FC = () => {
+  const { user } = useAuth();
+  const normalizedRole = (user?.role || "").toLowerCase();
   const brands = (demoConfig as any).ListBrands ?? [];
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
   const productCates = (demoConfig as any).ListProductCate ?? [];
+  const productCateIdsByBrand = (demoConfig as any).ProductCateIdsByBrand ?? {};
+  const getProductCateOptionsByBrand = (brandId: string) => {
+    if (!brandId?.trim()) {
+      return productCates.filter(
+        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+      );
+    }
+    const allowedRaw: string[] | undefined =
+      productCateIdsByBrand[brandId] ??
+      Object.entries(productCateIdsByBrand).find(
+        ([k]) => k.toLowerCase() === brandId.toLowerCase(),
+      )?.[1];
+    if (!allowedRaw?.length) {
+      return productCates.filter(
+        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+      );
+    }
+    const allowed = new Set(
+      allowedRaw.map((id) => String(id).trim().toLowerCase()),
+    );
+    allowed.add("all");
+    return productCates.filter((item: any) =>
+      allowed.has(
+        String(item?.id ?? "")
+          .trim()
+          .toLowerCase(),
+      ),
+    );
+  };
   const seasons = ["Spring", "Summer", "Autumn", "Winter"];
 
   const now = new Date();
   const currentYearLabel = String(now.getFullYear());
   const currentMonthLabel = String(now.getMonth() + 1).padStart(2, "0");
+  const getSeasonByMonth = (monthValue: string) => {
+    const month = Number.parseInt(monthValue, 10);
+    if (month >= 3 && month <= 5) return "Spring";
+    if (month >= 6 && month <= 8) return "Summer";
+    if (month >= 9 && month <= 11) return "Autumn";
+    return "Winter";
+  };
 
   const currentYearId =
     years.find(
@@ -65,8 +364,12 @@ const BuildDemo: React.FC = () => {
     )?.id ??
     months[0]?.id ??
     "standard";
+  const currentSeason = getSeasonByMonth(currentMonthLabel);
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const ignoreNextDropzoneClick = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedTextFile, setSelectedTextFile] = useState<{
@@ -79,27 +382,260 @@ const BuildDemo: React.FC = () => {
     quality: currentYearId,
     mode: currentMonthId,
     productCate: productCates[0]?.id ?? "",
-    season: seasons[0] ?? "Spring",
+    season: currentSeason,
   });
   const [sourceUrl, setSourceUrl] = useState("");
-  const [outputLink, setOutputLink] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [directoryExists, setDirectoryExists] = useState(false);
+  const [checkingDirectory, setCheckingDirectory] = useState(false);
+  const [replacementName, setReplacementName] = useState("");
   const [error, setError] = useState<ErrorState | null>(null);
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
-  const [sendStatus, setSendStatus] = useState<
-    "idle" | "sending" | "success" | "error"
-  >("idle");
   const [sendError, setSendError] = useState<string | null>(null);
-  const [lastSentFileName, setLastSentFileName] = useState<string | null>(null);
-  /** Nội dung file HTML/JS đã replace khi bấm Generate (bootstrap callback support: → yomedia) */
-  const [replacedContent, setReplacedContent] = useState<string | null>(null);
-  const [convertedImages, setConvertedImages] = useState<string[]>([]);
+  const [sendingToSftp, setSendingToSftp] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [demoTitleOptions, setDemoTitleOptions] = useState<DemoTitleOption[]>(
+    [],
+  );
+  const [selectedDemoTitle, setSelectedDemoTitle] = useState("");
   const [metrics, setMetrics] = useState({
     gpu: 12,
     ram: 2.4,
     latency: 18,
     health: "Optimal",
   });
+  const productCateOptions = getProductCateOptionsByBrand(config.model);
+  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const sftpRoleHeaders = normalizedRole
+    ? { "x-user-role": normalizedRole }
+    : undefined;
+
+  const getItemLabelById = (list: any[], id: string) => {
+    const found = list.find((item: any) => item.id === id);
+    return String(found?.label ?? found?.id ?? id ?? "").trim();
+  };
+
+  const normalizePathToken = (value: string) =>
+    value.trim().replace(/\s+/g, "-").replace(/\/+/g, "-");
+
+  const normalizeMatchToken = (value: string) =>
+    value
+      .trim()
+      .replace(/\.[^.]+$/, "")
+      .toLowerCase();
+
+  const getUploadedNameToken = () => {
+    const firstHtml = files.find((f) =>
+      ["text/html", "application/xhtml+xml"].includes(f.file.type),
+    );
+    const firstJs = files.find((f) =>
+      ["application/javascript", "text/javascript"].includes(f.file.type),
+    );
+    const picked = firstHtml ?? firstJs ?? files[0];
+    if (!picked) return "";
+    return normalizePathToken(picked.file.name.replace(/\.[^.]+$/, ""));
+  };
+
+  const autoUploadNameToken = getUploadedNameToken();
+  const effectiveUploadNameToken = replacementName.trim()
+    ? normalizePathToken(replacementName.trim())
+    : autoUploadNameToken;
+  /** Tên segment path cuối phải > 5 ký tự (tối thiểu 6). */
+  const uploadNameValid = effectiveUploadNameToken.length > 5;
+  const showUploadNameInput =
+    directoryExists ||
+    (files.length > 0 &&
+      (autoUploadNameToken.length === 0 || autoUploadNameToken.length <= 5));
+
+  const fileNameTokens = React.useMemo(() => {
+    const out = new Set<string>();
+    for (const item of files) {
+      const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      if (ext !== ".html" && ext !== ".htm") continue;
+      const token = normalizeMatchToken(String(item.file.name ?? ""));
+      if (token) out.add(token);
+    }
+    return out;
+  }, [files]);
+
+  const getBrandColorClass = (name: string) => {
+    const lower = name.toLowerCase();
+    const match = (
+      brandColors as {
+        keyword: string;
+        className: string;
+        match?: "start" | "any";
+      }[]
+    ).find((item) => {
+      const kw = item.keyword.toLowerCase();
+      if (!kw) return false;
+      if (item.match === "start") {
+        return lower.startsWith(kw);
+      }
+      return lower.includes(kw);
+    });
+    return match?.className || "text-[#e5e7eb]";
+  };
+
+  const buildRemoteSourcePath = () => {
+    const year = getItemLabelById(years, config.quality);
+    const month = getItemLabelById(months, config.mode).padStart(2, "0");
+    const brand = normalizePathToken(
+      getItemLabelById(brands, config.model).toLowerCase(),
+    );
+    const productCate = normalizePathToken(
+      getItemLabelById(productCates, config.productCate).toLowerCase(),
+    );
+    const season = normalizePathToken(config.season.toLowerCase());
+    const uploadName = replacementName.trim()
+      ? normalizePathToken(replacementName.trim())
+      : getUploadedNameToken();
+
+    const segments = [year, month, brand, productCate];
+    if (uploadName) segments.push(uploadName);
+
+    return segments.filter(Boolean).join("/");
+  };
+
+  useEffect(() => {
+    setSourceUrl(buildRemoteSourcePath());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config, files, replacementName]);
+
+  useEffect(() => {
+    const targetPath = sourceUrl.trim();
+    if (!targetPath || files.length === 0) {
+      setDirectoryExists(false);
+      setCheckingDirectory(false);
+      return;
+    }
+
+    let cancelled = false;
+    const checkDirectory = async () => {
+      setCheckingDirectory(true);
+      try {
+        const res = await fetch(
+          `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(`/script/demo/${targetPath}`)}`,
+          { headers: sftpRoleHeaders },
+        );
+        const data = await res.json();
+        if (!cancelled) {
+          const exists = Boolean(
+            res.ok &&
+            data?.ok &&
+            data?.exists &&
+            (data?.kind === "directory" ||
+              data?.kind === "file" ||
+              data?.kind === "symlink"),
+          );
+          setDirectoryExists(exists);
+        }
+      } catch {
+        if (!cancelled) {
+          setDirectoryExists(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingDirectory(false);
+        }
+      }
+    };
+
+    void checkDirectory();
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceUrl, files.length, baseUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDemoTitles = async () => {
+      try {
+        const res = await fetch(
+          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
+        );
+        const data = (await res.json()) as {
+          ok?: boolean;
+          items?: Array<{
+            id?: string;
+            title?: string;
+            size?: string | string[];
+          }>;
+        };
+        const items = Array.isArray(data.items)
+          ? data.items
+              .map((item) => ({
+                id: String(item?.id ?? "").trim(),
+                title: String(item?.title ?? "").trim(),
+                size: Array.isArray(item?.size)
+                  ? item.size
+                  : String(item?.size ?? "").trim(),
+              }))
+              .filter((item) => item.id && item.title)
+          : [];
+        if (!cancelled) {
+          setDemoTitleOptions(items);
+        }
+      } catch {
+        if (!cancelled) {
+          setDemoTitleOptions([]);
+        }
+      }
+    };
+    void loadDemoTitles();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (
+      selectedDemoTitle &&
+      !demoTitleOptions.some((item) => item.title === selectedDemoTitle)
+    ) {
+      setSelectedDemoTitle("");
+    }
+  }, [demoTitleOptions, selectedDemoTitle]);
+
+  const filteredDemoTitleOptions = React.useMemo(() => {
+    return demoTitleOptions.filter((item) => {
+      const sizesRaw = Array.isArray(item.size) ? item.size : [item.size];
+      return sizesRaw.some((s) => {
+        const token = normalizeMatchToken(String(s ?? ""));
+        return token && fileNameTokens.has(token);
+      });
+    });
+  }, [demoTitleOptions, fileNameTokens]);
+
+  useEffect(() => {
+    if (
+      selectedDemoTitle &&
+      !filteredDemoTitleOptions.some((item) => item.title === selectedDemoTitle)
+    ) {
+      setSelectedDemoTitle("");
+    }
+  }, [filteredDemoTitleOptions, selectedDemoTitle]);
+
+  useEffect(() => {
+    const monthLabel = getItemLabelById(months, config.mode).padStart(2, "0");
+    const seasonByMonth = getSeasonByMonth(monthLabel);
+    setConfig((prev) =>
+      prev.season === seasonByMonth ? prev : { ...prev, season: seasonByMonth },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.mode]);
+
+  useEffect(() => {
+    if (
+      productCateOptions.length > 0 &&
+      !productCateOptions.some((item: any) => item.id === config.productCate)
+    ) {
+      setConfig((prev) => ({
+        ...prev,
+        productCate: productCateOptions[0].id,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.model]);
 
   // Simulate real-time metrics
   useEffect(() => {
@@ -122,21 +658,6 @@ const BuildDemo: React.FC = () => {
     setIsDragging(true);
   }, []);
 
-  const readEntry = (entry: any): Promise<File[]> => {
-    return new Promise((resolve) => {
-      if (entry.isFile) {
-        entry.file((file: File) => resolve([file]));
-      } else if (entry.isDirectory) {
-        const reader = entry.createReader();
-        reader.readEntries(async (entries: any[]) => {
-          const files = await Promise.all(entries.map(readEntry));
-          resolve(files.flat());
-        });
-      } else {
-        resolve([]);
-      }
-    });
-  };
   const onDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -180,92 +701,18 @@ const BuildDemo: React.FC = () => {
       img.src = objectUrl;
     });
 
-  const applyImagesToJs = (
-    content: string,
-    imagePayload: { name: string; base64: string }[],
-  ) => {
-    if (imagePayload.length === 0) {
-      return { processed: content, converted: [] as string[] };
-    }
-
-    const lines = content.split(/\r?\n/);
-    const converted: string[] = [];
-
-    for (const img of imagePayload) {
-      const pathInContent = `images/${img.name}`;
-      const encodedName = encodeURIComponent(img.name);
-      const encodedPathInContent = `images/${encodedName}`;
-      const isDefaultImage = (defaultImages as string[]).includes(
-        pathInContent,
-      );
-      const base64Only = img.base64.includes(",")
-        ? img.base64.split(",")[1]!
-        : img.base64;
-      const dataUrlPng = `data:image/png;base64,${base64Only}`;
-      const dataUrl = isDefaultImage ? dataUrlPng : img.base64;
-      let foundIndex = -1;
-
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-        const searchName = img.name;
-        const hasPathEncoded = line.includes(encodedPathInContent);
-        const hasPath = line.includes(pathInContent);
-        const hasName = line.includes(searchName);
-        if (!hasPathEncoded && !hasPath && !hasName) continue;
-
-        const idx = hasPathEncoded
-          ? line.indexOf(encodedPathInContent)
-          : hasPath
-            ? line.indexOf(pathInContent)
-            : line.indexOf(searchName);
-        const replaceLength = hasPathEncoded
-          ? encodedPathInContent.length
-          : hasPath
-            ? pathInContent.length
-            : searchName.length;
-        const afterNameIndex = idx + replaceLength;
-        const nextQuoteIndex = line.indexOf('"', afterNameIndex);
-        const suffix =
-          nextQuoteIndex === -1
-            ? line.slice(afterNameIndex)
-            : line.slice(nextQuoteIndex);
-        const suffixAfterQuote = suffix.startsWith('"')
-          ? suffix.slice(1)
-          : suffix;
-
-        if (isDefaultImage) {
-          line = line.slice(0, idx) + dataUrlPng + line.slice(afterNameIndex);
-          lines[i] = line;
-        } else {
-          lines[i] =
-            `{type:createjs.Types.IMAGE, src:"${dataUrl}"${suffixAfterQuote}`;
-        }
-        foundIndex = i;
-        break;
-      }
-
-      if (foundIndex >= 0) {
-        converted.push(img.name);
-      }
-    }
-
-    return { processed: lines.join("\n"), converted };
-  };
-
-  const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
-  const TEXT_EXTS = [".html", ".htm", ".js"];
-
-  const applyScriptReplacements = (content: string) => {
-    let result = content;
-    (scriptReplacements as { name: string; base64: string }[]).forEach(
-      (item) => {
-        if (!item.name || !item.base64) return;
-        const escaped = item.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(escaped, "g");
-        result = result.replace(regex, item.base64);
-      },
+  const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+  const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
+  const TEXT_EXTS = [".html", ".htm", ".js", ".mjs"];
+  const formatBytes = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const exponent = Math.min(
+      Math.floor(Math.log(value) / Math.log(1024)),
+      units.length - 1,
     );
-    return result;
+    const size = value / Math.pow(1024, exponent);
+    return `${size >= 10 ? size.toFixed(0) : size.toFixed(1)} ${units[exponent]}`;
   };
 
   const handleFiles = async (newFiles: FileList | null) => {
@@ -273,71 +720,114 @@ const BuildDemo: React.FC = () => {
     setError(null);
 
     const validEntries: { file: File }[] = [];
-    const errors: string[] = [];
+    const validationErrors: string[] = [];
 
     Array.from(newFiles).forEach((file) => {
+      if (isDroppedFolderPlaceholder(file)) {
+        return;
+      }
       const ext = `.${file.name.split(".").pop() ?? ""}`.toLowerCase();
       const isImageExt = IMAGE_EXTS.includes(ext);
       const isTextExt = TEXT_EXTS.includes(ext);
+      const isVideoExt = VIDEO_EXTS.includes(ext);
       const isSupportedMime =
         file.type.startsWith("image/") ||
+        file.type.startsWith("video/") ||
         [
           "text/html",
           "application/xhtml+xml",
           "application/javascript",
           "text/javascript",
+          "text/jsx",
         ].includes(file.type);
 
-      if (file.size > 10 * 1024 * 1024) {
-        errors.push(`${file.name} exceeds 10MB limit.`);
+      const maxSize = isVideoExt ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        validationErrors.push(
+          `${file.name} exceeds ${isVideoExt ? "500MB" : "10MB"} limit.`,
+        );
         return;
       }
-      if (!isImageExt && !isTextExt && !isSupportedMime) {
-        errors.push(
-          `${file.name} is not a supported format (image/html/js only).`,
+      if (!isImageExt && !isTextExt && !isVideoExt && !isSupportedMime) {
+        validationErrors.push(
+          `${file.name} is not a supported format (image/video/html/js only).`,
         );
         return;
       }
       validEntries.push({ file });
     });
 
-    const fileArray: UploadedFile[] = await Promise.all(
-      validEntries.map(async ({ file }) => {
+    const fileArray: UploadedFile[] = [];
+    const processingErrors: string[] = [];
+
+    for (const { file } of validEntries) {
+      try {
         const id = Math.random().toString(36).substring(7);
         const timestamp = Date.now();
+        const ext = `.${file.name.split(".").pop() ?? ""}`.toLowerCase();
         const isImage =
-          file.type.startsWith("image/") ||
-          IMAGE_EXTS.includes(
-            `.${file.name.split(".").pop() ?? ""}`.toLowerCase(),
-          );
+          file.type.startsWith("image/") || IMAGE_EXTS.includes(ext);
         let imageBase64: ImageBase64Entry | undefined;
         if (isImage) {
-          const base64 = await compressImageToDataUrl(file, 0.7);
-          imageBase64 = { name: file.name, base64 };
+          try {
+            const base64 = await compressImageToDataUrl(file, 0.7);
+            imageBase64 = { name: file.name, base64 };
+          } catch {
+            const raw = await new Promise<string>((res, rej) => {
+              const r = new FileReader();
+              r.onload = () => res(String(r.result ?? ""));
+              r.onerror = () => rej(new Error("read failed"));
+              r.readAsDataURL(file);
+            });
+            imageBase64 = { name: file.name, base64: raw };
+          }
         }
-        return {
+        fileArray.push({
           id,
           file,
+          relativePath:
+            dropRelativePathByFile.get(file) ||
+            (file as File & { webkitRelativePath?: string })
+              .webkitRelativePath ||
+            file.name,
           preview: isImage ? URL.createObjectURL(file) : "",
           status: "success" as const,
           timestamp,
           imageBase64,
-        };
-      }),
-    );
+        });
+      } catch (err) {
+        processingErrors.push(
+          `${file.name}: ${
+            err instanceof Error ? err.message : "processing failed"
+          }`,
+        );
+      }
+    }
 
-    if (errors.length > 0) {
-      setError({
-        message: `Failed to ingest ${errors.length} assets:\n${errors.join(
-          "\n",
-        )}`,
-        type: "validation",
-        actionLabel: "View Guidelines",
-        action: () =>
-          alert(
-            "Supported formats:\n- Images: PNG, JPG, JPEG, WEBP (<= 10MB)\n- HTML: .html, .htm\n- JS: .js",
-          ),
-      });
+    const allSkipped = [...validationErrors, ...processingErrors];
+    const guidelinesAction = () =>
+      alert(
+        "Supported formats:\n- Images: PNG, JPG, JPEG, WEBP, GIF, SVG (<= 10MB)\n- Videos: MP4, WEBM, MOV (<= 500MB)\n- HTML: .html, .htm\n- JS: .js, .mjs",
+      );
+
+    if (allSkipped.length > 0) {
+      if (fileArray.length > 0) {
+        setError({
+          type: "partial",
+          message: `Added ${fileArray.length} file(s). Skipped ${allSkipped.length}:\n${allSkipped.join("\n")}`,
+          actionLabel: "View Guidelines",
+          action: guidelinesAction,
+        });
+      } else {
+        setError({
+          message: `Failed to ingest ${allSkipped.length} assets:\n${allSkipped.join(
+            "\n",
+          )}`,
+          type: "validation",
+          actionLabel: "View Guidelines",
+          action: guidelinesAction,
+        });
+      }
     }
 
     setFiles((prev) => [...prev, ...fileArray]);
@@ -345,29 +835,66 @@ const BuildDemo: React.FC = () => {
 
   const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
+    ignoreNextDropzoneClick.current = true;
+    window.setTimeout(() => {
+      ignoreNextDropzoneClick.current = false;
+    }, 400);
 
+    // Phải đọc items/files ĐỒNG BỘ trước mọi await: sau await, DataTransfer có thể không còn hợp lệ
+    // → chỉ xử lý được mục đầu (folder + html + js cùng lúc sẽ thiếu file).
+    const fileListFallback = Array.from(e.dataTransfer.files ?? []).filter(
+      (f) => !isDroppedFolderPlaceholder(f),
+    );
+
+    type DropSnapshot =
+      | { kind: "entry"; entry: FileSystemEntry }
+      | { kind: "file"; file: File };
+
+    const snapshots: DropSnapshot[] = [];
     const items = e.dataTransfer.items;
-    if (!items) return;
-
-    const allFiles: File[] = [];
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const entry = (item as any).webkitGetAsEntry?.();
-
-      if (entry) {
-        const files = await readEntry(entry);
-        allFiles.push(...files);
+    if (items?.length) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const entry = (
+          item as DataTransferItem & {
+            webkitGetAsEntry?: () => FileSystemEntry | null;
+          }
+        ).webkitGetAsEntry?.();
+        if (entry) {
+          snapshots.push({ kind: "entry", entry });
+        } else if (item.kind === "file") {
+          const f = item.getAsFile();
+          if (f && !isDroppedFolderPlaceholder(f)) {
+            snapshots.push({ kind: "file", file: f });
+          }
+        }
       }
     }
 
-    // Convert array → FileList giả
-    if (allFiles.length > 0) {
-      const dataTransfer = new DataTransfer();
-      allFiles.forEach((file) => dataTransfer.items.add(file));
-      handleFiles(dataTransfer.files);
+    const allFiles: File[] = [];
+
+    for (const snap of snapshots) {
+      if (snap.kind === "entry") {
+        try {
+          const files = await readEntry(snap.entry, "");
+          allFiles.push(...files);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        allFiles.push(snap.file);
+      }
     }
+
+    // Gộp thêm FileList (một số bản Windows/Chrome đưa html/js vào đây song song với items).
+    const merged = mergeDroppedFiles([...allFiles, ...fileListFallback]);
+    if (merged.length === 0) return;
+
+    const dt = new DataTransfer();
+    merged.forEach((file) => dt.items.add(file));
+    void handleFiles(dt.files);
   }, []);
 
   const removeFile = (id: string) => {
@@ -380,288 +907,317 @@ const BuildDemo: React.FC = () => {
     });
   };
 
-  const handleProcess = () => {
-    setError(null);
-    setIsProcessing(true);
-    setOutputLink(null);
+  const escapeRegExp = (value: string) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    // Require model selection
-    if (!config.model) {
-      setError({
-        message: "Please select a Model Intelligence before processing.",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
+  const replaceImagesToBase64 = (content: string) => {
+    content = replaceDemoManifestScriptUrls(content);
+    content = replaceBundledDemoStaticImages(content);
 
-    // Validation: Source
-    if (files.length === 0 && !sourceUrl) {
-      setError({
-        message:
-          "No assets detected. Please upload files or provide a remote source URL.",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
+    const images = files
+      .filter((f) => f.imageBase64)
+      .map((f) => f.imageBase64!)
+      .filter(Boolean);
+    if (images.length === 0) return content;
 
-    // Validation: URL Format
-    if (sourceUrl && !sourceUrl.startsWith("http")) {
-      setError({
-        message:
-          "Invalid remote source URL. Ensure it starts with http:// or https://",
-        type: "validation",
-      });
-      setIsProcessing(false);
-      return;
-    }
+    // Replace each manifest entry line that contains the original image name,
+    // so we can also inject `type:createjs.AbstractLoader.IMAGE`.
+    const lines = content.split(/\r?\n/);
 
-    // Replace string khi Generate:
-    // Ưu tiên file JS đầu tiên; nếu không có thì dùng file HTML đầu tiên.
-    const firstJsFile = files.find((f) =>
-      ["application/javascript", "text/javascript"].includes(f.file.type),
-    );
-    const firstHtmlFile = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const firstHtmlJs = firstJsFile ?? firstHtmlFile;
-    const doReplaceAndSimulate = (contentToUse: string | null) => {
-      let processedContent = contentToUse;
-      if (processedContent !== null) {
-        const replaced = processedContent.replace(
-          /bootstrap callback support:/g,
-          "bootstrap callback support: yomedia ",
-        );
-        processedContent = replaced;
+    for (const img of images) {
+      if (isBundledDemoAssetImageName(img.name)) continue;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.includes(img.name)) continue;
+
+        const idx = line.indexOf(img.name);
+        if (idx === -1) continue;
+
+        const afterNameIndex = idx + img.name.length;
+
+        // Find the next closing quote after the image name.
+        const nextDoubleQuoteIndex = line.indexOf('"', afterNameIndex);
+        const nextSingleQuoteIndex = line.indexOf("'", afterNameIndex);
+
+        const nextQuoteIndex =
+          nextDoubleQuoteIndex === -1
+            ? nextSingleQuoteIndex
+            : nextSingleQuoteIndex === -1
+              ? nextDoubleQuoteIndex
+              : Math.min(nextDoubleQuoteIndex, nextSingleQuoteIndex);
+
+        // Default to double quotes if we cannot detect the quote style.
+        const quoteChar =
+          nextQuoteIndex === -1
+            ? '"'
+            : nextQuoteIndex === nextSingleQuoteIndex
+              ? "'"
+              : '"';
+
+        const suffixAfterQuote =
+          nextQuoteIndex === -1
+            ? line.slice(afterNameIndex)
+            : line.slice(nextQuoteIndex + 1);
+
+        const leadingWs = line.match(/^\s*/)?.[0] ?? "";
+        lines[i] =
+          `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
+        // Chèn xong 1 manifest entry cho ảnh này thì dừng quét phần còn lại trong file
+        // (tránh chèn trùng nếu img.name xuất hiện nhiều lần).
+        break;
       }
-
-      if (processedContent !== null && firstHtmlJs) {
-        // Chuẩn bị danh sách ảnh: lấy từ state files (đã có base64 từ client)
-        const imagePayload = files
-          .filter((f) => f.file.type.startsWith("image/") && f.imageBase64)
-          .map((f) => ({
-            name: f.imageBase64!.name,
-            base64: f.imageBase64!.base64,
-          }));
-
-        const { processed, converted } = applyImagesToJs(
-          processedContent,
-          imagePayload,
-        );
-        processedContent = applyScriptReplacements(processed);
-        setConvertedImages(converted);
-        // Lưu lại tên file JS đã xử lý để upload / download dùng đúng nội dung đã replace base64
-        if (firstJsFile) {
-          setLastSentFileName(firstJsFile.file.name);
-        } else {
-          setLastSentFileName(firstHtmlJs.file.name);
-        }
-      }
-
-      setReplacedContent(processedContent);
-
-      setTimeout(() => {
-        const shouldFail = Math.random() > 0.9; // 10% failure rate for demo
-        if (shouldFail) {
-          setIsProcessing(false);
-          setError({
-            message:
-              "Neural pipeline synthesis failed due to high cluster latency.",
-            type: "processing",
-            actionLabel: "Retry Synthesis",
-            action: handleProcess,
-          });
-        } else {
-          setIsProcessing(false);
-          setOutputLink(
-            `https://nova-ai.io/demo/${Math.random().toString(36).substring(7)}`,
-          );
-        }
-      }, 2000);
-    };
-    if (firstHtmlJs) {
-      const reader = new FileReader();
-      reader.onload = () => doReplaceAndSimulate(String(reader.result ?? ""));
-      reader.onerror = () => {
-        setIsProcessing(false);
-        setError({ message: "Failed to read file", type: "system" });
-      };
-      reader.readAsText(firstHtmlJs.file);
-    } else {
-      doReplaceAndSimulate(null);
     }
+
+    return lines.join("\n");
   };
 
-  const TEXT_FILE_TYPES = [
-    "text/html",
-    "application/xhtml+xml",
-    "application/javascript",
-    "text/javascript",
-  ];
+  const handleReplaceBase64AndUploadSftp = async () => {
+    setSendError(null);
+    setSendSuccess(null);
 
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
-
-  /** Đường dẫn SFTP demo: year/month/brand/productCate/tên-file-html (vd: 2026/03/maxkleen/laundry/384x683) */
-  const getDemoSftpPath = (): string | null => {
-    const year = config.quality?.trim();
-    const month = config.mode?.trim();
-    const brand = config.model?.trim()?.toLowerCase();
-    const productCate = config.productCate?.trim()?.toLowerCase();
-    const firstHtml = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const htmlName = firstHtml
-      ? firstHtml.file.name.replace(/\.[^.]+$/, "").trim()
-      : "";
-    if (!year || !month || !brand || !productCate || !htmlName) return null;
-    return [year, month, brand, productCate, htmlName].join("/");
-  };
-
-  const handleUploadDemoToSftp = async () => {
-    const path = getDemoSftpPath();
-    if (!path) {
+    const targetPath = sourceUrl.trim();
+    if (!targetPath) {
+      setSendError("Missing remote source path.");
+      return;
+    }
+    if (!config.model?.trim()) {
+      setSendError("Please select a brand before uploading to SFTP.");
+      return;
+    }
+    if (!selectedDemoTitle.trim()) {
       setSendError(
-        "Missing Year/Month/Brand/Product Category or HTML file for SFTP path.",
+        "Please select a Creative Demo before replacing base64 and uploading to SFTP.",
+      );
+      return;
+    }
+    if (files.length === 0) {
+      setSendError("Please upload files before sending to SFTP.");
+      return;
+    }
+
+    const textFiles = files.filter((f) => {
+      const ext = `.${f.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      return TEXT_EXTS.includes(ext);
+    });
+    const videoFiles = files.filter((f) => {
+      const ext = `.${f.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      return VIDEO_EXTS.includes(ext);
+    });
+
+    if (textFiles.length === 0 && videoFiles.length === 0) {
+      setSendError("No HTML/JS/video files found to upload.");
+      return;
+    }
+
+    const nameToken = replacementName.trim()
+      ? normalizePathToken(replacementName.trim())
+      : getUploadedNameToken();
+    if (!nameToken || nameToken.length <= 5) {
+      setSendError(
+        "Tên thư mục demo (segment path cuối) phải trên 5 ký tự — nhập tên mới ở ô bên dưới hoặc đổi tên file HTML/JS.",
       );
       return;
     }
 
-    const firstHtml = files.find((f) =>
-      ["text/html", "application/xhtml+xml"].includes(f.file.type),
-    );
-    const firstJs = files.find((f) =>
-      ["application/javascript", "text/javascript"].includes(f.file.type),
-    );
+    const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
 
-    if (!firstHtml || !firstJs) {
-      setSendError("Need both one HTML file and one JS file to upload to SFTP.");
+    try {
+      const checkRes = await fetch(
+        `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
+        { headers: sftpRoleHeaders },
+      );
+      const checkData = await checkRes.json();
+      if (!checkRes.ok || !checkData?.ok) {
+        setSendError(
+          checkData?.error ||
+            "Cannot verify remote path on SFTP. Check server connection.",
+        );
+        return;
+      }
+      if (checkData.exists) {
+        if (!replacementName.trim()) {
+          setSendError(
+            "Remote folder already exists on SFTP. Enter a replacement name above, then upload again.",
+          );
+          return;
+        }
+        setSendError(
+          "Target path still exists on SFTP. Choose a different replacement name.",
+        );
+        return;
+      }
+    } catch {
+      setSendError("Cannot verify remote path on SFTP (network error).");
       return;
     }
 
-    const readFileAsText = (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result ?? ""));
-        r.onerror = () => reject(new Error("Read failed"));
-        r.readAsText(file);
-      });
-
+    setSendingToSftp(true);
     try {
-      setSendStatus("sending");
-      setSendError(null);
+      // Nếu người dùng upload nhiều HTML (.html/.htm), chỉ đổi file đầu tiên thành index.html
+      // để tránh ghi đè.
+      let indexHtmlUploaded = false;
+      const sftpErrors: string[] = [];
+      const videoCompressionLogs: string[] = [];
+      let uploadedCount = 0;
+      const normalizeRelativePath = (item: UploadedFile) =>
+        (item.relativePath || item.file.name)
+          .replace(/\\+/g, "/")
+          .replace(/^\/+/, "");
 
-      const htmlPath = `${path}/${firstHtml.file.name}`;
-      const jsPath = `${path}/${firstJs.file.name}`;
+      for (const item of textFiles) {
+        try {
+          const rawContent = await item.file.text();
+          const convertedContent = replaceImagesToBase64(rawContent);
 
-      const [htmlContentRaw, jsContentRaw] = await Promise.all([
-        readFileAsText(firstHtml.file),
-        readFileAsText(firstJs.file),
-      ]);
+          const ext = item.file.name.split(".").pop()?.toLowerCase();
+          const isHtml = ext === "html" || ext === "htm";
+          const relativePath = normalizeRelativePath(item);
+          const relativeSegments = relativePath.split("/").filter(Boolean);
+          const remoteFileName =
+            relativeSegments[relativeSegments.length - 1] || item.file.name;
+          const remoteDir = relativeSegments.slice(0, -1).join("/");
+          const finalName =
+            isHtml && !indexHtmlUploaded ? "index.html" : remoteFileName;
+          if (isHtml && !indexHtmlUploaded) indexHtmlUploaded = true;
 
-      const jsContent =
-        replacedContent && firstJs.file.name === lastSentFileName
-          ? replacedContent
-          : jsContentRaw;
-      if (replacedContent && firstJs.file.name === lastSentFileName) {
-        console.log(
-          "[SFTP Upload] Using REPLACED JS content for",
-          firstJs.file.name,
+          const remoteFilePath =
+            `${remoteBase}/${remoteDir ? `${remoteDir}/` : ""}${finalName}`.replace(
+              /\/{2,}/g,
+              "/",
+            );
+
+          const res = await fetch(`${baseUrl}/api/sftp/write`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(sftpRoleHeaders ?? {}),
+            },
+            body: JSON.stringify({
+              path: remoteFilePath,
+              content: convertedContent,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data?.ok) {
+            sftpErrors.push(
+              `${item.file.name}: ${data?.error || "upload failed"}`,
+            );
+            continue;
+          }
+          uploadedCount++;
+        } catch (err) {
+          sftpErrors.push(
+            `${item.file.name}: ${
+              err instanceof Error ? err.message : "upload failed"
+            }`,
+          );
+        }
+      }
+
+      for (const item of videoFiles) {
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result ?? ""));
+            reader.onerror = () => reject(new Error("read failed"));
+            reader.readAsDataURL(item.file);
+          });
+          const remoteFilePath =
+            `${remoteBase}/${normalizeRelativePath(item)}`.replace(
+              /\/{2,}/g,
+              "/",
+            );
+          const res = await fetch(`${baseUrl}/api/sftp/write`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(sftpRoleHeaders ?? {}),
+            },
+            body: JSON.stringify({
+              path: remoteFilePath,
+              content: base64,
+              encoding: "base64",
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data?.ok) {
+            sftpErrors.push(
+              `${item.file.name}: ${data?.error || "video upload failed"}`,
+            );
+            continue;
+          }
+          const videoMeta = data?.video as
+            | {
+                originalBytes?: number;
+                compressedBytes?: number;
+                videoCompressed?: boolean;
+              }
+            | undefined;
+          if (
+            videoMeta &&
+            Number.isFinite(videoMeta.originalBytes) &&
+            Number.isFinite(videoMeta.compressedBytes)
+          ) {
+            const originalBytes = Number(videoMeta.originalBytes);
+            const compressedBytes = Number(videoMeta.compressedBytes);
+            if (videoMeta.videoCompressed) {
+              const savedRatio =
+                originalBytes > 0
+                  ? Math.max(0, (1 - compressedBytes / originalBytes) * 100)
+                  : 0;
+              videoCompressionLogs.push(
+                `${item.file.name}: compressed ${formatBytes(originalBytes)} -> ${formatBytes(compressedBytes)} (${savedRatio.toFixed(1)}% saved)`,
+              );
+            } else {
+              videoCompressionLogs.push(
+                `${item.file.name}: kept original (${formatBytes(originalBytes)})`,
+              );
+            }
+          }
+          uploadedCount++;
+        } catch (err) {
+          sftpErrors.push(
+            `${item.file.name}: ${
+              err instanceof Error ? err.message : "video upload failed"
+            }`,
+          );
+        }
+      }
+
+      if (uploadedCount === 0) {
+        setSendError(
+          sftpErrors.length > 0
+            ? sftpErrors.join("\n")
+            : "Upload to SFTP failed.",
         );
       } else {
-        console.log(
-          "[SFTP Upload] Using ORIGINAL JS content for",
-          firstJs.file.name,
-        );
-      }
-
-      const writeFileToSftp = async (filePath: string, content: string) => {
-        const res = await fetch(`${baseUrl}/api/sftp/write`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: filePath, content }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          throw new Error(
-            data?.error || `Failed to upload ${filePath} to SFTP.`,
+        const compressionNote =
+          videoCompressionLogs.length > 0
+            ? `\nVideo processing:\n${videoCompressionLogs.join("\n")}`
+            : "";
+        if (sftpErrors.length > 0) {
+          setSendSuccess(
+            `Uploaded ${uploadedCount} of ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 applied where applicable).${compressionNote}`,
+          );
+          setSendError(`Failed:\n${sftpErrors.join("\n")}`);
+        } else {
+          setSendSuccess(
+            `Uploaded ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 replacement + video upload).${compressionNote}`,
           );
         }
-      };
-
-      await writeFileToSftp(htmlPath, htmlContentRaw);
-      await writeFileToSftp(jsPath, jsContent);
-
-      setSendStatus("success");
-      setSendError("Uploaded demo files to SFTP successfully.");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await openYomediaDemoPreview({
+          remotePath: targetPath,
+          serverApiUrl: baseUrl,
+        });
+      }
     } catch (err) {
-      setSendStatus("error");
       setSendError(
-        err instanceof Error
-          ? err.message
-          : "Failed to upload demo files to SFTP.",
+        err instanceof Error ? err.message : "Upload to SFTP failed.",
       );
     } finally {
-      setTimeout(() => {
-        setSendStatus("idle");
-      }, 800);
-    }
-  };
-
-  const handleDownloadFromServer = async () => {
-    const htmlOrJsFiles = files.filter((f) =>
-      TEXT_FILE_TYPES.includes(f.file.type),
-    );
-    if (htmlOrJsFiles.length === 0) {
-      setSendError("No HTML or JS file to download.");
-      return;
-    }
-
-    const zip = new JSZip();
-    const processedName = lastSentFileName ?? null;
-
-    const readFileAsText = (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result ?? ""));
-        r.onerror = () => reject(new Error("Read failed"));
-        r.readAsText(file);
-      });
-
-    try {
-      for (const { file } of htmlOrJsFiles) {
-        const content =
-          replacedContent && file.name === processedName
-            ? replacedContent
-            : await readFileAsText(file);
-        if (
-          replacedContent &&
-          file.name === processedName &&
-          (file.type === "application/javascript" || file.type === "text/javascript")
-        ) {
-          console.log("[Replaced JS content]", file.name, "\n", content);
-        }
-        zip.file(file.name, content);
-      }
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const firstHtml = htmlOrJsFiles.find((f) =>
-        ["text/html", "application/xhtml+xml"].includes(f.file.type),
-      );
-      const zipBaseName = firstHtml
-        ? firstHtml.file.name.replace(/\.[^.]+$/, "")
-        : "bundle";
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${zipBaseName}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setSendError(null);
-    } catch (err) {
-      setSendError(
-        err instanceof Error ? err.message : "Failed to create zip.",
-      );
+      setSendingToSftp(false);
     }
   };
 
@@ -691,21 +1247,51 @@ const BuildDemo: React.FC = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="mb-6 overflow-hidden"
               >
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-3xl p-5 flex items-start gap-4">
-                  <div className="p-2 bg-rose-500/20 rounded-xl shrink-0">
-                    <ExclamationTriangleIcon className="w-5 h-5 text-rose-400" />
+                <div
+                  className={
+                    error.type === "partial"
+                      ? "bg-amber-500/10 border border-amber-500/20 rounded-3xl p-5 flex items-start gap-4"
+                      : "bg-rose-500/10 border border-rose-500/20 rounded-3xl p-5 flex items-start gap-4"
+                  }
+                >
+                  <div
+                    className={
+                      error.type === "partial"
+                        ? "p-2 bg-amber-500/20 rounded-xl shrink-0"
+                        : "p-2 bg-rose-500/20 rounded-xl shrink-0"
+                    }
+                  >
+                    <ExclamationTriangleIcon
+                      className={
+                        error.type === "partial"
+                          ? "w-5 h-5 text-amber-400"
+                          : "w-5 h-5 text-rose-400"
+                      }
+                    />
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xs font-black text-white uppercase tracking-widest mb-1">
-                      {error.type} Error Detected
+                      {error.type === "partial"
+                        ? "Partial ingest"
+                        : `${error.type} Error Detected`}
                     </h4>
-                    <p className="text-xs text-rose-200/70 font-medium leading-relaxed">
+                    <p
+                      className={
+                        error.type === "partial"
+                          ? "text-xs text-amber-100/80 font-medium leading-relaxed whitespace-pre-wrap"
+                          : "text-xs text-rose-200/70 font-medium leading-relaxed whitespace-pre-wrap"
+                      }
+                    >
                       {error.message}
                     </p>
                     {error.action && (
                       <button
                         onClick={error.action}
-                        className="mt-3 flex items-center gap-2 text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300 transition-colors"
+                        className={
+                          error.type === "partial"
+                            ? "mt-3 flex items-center gap-2 text-[10px] font-black text-amber-400 uppercase tracking-widest hover:text-amber-300 transition-colors"
+                            : "mt-3 flex items-center gap-2 text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-300 transition-colors"
+                        }
                       >
                         <ArrowPathIcon className="w-3 h-3" />
                         {error.actionLabel || "Retry Action"}
@@ -714,7 +1300,11 @@ const BuildDemo: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setError(null)}
-                    className="text-rose-400/50 hover:text-rose-400 transition-colors"
+                    className={
+                      error.type === "partial"
+                        ? "text-amber-400/50 hover:text-amber-400 transition-colors"
+                        : "text-rose-400/50 hover:text-rose-400 transition-colors"
+                    }
                   >
                     <XMarkIcon className="w-5 h-5" />
                   </button>
@@ -723,6 +1313,10 @@ const BuildDemo: React.FC = () => {
             )}
           </AnimatePresence>
           <motion.div
+            onClick={() => {
+              if (ignoreNextDropzoneClick.current) return;
+              fileInputRef.current?.click();
+            }}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
@@ -732,20 +1326,31 @@ const BuildDemo: React.FC = () => {
                 : "border-white/10 bg-[#1f2a40]/20 hover:border-[#4cceac]/40 hover:bg-[#1f2a40]/40"
             }`}
           >
+            {/* Không phủ full + pointer-events: drop thả nhiều file lên <input> thì Chrome/Edge chỉ gán 1 file */}
             <input
+              ref={fileInputRef}
               type="file"
               multiple
-              accept=".png,.jpg,.jpeg,.webp,.html,.htm,.js"
-              onChange={(e) => handleFiles(e.target.files)}
-              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-              ref={(input) => {
-                if (input) {
-                  // Cho phép chọn folder (ví dụ folder 'images' chứa nhiều ảnh)
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  (input as any).webkitdirectory = true;
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  (input as any).directory = true;
-                }
+              accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.webm,.mov,.html,.htm,.js,.mjs"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <input
+              ref={folderInputRef}
+              type="file"
+              // @ts-expect-error non-standard; enables folder picker in Chromium
+              webkitdirectory=""
+              directory=""
+              multiple
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.target.value = "";
               }}
             />
 
@@ -783,9 +1388,26 @@ const BuildDemo: React.FC = () => {
               INTELLIGENT UPLOAD SYSTEM v2.0
               <br />
               <span className="opacity-60">
-                PNG • JPG • WEBP • HTML • JS • MAX 10MB
+                Kéo thả file hoặc cả thư mục (ảnh + HTML/JS)
+              </span>
+              <br />
+              <span className="opacity-60">
+                PNG • JPG • WEBP • GIF • SVG • HTML • JS • MAX 10MB
               </span>
             </p>
+            <div
+              className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => folderInputRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#4cceac]/35 bg-[#141b2d]/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#4cceac] hover:border-[#4cceac]/60 hover:bg-[#4cceac]/10 transition-colors"
+              >
+                <FolderOpenIcon className="h-4 w-4" />
+                Chọn thư mục
+              </button>
+            </div>
 
             {/* Background decorative elements */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -794,8 +1416,94 @@ const BuildDemo: React.FC = () => {
               <div className="absolute bottom-10 right-10 w-40 h-40 bg-indigo-500 rounded-full blur-[100px] opacity-20" />
             </div>
           </motion.div>
+          <div className="mt-8 space-y-3">
+            <div className="flex items-center gap-2 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                Remote Source URL (Optional)
+              </label>
+            </div>
+            <div className="relative group">
+              <input
+                type="text"
+                value={sourceUrl}
+                readOnly
+                placeholder="2026/03/romano/Laundry/winter/384x683"
+                className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-5 px-6 text-sm font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all placeholder-white/10 shadow-xl"
+              />
+            </div>
+          </div>
+          {showUploadNameInput && (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2 ml-1">
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${directoryExists ? "bg-amber-400" : "bg-[#4cceac]"}`}
+                />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  {directoryExists
+                    ? "Directory Exists — Replacement Name"
+                    : "Đặt tên thư mục demo (bắt buộc)"}
+                </label>
+              </div>
+              <div className="relative group">
+                <input
+                  type="text"
+                  value={replacementName}
+                  onChange={(e) => setReplacementName(e.target.value)}
+                  minLength={6}
+                  placeholder="Tối thiểu 6 ký tự (ví dụ: banner-spring-2026)"
+                  className={`w-full bg-[#141b2d] border rounded-2xl py-4 px-5 text-sm font-medium text-white outline-none transition-all placeholder-white/20 shadow-xl ${
+                    directoryExists
+                      ? "border-amber-400/30 focus:border-amber-300"
+                      : "border-[#4cceac]/30 focus:border-[#4cceac]/60"
+                  }`}
+                />
+              </div>
+              <p
+                className={`text-[11px] ${directoryExists ? "text-amber-300/80" : "text-[#4cceac]/80"}`}
+              >
+                {directoryExists
+                  ? "Đường dẫn đã tồn tại trên SFTP — nhập tên mới (trên 5 ký tự) để tránh ghi đè."
+                  : "Tên lấy từ file HTML/JS hiện ≤ 5 ký tự — nhập tên thư mục demo tối thiểu 6 ký tự."}
+                {checkingDirectory ? " Checking..." : ""}
+                {!uploadNameValid && replacementName.trim().length > 0 ? (
+                  <span className="block mt-1 text-rose-300/90">
+                    Còn thiếu: cần trên 5 ký tự (đã nhập{" "}
+                    {normalizePathToken(replacementName.trim()).length}).
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          )}
           {/* Configuration Section */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 ml-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  Creative Demo
+                </label>
+              </div>
+              <div className="relative group">
+                <select
+                  value={selectedDemoTitle}
+                  onChange={(e) => setSelectedDemoTitle(e.target.value)}
+                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                >
+                  <option value="">
+                    {filteredDemoTitleOptions.length > 0
+                      ? "Select creative demo..."
+                      : "No matched demo title"}
+                  </option>
+                  {filteredDemoTitleOptions.map((item) => (
+                    <option key={item.id} value={item.title}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
@@ -806,16 +1514,35 @@ const BuildDemo: React.FC = () => {
               <div className="relative group">
                 <select
                   value={config.model}
-                  onChange={(e) =>
-                    setConfig({ ...config, model: e.target.value })
-                  }
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                  onChange={(e) => {
+                    const nextModel = e.target.value;
+                    const nextProductCates =
+                      getProductCateOptionsByBrand(nextModel);
+                    setConfig({
+                      ...config,
+                      model: nextModel,
+                      productCate: nextProductCates.some(
+                        (item: any) => item.id === config.productCate,
+                      )
+                        ? config.productCate
+                        : (nextProductCates[0]?.id ?? ""),
+                    });
+                  }}
+                  className={`w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
+                    config.model
+                      ? getBrandColorClass(config.model)
+                      : "text-white"
+                  }`}
                 >
                   <option value="" disabled>
                     Select model...
                   </option>
                   {brands.map((item: any) => (
-                    <option key={item.id} value={item.id}>
+                    <option
+                      key={item.id}
+                      value={item.id}
+                      className={getBrandColorClass(item.label || item.id)}
+                    >
                       {item.label}
                     </option>
                   ))}
@@ -841,7 +1568,7 @@ const BuildDemo: React.FC = () => {
                   }
                   className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
                 >
-                  {productCates.map((item: any) => (
+                  {productCateOptions.map((item: any) => (
                     <option key={item.id} value={item.id}>
                       {item.label}
                     </option>
@@ -863,6 +1590,7 @@ const BuildDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig({ ...config, season: e.target.value })
                   }
+                  disabled
                   className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
                 >
                   {seasons.map((item) => (
@@ -924,158 +1652,53 @@ const BuildDemo: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* Source & Output Section */}
-          <div className="mt-10 space-y-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Remote Source URL (Optional)
-                </label>
-              </div>
-              <div className="relative group">
-                <input
-                  type="url"
-                  value={sourceUrl}
-                  onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="https://assets.example.com/bundle.zip"
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-5 px-6 text-sm font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all placeholder-white/10 shadow-xl"
-                />
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {outputLink && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="p-6 bg-[#4cceac]/10 border border-[#4cceac]/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#4cceac] rounded-2xl flex items-center justify-center text-[#141b2d] shadow-lg shadow-[#4cceac]/20">
-                      <CheckCircleIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-[#e0e0e0]">
-                        Processing Complete
-                      </h4>
-                      <p className="text-xs text-[#4cceac] font-medium">
-                        Your demo is ready at the link below
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-[#141b2d] p-2 pl-4 rounded-xl border border-white/5 w-full md:w-auto">
-                    <span className="text-xs text-[#a3a3a3] truncate max-w-[200px]">
-                      {outputLink}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(outputLink);
-                        // Optional: Show toast
-                      }}
-                      className="bg-[#4cceac] text-[#141b2d] px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#3da58a] transition-colors"
-                    >
-                      Copy Link
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* Action Buttons */}
-          <div className="mt-12 flex gap-6">
+          <div className="mt-12 flex flex-wrap gap-6 items-center">
             <button
-              onClick={handleProcess}
+              type="button"
+              onClick={handleReplaceBase64AndUploadSftp}
               disabled={
-                !config.model ||
-                (files.length === 0 && !sourceUrl) ||
-                isProcessing
+                !selectedDemoTitle.trim() ||
+                !config.model?.trim() ||
+                !uploadNameValid ||
+                !sourceUrl.trim() ||
+                files.length === 0 ||
+                sendingToSftp ||
+                checkingDirectory ||
+                (showUploadNameInput && !replacementName.trim())
               }
-              className="flex-1 bg-gradient-to-r from-[#4cceac] to-[#3da58a] hover:from-[#3da58a] hover:to-[#4cceac] disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:cursor-not-allowed text-[#141b2d] font-black py-5 rounded-3xl transition-all shadow-[0_20px_40px_rgba(76,206,172,0.15)] flex items-center justify-center gap-3 uppercase tracking-widest text-xs italic"
+              className="flex-1 min-w-[200px] py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
             >
-              {isProcessing ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1,
-                      ease: "linear",
-                    }}
-                    className="w-5 h-5 border-2 border-[#141b2d] border-t-transparent rounded-full"
-                  />
-                  Synthesizing Pipeline...
-                </>
-              ) : (
-                <>
-                  <BoltIcon className="w-5 h-5" />
-                  Generate {files.length || (sourceUrl ? "Remote" : "0")}
-                </>
-              )}
+              {sendingToSftp ? "Uploading..." : "Replace base64 + Upload SFTP"}
             </button>
             <button
-              onClick={handleDownloadFromServer}
-              disabled={
-                !files.some((f) => TEXT_FILE_TYPES.includes(f.file.type)) ||
-                sendStatus === "sending"
-              }
-              className="px-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center gap-2"
-              title="Tải zip chứa HTML + JS (tên zip theo file HTML)"
-            >
-              <ArrowDownTrayIcon className="w-5 h-5" />
-              Download
-            </button>
-            <button
-              onClick={handleUploadDemoToSftp}
-              disabled={
-                !getDemoSftpPath() ||
-                !replacedContent ||
-                !lastSentFileName ||
-                isProcessing ||
-                sendStatus === "sending"
-              }
-              className="px-10 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black rounded-3xl border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center gap-2"
-              title={
-                getDemoSftpPath()
-                  ? `Upload HTML & JS to SFTP: ${getDemoSftpPath()}`
-                  : "Cần Year/Month/Brand/Product Category và ít nhất 1 file HTML + 1 file JS"
-              }
-            >
-              <SignalIcon className="w-5 h-5" />
-              {sendStatus === "sending" ? "Uploading..." : "Demo"}
-            </button>
-            <button
+              type="button"
               onClick={() => {
                 setFiles([]);
                 setSourceUrl("");
-                setOutputLink(null);
                 setError(null);
-                setSendStatus("idle");
                 setSendError(null);
-                setLastSentFileName(null);
-                setReplacedContent(null);
                 setSelectedImage(null);
                 setSelectedTextFile(null);
                 setFilterType("all");
-                setConvertedImages([]);
-
-                // Gọi server xóa toàn bộ file đã upload
-                fetch(`${baseUrl}/api/upload`, { method: "DELETE" }).catch(
-                  () => {
-                    // ignore errors on reset
-                  },
-                );
+                setReplacementName("");
+                setDirectoryExists(false);
+                setCheckingDirectory(false);
+                setSendSuccess(null);
               }}
-              disabled={(files.length === 0 && !sourceUrl) || isProcessing}
-              className="px-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic"
+              disabled={files.length === 0 && !sourceUrl}
+              className="px-10 py-5 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
             >
               Reset
             </button>
           </div>
           {sendError && (
             <p className="mt-2 text-sm text-red-400 font-medium">{sendError}</p>
+          )}
+          {sendSuccess && (
+            <p className="mt-2 text-sm text-emerald-400 font-medium">
+              {sendSuccess}
+            </p>
           )}
         </div>
 
@@ -1141,9 +1764,12 @@ const BuildDemo: React.FC = () => {
                     >
                       <div
                         onClick={() => {
+                          const ext =
+                            `.${file.file.name.split(".").pop() ?? ""}`.toLowerCase();
                           if (file.file.type.startsWith("image/")) {
                             setSelectedImage(file.preview);
                           } else if (
+                            TEXT_EXTS.includes(ext) ||
                             [
                               "text/html",
                               "application/xhtml+xml",
@@ -1210,25 +1836,6 @@ const BuildDemo: React.FC = () => {
                             >
                               <ClipboardDocumentIcon className="w-3 h-3" />
                             </button>
-                          )}
-                        {file.file.type.startsWith("image/") &&
-                          (convertedImages.includes(file.file.name) ||
-                            (file.imageBase64 &&
-                              convertedImages.includes(
-                                file.imageBase64.name,
-                              ))) && (
-                            <motion.div
-                              initial={{ scale: 0.6, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 20,
-                              }}
-                              className="bg-[#4cceac] text-[#141b2d] p-0.5 rounded-full shadow-[0_0_16px_rgba(76,206,172,0.9)]"
-                            >
-                              <CheckCircleIcon className="w-3 h-3" />
-                            </motion.div>
                           )}
                         <button
                           onClick={(e) => {
