@@ -418,7 +418,10 @@ const BuildDemo: React.FC = () => {
     value.trim().replace(/\s+/g, "-").replace(/\/+/g, "-");
 
   const normalizeMatchToken = (value: string) =>
-    value.trim().replace(/\.[^.]+$/, "").toLowerCase();
+    value
+      .trim()
+      .replace(/\.[^.]+$/, "")
+      .toLowerCase();
 
   const getUploadedNameToken = () => {
     const firstHtml = files.find((f) =>
@@ -552,7 +555,11 @@ const BuildDemo: React.FC = () => {
         );
         const data = (await res.json()) as {
           ok?: boolean;
-          items?: Array<{ id?: string; title?: string; size?: string | string[] }>;
+          items?: Array<{
+            id?: string;
+            title?: string;
+            size?: string | string[];
+          }>;
         };
         const items = Array.isArray(data.items)
           ? data.items

@@ -31,7 +31,7 @@ const Login: React.FC = () => {
 
     try {
       const baseUrl =
-        (import.meta.env as any).VITE_SERVER_URL || window.location.origin.replace(/:3000$/, ":3001");
+        (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
 
       const response = await fetch(`${baseUrl}/api/login`, {
         method: "POST",

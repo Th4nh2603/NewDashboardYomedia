@@ -35,8 +35,11 @@ function normalizeDemo(raw: unknown): CreativeDemoItem | null {
   const item = raw as Record<string, unknown>;
   const id = String(item.id ?? "").trim();
   const title = String(item.title ?? "").trim();
-  const category = String(item.category ?? "").trim() as CreativeDemoItem["category"];
-  if (!id || !title || !["Display", "Video", "Mobile"].includes(category)) return null;
+  const category = String(
+    item.category ?? "",
+  ).trim() as CreativeDemoItem["category"];
+  if (!id || !title || !["Display", "Video", "Mobile"].includes(category))
+    return null;
 
   return {
     id,
@@ -71,7 +74,9 @@ export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
     data = (await res.json()) as CreativeDemoResponse;
   }
   const demos = Array.isArray(data?.demos)
-    ? data.demos.map(normalizeDemo).filter((item): item is CreativeDemoItem => Boolean(item))
+    ? data.demos
+        .map(normalizeDemo)
+        .filter((item): item is CreativeDemoItem => Boolean(item))
     : [];
   cache = demos;
   return demos;

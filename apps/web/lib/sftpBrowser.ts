@@ -45,11 +45,17 @@ export function joinPath(base: string, name: string): string {
 
 export async function fetchSftpList(path: string): Promise<SftpEntry[]> {
   const baseUrl = getServerBaseUrl();
-  const res = await fetch(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`);
+  const res = await fetch(
+    `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
+  );
   if (!res.ok) {
     throw await backendErrorFromResponse(res);
   }
-  const data = (await res.json()) as { ok?: boolean; entries?: SftpEntry[]; error?: string };
+  const data = (await res.json()) as {
+    ok?: boolean;
+    entries?: SftpEntry[];
+    error?: string;
+  };
   if (!data.ok) {
     throw new Error(data.error || `Unable to list ${path}`);
   }

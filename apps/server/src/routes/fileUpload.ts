@@ -250,7 +250,7 @@ router.post(
       });
     }
 
-    let outBuffer = buffer;
+    let outBuffer: Buffer<ArrayBufferLike> = buffer;
     let videoMeta:
       | {
           originalBytes: number;

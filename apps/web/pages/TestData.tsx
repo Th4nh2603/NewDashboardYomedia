@@ -57,7 +57,9 @@ const TestData: React.FC = () => {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Unable to load creative-demos.json");
       }
-      setContent(typeof data.content === "string" ? data.content : '{"demos":[]}\n');
+      setContent(
+        typeof data.content === "string" ? data.content : '{"demos":[]}\n',
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -85,7 +87,9 @@ const TestData: React.FC = () => {
           "Content-Type": "application/json",
           "x-user-role": role,
         },
-        body: JSON.stringify({ content: content == null ? "" : String(content) }),
+        body: JSON.stringify({
+          content: content == null ? "" : String(content),
+        }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
@@ -107,7 +111,9 @@ const TestData: React.FC = () => {
     setVideoResult(null);
     const clientBytes = videoFile.size;
     if (clientBytes > MAX_VIDEO_BYTES) {
-      setVideoError(`File vượt quá ${formatFileSize(MAX_VIDEO_BYTES)} (giới hạn API).`);
+      setVideoError(
+        `File vượt quá ${formatFileSize(MAX_VIDEO_BYTES)} (giới hạn API).`,
+      );
       setCompressing(false);
       return;
     }
@@ -125,7 +131,8 @@ const TestData: React.FC = () => {
         reader.onerror = () => reject(new Error("Không đọc được file."));
         reader.readAsDataURL(videoFile);
       });
-      const base = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_") || `video.${ext}`;
+      const base =
+        videoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_") || `video.${ext}`;
       const savedName = `compress-test-${Date.now()}-${base}`;
       const res = await fetch(`${baseUrl}/api/file-upload`, {
         method: "POST",
@@ -156,9 +163,12 @@ const TestData: React.FC = () => {
       setVideoResult({
         savedName: typeof data.name === "string" ? data.name : savedName,
         clientBytes,
-        originalBytes: typeof v?.originalBytes === "number" ? v.originalBytes : clientBytes,
+        originalBytes:
+          typeof v?.originalBytes === "number" ? v.originalBytes : clientBytes,
         compressedBytes:
-          typeof v?.compressedBytes === "number" ? v.compressedBytes : clientBytes,
+          typeof v?.compressedBytes === "number"
+            ? v.compressedBytes
+            : clientBytes,
         videoCompressed: v?.videoCompressed === true,
       });
     } catch (err) {
@@ -249,7 +259,8 @@ const TestData: React.FC = () => {
 
       {!canEdit && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
-          Bạn chỉ có thể xem nội dung. Để lưu thay đổi cần quyền admin hoặc design.
+          Bạn chỉ có thể xem nội dung. Để lưu thay đổi cần quyền admin hoặc
+          design.
         </div>
       )}
 
@@ -264,11 +275,16 @@ const TestData: React.FC = () => {
             </h2>
             <p className="text-[11px] text-[#a3a3a3] mt-0.5">
               Gửi file lên{" "}
-              <code className="text-white/70 text-[10px]">POST /api/file-upload</code>{" "}
+              <code className="text-white/70 text-[10px]">
+                POST /api/file-upload
+              </code>{" "}
               — server chạy ffmpeg rồi lưu vào{" "}
-              <code className="text-white/70 text-[10px]">uploads/file-center</code>.
-              Tên file có tiền tố{" "}
-              <code className="text-white/70 text-[10px]">compress-test-…</code>.
+              <code className="text-white/70 text-[10px]">
+                uploads/file-center
+              </code>
+              . Tên file có tiền tố{" "}
+              <code className="text-white/70 text-[10px]">compress-test-…</code>
+              .
             </p>
           </div>
         </div>
@@ -329,9 +345,12 @@ const TestData: React.FC = () => {
                   Đã lưu:{" "}
                   <span className="text-white">{videoResult.savedName}</span>
                 </li>
-                <li>Client (file gốc): {formatFileSize(videoResult.clientBytes)}</li>
                 <li>
-                  Server (sau decode): {formatFileSize(videoResult.originalBytes)}
+                  Client (file gốc): {formatFileSize(videoResult.clientBytes)}
+                </li>
+                <li>
+                  Server (sau decode):{" "}
+                  {formatFileSize(videoResult.originalBytes)}
                 </li>
                 <li>
                   Sau xử lý: {formatFileSize(videoResult.compressedBytes)}

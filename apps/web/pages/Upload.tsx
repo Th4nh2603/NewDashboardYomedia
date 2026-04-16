@@ -273,61 +273,59 @@ const Upload: React.FC = () => {
   );
 
   const applyFolderItems = React.useCallback((items: FolderUploadItem[]) => {
-      if (items.length === 0) {
-        setError(null);
-        setSelectedFolderItems([]);
-        setSelectedFolderName("");
-        return;
-      }
-      const oversizedFiles = items.filter(
-        (it) => it.file.size > MAX_FILE_SIZE_BYTES,
+    if (items.length === 0) {
+      setError(null);
+      setSelectedFolderItems([]);
+      setSelectedFolderName("");
+      return;
+    }
+    const oversizedFiles = items.filter(
+      (it) => it.file.size > MAX_FILE_SIZE_BYTES,
+    );
+    const invalidTypeFiles = items.filter(
+      (it) => !hasAllowedUploadExtension(it.file.name),
+    );
+    const validItems = items.filter(
+      (it) =>
+        it.file.size <= MAX_FILE_SIZE_BYTES &&
+        hasAllowedUploadExtension(it.file.name),
+    );
+    const batchTotal = validItems.reduce((s, it) => s + it.file.size, 0);
+    if (invalidTypeFiles.length > 0) {
+      setError(
+        `Only .fla or .psd files are allowed. Invalid: ${invalidTypeFiles.map((it) => it.relativePath).join(", ")}`,
       );
-      const invalidTypeFiles = items.filter(
-        (it) => !hasAllowedUploadExtension(it.file.name),
+    } else if (oversizedFiles.length > 0) {
+      setError(
+        `Each file must be 30MB or smaller. Too large: ${oversizedFiles.map((it) => it.relativePath).join(", ")}`,
       );
-      const validItems = items.filter(
-        (it) =>
-          it.file.size <= MAX_FILE_SIZE_BYTES &&
-          hasAllowedUploadExtension(it.file.name),
+    } else if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
+      setError(
+        `Total size of selected files must be 30MB or less (currently ${formatFileSize(batchTotal)}).`,
       );
-      const batchTotal = validItems.reduce((s, it) => s + it.file.size, 0);
-      if (invalidTypeFiles.length > 0) {
-        setError(
-          `Only .fla or .psd files are allowed. Invalid: ${invalidTypeFiles.map((it) => it.relativePath).join(", ")}`,
-        );
-      } else if (oversizedFiles.length > 0) {
-        setError(
-          `Each file must be 30MB or smaller. Too large: ${oversizedFiles.map((it) => it.relativePath).join(", ")}`,
-        );
-      } else if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
-        setError(
-          `Total size of selected files must be 30MB or less (currently ${formatFileSize(batchTotal)}).`,
-        );
-      } else {
-        setError(null);
-      }
+    } else {
+      setError(null);
+    }
 
-      if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
-        setSelectedFolderItems([]);
-        setSelectedFolderName("");
-        return;
-      }
+    if (validItems.length > 0 && batchTotal > MAX_BATCH_TOTAL_BYTES) {
+      setSelectedFolderItems([]);
+      setSelectedFolderName("");
+      return;
+    }
 
-      setSelectedFolderItems(validItems);
-      if (validItems.length === 0) {
-        setSelectedFolderName("");
-        return;
-      }
-      const firstRel = validItems[0].relativePath;
-      const slash = firstRel.indexOf("/");
-      const rootName =
-        slash > 0
-          ? firstRel.slice(0, slash)
-          : validItems[0].file.name.replace(/\.[^.]+$/, "") || "folder-upload";
-      setSelectedFolderName(rootName);
-    },
-    [],
-  );
+    setSelectedFolderItems(validItems);
+    if (validItems.length === 0) {
+      setSelectedFolderName("");
+      return;
+    }
+    const firstRel = validItems[0].relativePath;
+    const slash = firstRel.indexOf("/");
+    const rootName =
+      slash > 0
+        ? firstRel.slice(0, slash)
+        : validItems[0].file.name.replace(/\.[^.]+$/, "") || "folder-upload";
+    setSelectedFolderName(rootName);
+  }, []);
 
   const handleFolderDrop = React.useCallback(
     async (e: React.DragEvent) => {

@@ -49,7 +49,8 @@ function toSftpDirectoryPath(remotePath: string, baseRemotePath: string) {
   if (!noLeadingSlash) return normalizedBase || "/";
 
   if (noTrailingSlash.startsWith("/")) {
-    if (noTrailingSlash.startsWith(`${normalizedBase}/`)) return noTrailingSlash;
+    if (noTrailingSlash.startsWith(`${normalizedBase}/`))
+      return noTrailingSlash;
     if (noTrailingSlash === normalizedBase) return noTrailingSlash;
     return `${normalizedBase}/${noLeadingSlash}`;
   }
@@ -125,8 +126,12 @@ function fallbackFormatBySize(
   return "inpage-mb";
 }
 
-function inferDeviceByCategory(category: string | null | undefined): "pc" | "mb" {
-  const key = String(category ?? "").trim().toLowerCase();
+function inferDeviceByCategory(
+  category: string | null | undefined,
+): "pc" | "mb" {
+  const key = String(category ?? "")
+    .trim()
+    .toLowerCase();
   if (key === "display") return "pc";
   if (key === "mobile") return "mb";
   return "mb";

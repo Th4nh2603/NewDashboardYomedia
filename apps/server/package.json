@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/core": "^1.1.40",
     "@langchain/community": "^1.1.24",
     "@langchain/google-genai": "^2.1.26",
+    "@langchain/textsplitters": "^1.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.0",

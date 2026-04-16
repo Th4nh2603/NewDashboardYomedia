@@ -478,7 +478,7 @@ const CreativeShowcase: React.FC = () => {
     : DEFAULT_ITEMS_PER_PAGE;
 
   const baseUrl =
-    (import.meta.env as any).VITE_SERVER_URL || window.location.origin;
+    (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
 
   const handleDownload = async (item: DemoItem) => {
     if (!item.source || downloadingId) return;

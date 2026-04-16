@@ -23,8 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const isAuthenticated = !!user;
   const getServerBaseUrl = () =>
-    (import.meta.env as any).VITE_SERVER_URL ||
-    window.location.origin.replace(/:3000$/, ":3001");
+    (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
 
   useEffect(() => {
     let cancelled = false;
