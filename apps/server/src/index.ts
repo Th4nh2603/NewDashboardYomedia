@@ -50,6 +50,72 @@ type Account = {
 
 let accountsCache: Account[] | null = null;
 
+const BASE_ALLOWED_ROUTES = [
+  "/",
+  "/chat",
+  "/vision",
+  "/image-generator",
+  "/creative-showcase",
+  "/document",
+  "/documentation",
+  "/manage-demo",
+  "/bar",
+  "/cinema",
+  "/live",
+  "/history",
+  "/ai-gmail",
+];
+
+function normalizeText(value: string | undefined): string {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
+  const role = normalizeText(roleRaw);
+  const routes = new Set(BASE_ALLOWED_ROUTES);
+
+  if (role !== "guest") {
+    routes.add("/test-data");
+  }
+  if (role === "admin" || role === "design") {
+    routes.add("/build-demo");
+    routes.add("/upload");
+  }
+  if (role === "admin") {
+    routes.add("/manage-sftp");
+  }
+
+  return Array.from(routes);
+}
+
+function buildUserPayload(account: Account) {
+  return {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    phone: account.phone,
+    role: account.role,
+    roleTitle: account.roleTitle,
+    status: account.status,
+    allowedRoutes: getAllowedRoutesByRole(account.role),
+  };
+}
+
+function buildGuestPayload(email: string, name?: string) {
+  const fallbackName = String(name || "").trim() || "Guest";
+  const fallbackEmail = String(email || "").trim();
+  return {
+    id: "guest",
+    name: fallbackName,
+    email: fallbackEmail,
+    phone: "",
+    role: "guest",
+    roleTitle: "Guest",
+    status: "active",
+    allowedRoutes: getAllowedRoutesByRole("guest"),
+  };
+}
+
 function loadAccounts(): Account[] {
   if (!accountsCache) {
     const raw = fs.readFileSync(accountsPath, "utf8");
@@ -66,7 +132,10 @@ function loadCreativeDemos() {
 }
 
 app.post("/api/login", (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
+  const { email, password } = req.body as {
+    email?: string;
+    password?: string;
+  };
 
   if (!email || !password) {
     return res
@@ -81,7 +150,7 @@ app.post("/api/login", (req, res) => {
 
   const account = accounts.find(
     (a) =>
-      a.email.toLowerCase() === email.toLowerCase() &&
+      normalizeText(a.email) === normalizeText(email) &&
       normalizePhone(a.phone) === normalizePhone(password),
   );
 
@@ -93,15 +162,66 @@ app.post("/api/login", (req, res) => {
 
   return res.json({
     ok: true,
-    user: {
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      phone: account.phone,
-      role: account.role,
-      roleTitle: account.roleTitle,
-      status: account.status,
-    },
+    user: buildUserPayload(account),
+  });
+});
+
+app.post("/api/auth/me", (req, res) => {
+  const { email, name } = req.body as { email?: string; name?: string };
+  const emailNorm = normalizeText(email);
+  const nameNorm = normalizeText(name);
+
+  if (!emailNorm) {
+    return res.status(400).json({ ok: false, error: "Missing email" });
+  }
+
+  const account = loadAccounts().find(
+    (item) => normalizeText(item.email) === emailNorm,
+  );
+
+  if (!account) {
+    return res.json({
+      ok: true,
+      nameMatched: false,
+      user: buildGuestPayload(email || emailNorm, name),
+      isGuest: true,
+    });
+  }
+
+  const nameMatched = !nameNorm || normalizeText(account.name) === nameNorm;
+
+  return res.json({
+    ok: true,
+    nameMatched,
+    user: buildUserPayload(account),
+  });
+});
+
+app.post("/api/auth/role-routes", (req, res) => {
+  const { email, name } = req.body as { email?: string; name?: string };
+  const emailNorm = normalizeText(email);
+  const nameNorm = normalizeText(name);
+  if (!emailNorm) {
+    return res.status(400).json({ ok: false, error: "Missing email" });
+  }
+
+  const account = loadAccounts().find((item) => normalizeText(item.email) === emailNorm);
+
+  if (!account) {
+    return res.json({
+      ok: true,
+      nameMatched: false,
+      user: buildGuestPayload(email || emailNorm, name),
+      isGuest: true,
+    });
+  }
+
+  const nameMatched = !nameNorm || normalizeText(account.name) === nameNorm;
+
+  return res.json({
+    ok: true,
+    nameMatched,
+    user: buildUserPayload(account),
   });
 });
 

@@ -31,76 +31,76 @@ const App: React.FC = () => {
       <AuthProvider>
         <ErrorProvider>
           <AppErrorBoundary>
-          <HashRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/*"
-                element={
-                  <PrivateRoute>
-                    <DashboardLayout>
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/chat" element={<Chat />} />
-                        <Route path="/vision" element={<Vision />} />
-                        <Route
-                          path="/image-generator"
-                          element={<ImageGenerator />}
-                        />
-                        <Route
-                          path="/creative-showcase"
-                          element={<CreativeShowcase />}
-                        />
-                        <Route path="/document" element={<Documentation />} />
-                        <Route
-                          path="/documentation"
-                          element={<Documentation />}
-                        />
-                        <Route path="/manage-demo" element={<ManageDemo />} />
-                        <Route
-                          path="/manage-sftp"
-                          element={
-                            <RoleRoute allow={["admin"]}>
-                              <ManageSftp />
-                            </RoleRoute>
-                          }
-                        />
-                        <Route
-                          path="/build-demo"
-                          element={
-                            <RoleRoute allow={["admin", "design"]}>
-                              <BuildDemo />
-                            </RoleRoute>
-                          }
-                        />
-                        <Route
-                          path="/upload"
-                          element={
-                            <RoleRoute allow={["admin", "design"]}>
-                              <Upload />
-                            </RoleRoute>
-                          }
-                        />
-                        <Route
-                          path="/test-data"
-                          element={
-                            <RoleRoute deny={["guest"]}>
-                              <TestData />
-                            </RoleRoute>
-                          }
-                        />
-                        <Route path="/bar" element={<Bar />} />
-                        <Route path="/cinema" element={<Cinema />} />
-                        <Route path="/live" element={<Live />} />
-                        <Route path="/history" element={<History />} />
-                        <Route path="/ai-gmail" element={<AIGmail />} />
-                      </Routes>
-                    </DashboardLayout>
-                  </PrivateRoute>
-                }
-              />
-            </Routes>
-          </HashRouter>
+            <HashRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  path="/*"
+                  element={
+                    <PrivateRoute>
+                      <DashboardLayout>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/chat" element={<Chat />} />
+                          <Route path="/vision" element={<Vision />} />
+                          <Route
+                            path="/image-generator"
+                            element={<ImageGenerator />}
+                          />
+                          <Route
+                            path="/creative-showcase"
+                            element={<CreativeShowcase />}
+                          />
+                          <Route path="/document" element={<Documentation />} />
+                          <Route
+                            path="/documentation"
+                            element={<Documentation />}
+                          />
+                          <Route path="/manage-demo" element={<ManageDemo />} />
+                          <Route
+                            path="/manage-sftp"
+                            element={
+                              <RoleRoute allow={["admin"]}>
+                                <ManageSftp />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="/build-demo"
+                            element={
+                              <RoleRoute allow={["admin", "design"]}>
+                                <BuildDemo />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="/upload"
+                            element={
+                              <RoleRoute allow={["admin", "design"]}>
+                                <Upload />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="/test-data"
+                            element={
+                              <RoleRoute deny={["guest"]}>
+                                <TestData />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route path="/bar" element={<Bar />} />
+                          <Route path="/cinema" element={<Cinema />} />
+                          <Route path="/live" element={<Live />} />
+                          <Route path="/history" element={<History />} />
+                          <Route path="/ai-gmail" element={<AIGmail />} />
+                        </Routes>
+                      </DashboardLayout>
+                    </PrivateRoute>
+                  }
+                />
+              </Routes>
+            </HashRouter>
           </AppErrorBoundary>
         </ErrorProvider>
       </AuthProvider>

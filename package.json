@@ -15,9 +15,12 @@
       "react": "^19.2.0",
       "react-dom": "^19.2.0"
     },
-    "onlyBuiltDependencies": ["ffmpeg-static"]
+    "onlyBuiltDependencies": [
+      "ffmpeg-static"
+    ]
   },
   "dependencies": {
+    "@clerk/react": "^6.4.1",
     "lucide-react": "^0.563.0"
   }
 }
