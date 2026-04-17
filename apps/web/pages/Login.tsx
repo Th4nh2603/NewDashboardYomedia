@@ -65,6 +65,12 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    const baseUrl =
+      (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
+    window.location.href = `${baseUrl}/api/auth/google`;
+  };
+
   return (
     <div className="min-h-screen bg-[#141b2d] flex items-center justify-center p-6 font-sans">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -170,6 +176,28 @@ const Login: React.FC = () => {
               ) : (
                 "Sign In"
               )}
+            </button>
+
+            <div className="relative my-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#3d465d]" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-[#1f2a40]/80 px-3 text-[#a3a3a3] font-semibold tracking-widest">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full bg-[#141b2d] hover:bg-[#25304b] border border-[#3d465d] text-[#e0e0e0] font-semibold py-4 rounded-2xl transition-all flex items-center justify-center gap-3"
+            >
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white text-[#141b2d] font-bold text-sm">
+                G
+              </span>
+              Sign in with Google
             </button>
           </form>
 

@@ -15,6 +15,10 @@ import demoConfig from "../data/demoConfig.json";
 import brandColors from "../data/brandColors.json";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  useBuildDemoUpload,
+  type UploadedFile,
+} from "../hooks/useBuildDemoUpload";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -142,6 +146,16 @@ const DEMO_MANIFEST_VIDEO_JS_SRC =
 const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
   "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
 
+const SEASONS: string[] = ["Spring", "Summer", "Autumn", "Winter"];
+const VIDEO_EXTS: string[] = [".mp4", ".webm", ".mov"];
+const TEXT_EXTS: string[] = [".html", ".htm", ".js", ".mjs"];
+const MIME_TYPES_FOR_TEXT_PREVIEW = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "application/javascript",
+  "text/javascript",
+]);
+
 /** CDN / relative script URLs in createjs manifest → fixed demo.yomedia / media.yomedia URLs. */
 function replaceDemoManifestScriptUrls(content: string): string {
   let c = content;
@@ -180,126 +194,12 @@ function replaceDemoManifestScriptUrls(content: string): string {
   return c;
 }
 
-interface ErrorState {
-  message: string;
-  type: "validation" | "processing" | "system" | "partial";
-  action?: () => void;
-  actionLabel?: string;
-}
-
-/** Tên file + base64 lưu chung một state cho ảnh */
-interface ImageBase64Entry {
-  name: string;
-  base64: string;
-}
-
-interface UploadedFile {
-  id: string;
-  file: File;
-  relativePath: string;
-  preview: string;
-  status: "uploading" | "success" | "error";
-  timestamp: number;
-  /** Ảnh: lưu kèm tên file và base64 chung state */
-  imageBase64?: ImageBase64Entry;
-}
-
 interface DemoTitleOption {
   id: string;
   title: string;
   size: string | string[];
-}
-
-/** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
-function readAllDirEntries(
-  reader: FileSystemDirectoryReader,
-): Promise<FileSystemEntry[]> {
-  return new Promise((resolve, reject) => {
-    const acc: FileSystemEntry[] = [];
-    const readBatch = () => {
-      reader.readEntries(
-        (batch) => {
-          if (batch.length === 0) {
-            resolve(acc);
-            return;
-          }
-          acc.push(...batch);
-          readBatch();
-        },
-        (err) => reject(err),
-      );
-    };
-    readBatch();
-  });
-}
-
-/** Đường dẫn tương đối khi kéo-thả folder — không gán vào File (webkitRelativePath chỉ đọc). */
-const dropRelativePathByFile = new WeakMap<File, string>();
-
-/**
- * Thu thập mọi file trong cây thư mục (kéo-thả folder).
- * Lưu relative path trong WeakMap để dedupe đúng khi trùng tên ở subfolder.
- */
-function readEntry(
-  entry: FileSystemEntry,
-  pathPrefix: string,
-): Promise<File[]> {
-  return new Promise((resolve, reject) => {
-    if (entry.isFile) {
-      (entry as FileSystemFileEntry).file(
-        (file: File) => {
-          dropRelativePathByFile.set(file, `${pathPrefix}${file.name}`);
-          resolve([file]);
-        },
-        (err) => reject(err),
-      );
-    } else if (entry.isDirectory) {
-      const reader = (entry as FileSystemDirectoryEntry).createReader();
-      const dirPath = `${pathPrefix}${entry.name}/`;
-      void readAllDirEntries(reader)
-        .then(async (entries) => {
-          const nested = await Promise.all(
-            entries.map((e) => readEntry(e, dirPath)),
-          );
-          resolve(nested.flat());
-        })
-        .catch(reject);
-    } else {
-      resolve([]);
-    }
-  });
-}
-
-/**
- * Khi kéo thả folder từ Explorer, dataTransfer.files đôi khi có File giả (0 byte, không đuôi).
- */
-function isDroppedFolderPlaceholder(file: File): boolean {
-  if (file.size !== 0) return false;
-  const base = file.name.split(/[/\\]/).pop() ?? file.name;
-  if (base.includes(".")) return false;
-  const t = file.type || "";
-  if (t !== "" && t !== "application/octet-stream") return false;
-  return true;
-}
-
-function fileDedupeKey(f: File): string {
-  const rel =
-    dropRelativePathByFile.get(f)?.trim() ||
-    (f as File & { webkitRelativePath?: string }).webkitRelativePath?.trim();
-  if (rel) return `${rel}\0${f.size}\0${f.lastModified}`;
-  return `${f.name}\0${f.size}\0${f.lastModified}`;
-}
-
-function mergeDroppedFiles(list: File[]): File[] {
-  const seen = new Set<string>();
-  const out: File[] = [];
-  for (const f of list) {
-    const k = fileDedupeKey(f);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(f);
-  }
-  return out;
+  value?: string;
+  category?: string;
 }
 
 const BuildDemo: React.FC = () => {
@@ -310,35 +210,37 @@ const BuildDemo: React.FC = () => {
   const months = (demoConfig as any).ListMonth ?? [];
   const productCates = (demoConfig as any).ListProductCate ?? [];
   const productCateIdsByBrand = (demoConfig as any).ProductCateIdsByBrand ?? {};
-  const getProductCateOptionsByBrand = (brandId: string) => {
-    if (!brandId?.trim()) {
-      return productCates.filter(
-        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+  const getProductCateOptionsByBrand = useCallback(
+    (brandId: string) => {
+      if (!brandId?.trim()) {
+        return productCates.filter(
+          (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+        );
+      }
+      const allowedRaw: string[] | undefined =
+        productCateIdsByBrand[brandId] ??
+        Object.entries(productCateIdsByBrand).find(
+          ([k]) => k.toLowerCase() === brandId.toLowerCase(),
+        )?.[1];
+      if (!allowedRaw?.length) {
+        return productCates.filter(
+          (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+        );
+      }
+      const allowed = new Set(
+        allowedRaw.map((id) => String(id).trim().toLowerCase()),
       );
-    }
-    const allowedRaw: string[] | undefined =
-      productCateIdsByBrand[brandId] ??
-      Object.entries(productCateIdsByBrand).find(
-        ([k]) => k.toLowerCase() === brandId.toLowerCase(),
-      )?.[1];
-    if (!allowedRaw?.length) {
-      return productCates.filter(
-        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
+      allowed.add("all");
+      return productCates.filter((item: any) =>
+        allowed.has(
+          String(item?.id ?? "")
+            .trim()
+            .toLowerCase(),
+        ),
       );
-    }
-    const allowed = new Set(
-      allowedRaw.map((id) => String(id).trim().toLowerCase()),
-    );
-    allowed.add("all");
-    return productCates.filter((item: any) =>
-      allowed.has(
-        String(item?.id ?? "")
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-  };
-  const seasons = ["Spring", "Summer", "Autumn", "Winter"];
+    },
+    [productCateIdsByBrand, productCates],
+  );
 
   const now = new Date();
   const currentYearLabel = String(now.getFullYear());
@@ -366,11 +268,22 @@ const BuildDemo: React.FC = () => {
     "standard";
   const currentSeason = getSeasonByMonth(currentMonthLabel);
 
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const {
+    files,
+    setFiles,
+    error,
+    setError,
+    isDragging,
+    ignoreNextDropzoneClick,
+    handleFiles,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+    removeFile,
+    clearUploadState,
+  } = useBuildDemoUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const ignoreNextDropzoneClick = useRef(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedTextFile, setSelectedTextFile] = useState<{
     name: string;
@@ -388,7 +301,7 @@ const BuildDemo: React.FC = () => {
   const [directoryExists, setDirectoryExists] = useState(false);
   const [checkingDirectory, setCheckingDirectory] = useState(false);
   const [replacementName, setReplacementName] = useState("");
-  const [error, setError] = useState<ErrorState | null>(null);
+  const [appliedReplacementName, setAppliedReplacementName] = useState("");
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendingToSftp, setSendingToSftp] = useState(false);
@@ -403,7 +316,10 @@ const BuildDemo: React.FC = () => {
     latency: 18,
     health: "Optimal",
   });
-  const productCateOptions = getProductCateOptionsByBrand(config.model);
+  const productCateOptions = React.useMemo(
+    () => getProductCateOptionsByBrand(config.model),
+    [config.model, getProductCateOptionsByBrand],
+  );
   const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
   const sftpRoleHeaders = normalizedRole
     ? { "x-user-role": normalizedRole }
@@ -423,7 +339,7 @@ const BuildDemo: React.FC = () => {
       .replace(/\.[^.]+$/, "")
       .toLowerCase();
 
-  const getUploadedNameToken = () => {
+  const getUploadedNameToken = useCallback(() => {
     const firstHtml = files.find((f) =>
       ["text/html", "application/xhtml+xml"].includes(f.file.type),
     );
@@ -433,18 +349,68 @@ const BuildDemo: React.FC = () => {
     const picked = firstHtml ?? firstJs ?? files[0];
     if (!picked) return "";
     return normalizePathToken(picked.file.name.replace(/\.[^.]+$/, ""));
+  }, [files]);
+
+  const renamePrimaryTextFile = (nextBaseName: string) => {
+    setFiles((prev) => {
+      let renamed = false;
+      return prev.map((item) => {
+        if (renamed) return item;
+        const ext = item.file.name.split(".").pop()?.toLowerCase();
+        const isTextCandidate =
+          ext === "html" ||
+          ext === "htm" ||
+          ext === "js" ||
+          ext === "mjs" ||
+          [
+            "text/html",
+            "application/xhtml+xml",
+            "application/javascript",
+            "text/javascript",
+          ].includes(item.file.type);
+        if (!isTextCandidate) return item;
+
+        const currentExt = ext ? `.${ext}` : "";
+        const nextFileName = `${nextBaseName}${currentExt}`;
+        const nextFile = new File([item.file], nextFileName, {
+          type: item.file.type,
+          lastModified: item.file.lastModified,
+        });
+
+        const relSegments = item.relativePath
+          .replace(/\\+/g, "/")
+          .split("/")
+          .filter(Boolean);
+        if (relSegments.length > 0) {
+          relSegments[relSegments.length - 1] = nextFileName;
+        }
+
+        renamed = true;
+        return {
+          ...item,
+          file: nextFile,
+          relativePath: relSegments.join("/") || nextFileName,
+        };
+      });
+    });
   };
 
-  const autoUploadNameToken = getUploadedNameToken();
-  const effectiveUploadNameToken = replacementName.trim()
-    ? normalizePathToken(replacementName.trim())
-    : autoUploadNameToken;
-  /** Tên segment path cuối phải > 5 ký tự (tối thiểu 6). */
-  const uploadNameValid = effectiveUploadNameToken.length > 5;
+  const autoUploadNameToken = React.useMemo(
+    () => getUploadedNameToken(),
+    [getUploadedNameToken],
+  );
+  const normalizedReplacementName = normalizePathToken(replacementName.trim());
+  const normalizedAppliedReplacementName = normalizePathToken(
+    appliedReplacementName.trim(),
+  );
+  const effectiveUploadNameToken =
+    normalizedAppliedReplacementName || autoUploadNameToken;
+  /** Tên segment path cuối phải tối thiểu 5 ký tự. */
+  const uploadNameValid = effectiveUploadNameToken.length >= 5;
   const showUploadNameInput =
     directoryExists ||
     (files.length > 0 &&
-      (autoUploadNameToken.length === 0 || autoUploadNameToken.length <= 5));
+      (autoUploadNameToken.length === 0 || autoUploadNameToken.length < 5));
 
   const fileNameTokens = React.useMemo(() => {
     const out = new Set<string>();
@@ -476,7 +442,7 @@ const BuildDemo: React.FC = () => {
     return match?.className || "text-[#e5e7eb]";
   };
 
-  const buildRemoteSourcePath = () => {
+  const buildRemoteSourcePath = (uploadNameOverride?: string) => {
     const year = getItemLabelById(years, config.quality);
     const month = getItemLabelById(months, config.mode).padStart(2, "0");
     const brand = normalizePathToken(
@@ -486,9 +452,10 @@ const BuildDemo: React.FC = () => {
       getItemLabelById(productCates, config.productCate).toLowerCase(),
     );
     const season = normalizePathToken(config.season.toLowerCase());
-    const uploadName = replacementName.trim()
-      ? normalizePathToken(replacementName.trim())
-      : getUploadedNameToken();
+    const uploadName =
+      uploadNameOverride ||
+      normalizedAppliedReplacementName ||
+      getUploadedNameToken();
 
     const segments = [year, month, brand, productCate];
     if (uploadName) segments.push(uploadName);
@@ -496,10 +463,24 @@ const BuildDemo: React.FC = () => {
     return segments.filter(Boolean).join("/");
   };
 
+  const checkRemotePathExists = async (targetPath: string) => {
+    const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
+    const checkRes = await fetch(
+      `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
+      { headers: sftpRoleHeaders },
+    );
+    const checkData = await checkRes.json();
+    return {
+      ok: Boolean(checkRes.ok && checkData?.ok),
+      exists: Boolean(checkData?.exists),
+      error: String(checkData?.error ?? ""),
+    };
+  };
+
   useEffect(() => {
     setSourceUrl(buildRemoteSourcePath());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, files, replacementName]);
+  }, [config, files, appliedReplacementName]);
 
   useEffect(() => {
     const targetPath = sourceUrl.trim();
@@ -559,6 +540,8 @@ const BuildDemo: React.FC = () => {
             id?: string;
             title?: string;
             size?: string | string[];
+            value?: string;
+            category?: string;
           }>;
         };
         const items = Array.isArray(data.items)
@@ -569,6 +552,8 @@ const BuildDemo: React.FC = () => {
                 size: Array.isArray(item?.size)
                   ? item.size
                   : String(item?.size ?? "").trim(),
+                value: String(item?.value ?? "").trim(),
+                category: String(item?.category ?? "").trim(),
               }))
               .filter((item) => item.id && item.title)
           : [];
@@ -606,6 +591,14 @@ const BuildDemo: React.FC = () => {
     });
   }, [demoTitleOptions, fileNameTokens]);
 
+  const selectedDemoOption = React.useMemo(
+    () =>
+      filteredDemoTitleOptions.find(
+        (item) => item.title === selectedDemoTitle,
+      ) ?? null,
+    [filteredDemoTitleOptions, selectedDemoTitle],
+  );
+
   useEffect(() => {
     if (
       selectedDemoTitle &&
@@ -640,70 +633,24 @@ const BuildDemo: React.FC = () => {
   // Simulate real-time metrics
   useEffect(() => {
     const interval = setInterval(() => {
-      setMetrics((prev) => ({
-        gpu: Math.max(5, Math.min(95, prev.gpu + (Math.random() * 10 - 5))),
-        ram: Math.max(1, Math.min(16, prev.ram + (Math.random() * 0.4 - 0.2))),
-        latency: Math.max(
+      setMetrics((prev) => {
+        const gpu = Math.max(5, Math.min(95, prev.gpu + (Math.random() * 10 - 5)));
+        const ram = Math.max(1, Math.min(16, prev.ram + (Math.random() * 0.4 - 0.2)));
+        const latency = Math.max(
           10,
           Math.min(150, prev.latency + (Math.random() * 20 - 10)),
-        ),
-        health: prev.gpu > 85 ? "Warning" : "Optimal",
-      }));
+        );
+        return {
+          gpu,
+          ram,
+          latency,
+          health: gpu > 85 ? "Warning" : "Optimal",
+        };
+      });
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  // Nén ảnh trên client xuống ~70% chất lượng rồi trả về base64
-  const compressImageToDataUrl = (file: File, quality = 0.7): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Canvas 2D context not available"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-
-        // Re-encode mọi định dạng (kể cả PNG) sang WebP với quality ~70%
-        const mime = "image/webp";
-        try {
-          const dataUrl = canvas.toDataURL(mime, quality);
-          resolve(dataUrl);
-        } catch (err) {
-          reject(
-            err instanceof Error ? err : new Error("Image compression failed"),
-          );
-        }
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Image load failed"));
-      };
-
-      img.src = objectUrl;
-    });
-
-  const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
-  const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
-  const TEXT_EXTS = [".html", ".htm", ".js", ".mjs"];
   const formatBytes = (value: number) => {
     if (!Number.isFinite(value) || value <= 0) return "0 B";
     const units = ["B", "KB", "MB", "GB"];
@@ -714,201 +661,6 @@ const BuildDemo: React.FC = () => {
     const size = value / Math.pow(1024, exponent);
     return `${size >= 10 ? size.toFixed(0) : size.toFixed(1)} ${units[exponent]}`;
   };
-
-  const handleFiles = async (newFiles: FileList | null) => {
-    if (!newFiles) return;
-    setError(null);
-
-    const validEntries: { file: File }[] = [];
-    const validationErrors: string[] = [];
-
-    Array.from(newFiles).forEach((file) => {
-      if (isDroppedFolderPlaceholder(file)) {
-        return;
-      }
-      const ext = `.${file.name.split(".").pop() ?? ""}`.toLowerCase();
-      const isImageExt = IMAGE_EXTS.includes(ext);
-      const isTextExt = TEXT_EXTS.includes(ext);
-      const isVideoExt = VIDEO_EXTS.includes(ext);
-      const isSupportedMime =
-        file.type.startsWith("image/") ||
-        file.type.startsWith("video/") ||
-        [
-          "text/html",
-          "application/xhtml+xml",
-          "application/javascript",
-          "text/javascript",
-          "text/jsx",
-        ].includes(file.type);
-
-      const maxSize = isVideoExt ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
-      if (file.size > maxSize) {
-        validationErrors.push(
-          `${file.name} exceeds ${isVideoExt ? "500MB" : "10MB"} limit.`,
-        );
-        return;
-      }
-      if (!isImageExt && !isTextExt && !isVideoExt && !isSupportedMime) {
-        validationErrors.push(
-          `${file.name} is not a supported format (image/video/html/js only).`,
-        );
-        return;
-      }
-      validEntries.push({ file });
-    });
-
-    const fileArray: UploadedFile[] = [];
-    const processingErrors: string[] = [];
-
-    for (const { file } of validEntries) {
-      try {
-        const id = Math.random().toString(36).substring(7);
-        const timestamp = Date.now();
-        const ext = `.${file.name.split(".").pop() ?? ""}`.toLowerCase();
-        const isImage =
-          file.type.startsWith("image/") || IMAGE_EXTS.includes(ext);
-        let imageBase64: ImageBase64Entry | undefined;
-        if (isImage) {
-          try {
-            const base64 = await compressImageToDataUrl(file, 0.7);
-            imageBase64 = { name: file.name, base64 };
-          } catch {
-            const raw = await new Promise<string>((res, rej) => {
-              const r = new FileReader();
-              r.onload = () => res(String(r.result ?? ""));
-              r.onerror = () => rej(new Error("read failed"));
-              r.readAsDataURL(file);
-            });
-            imageBase64 = { name: file.name, base64: raw };
-          }
-        }
-        fileArray.push({
-          id,
-          file,
-          relativePath:
-            dropRelativePathByFile.get(file) ||
-            (file as File & { webkitRelativePath?: string })
-              .webkitRelativePath ||
-            file.name,
-          preview: isImage ? URL.createObjectURL(file) : "",
-          status: "success" as const,
-          timestamp,
-          imageBase64,
-        });
-      } catch (err) {
-        processingErrors.push(
-          `${file.name}: ${
-            err instanceof Error ? err.message : "processing failed"
-          }`,
-        );
-      }
-    }
-
-    const allSkipped = [...validationErrors, ...processingErrors];
-    const guidelinesAction = () =>
-      alert(
-        "Supported formats:\n- Images: PNG, JPG, JPEG, WEBP, GIF, SVG (<= 10MB)\n- Videos: MP4, WEBM, MOV (<= 500MB)\n- HTML: .html, .htm\n- JS: .js, .mjs",
-      );
-
-    if (allSkipped.length > 0) {
-      if (fileArray.length > 0) {
-        setError({
-          type: "partial",
-          message: `Added ${fileArray.length} file(s). Skipped ${allSkipped.length}:\n${allSkipped.join("\n")}`,
-          actionLabel: "View Guidelines",
-          action: guidelinesAction,
-        });
-      } else {
-        setError({
-          message: `Failed to ingest ${allSkipped.length} assets:\n${allSkipped.join(
-            "\n",
-          )}`,
-          type: "validation",
-          actionLabel: "View Guidelines",
-          action: guidelinesAction,
-        });
-      }
-    }
-
-    setFiles((prev) => [...prev, ...fileArray]);
-  };
-
-  const onDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    ignoreNextDropzoneClick.current = true;
-    window.setTimeout(() => {
-      ignoreNextDropzoneClick.current = false;
-    }, 400);
-
-    // Phải đọc items/files ĐỒNG BỘ trước mọi await: sau await, DataTransfer có thể không còn hợp lệ
-    // → chỉ xử lý được mục đầu (folder + html + js cùng lúc sẽ thiếu file).
-    const fileListFallback = Array.from(e.dataTransfer.files ?? []).filter(
-      (f) => !isDroppedFolderPlaceholder(f),
-    );
-
-    type DropSnapshot =
-      | { kind: "entry"; entry: FileSystemEntry }
-      | { kind: "file"; file: File };
-
-    const snapshots: DropSnapshot[] = [];
-    const items = e.dataTransfer.items;
-    if (items?.length) {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const entry = (
-          item as DataTransferItem & {
-            webkitGetAsEntry?: () => FileSystemEntry | null;
-          }
-        ).webkitGetAsEntry?.();
-        if (entry) {
-          snapshots.push({ kind: "entry", entry });
-        } else if (item.kind === "file") {
-          const f = item.getAsFile();
-          if (f && !isDroppedFolderPlaceholder(f)) {
-            snapshots.push({ kind: "file", file: f });
-          }
-        }
-      }
-    }
-
-    const allFiles: File[] = [];
-
-    for (const snap of snapshots) {
-      if (snap.kind === "entry") {
-        try {
-          const files = await readEntry(snap.entry, "");
-          allFiles.push(...files);
-        } catch {
-          /* ignore */
-        }
-      } else {
-        allFiles.push(snap.file);
-      }
-    }
-
-    // Gộp thêm FileList (một số bản Windows/Chrome đưa html/js vào đây song song với items).
-    const merged = mergeDroppedFiles([...allFiles, ...fileListFallback]);
-    if (merged.length === 0) return;
-
-    const dt = new DataTransfer();
-    merged.forEach((file) => dt.items.add(file));
-    void handleFiles(dt.files);
-  }, []);
-
-  const removeFile = (id: string) => {
-    setFiles((prev) => {
-      const filtered = prev.filter((f) => f.id !== id);
-      // Revoke the object URL to avoid memory leaks
-      const removed = prev.find((f) => f.id === id);
-      if (removed) URL.revokeObjectURL(removed.preview);
-      return filtered;
-    });
-  };
-
-  const escapeRegExp = (value: string) =>
-    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const replaceImagesToBase64 = (content: string) => {
     content = replaceDemoManifestScriptUrls(content);
@@ -1010,12 +762,10 @@ const BuildDemo: React.FC = () => {
       return;
     }
 
-    const nameToken = replacementName.trim()
-      ? normalizePathToken(replacementName.trim())
-      : getUploadedNameToken();
-    if (!nameToken || nameToken.length <= 5) {
+    const nameToken = effectiveUploadNameToken;
+    if (!nameToken || nameToken.length < 5) {
       setSendError(
-        "Tên thư mục demo (segment path cuối) phải trên 5 ký tự — nhập tên mới ở ô bên dưới hoặc đổi tên file HTML/JS.",
+        "Tên thư mục demo (segment path cuối) phải tối thiểu 5 ký tự — nhập tên mới ở ô bên dưới hoặc đổi tên file HTML/JS.",
       );
       return;
     }
@@ -1036,9 +786,9 @@ const BuildDemo: React.FC = () => {
         return;
       }
       if (checkData.exists) {
-        if (!replacementName.trim()) {
+        if (!normalizedAppliedReplacementName) {
           setSendError(
-            "Remote folder already exists on SFTP. Enter a replacement name above, then upload again.",
+            "Remote folder already exists on SFTP. Enter a replacement name and click Create, then upload again.",
           );
           return;
         }
@@ -1064,6 +814,19 @@ const BuildDemo: React.FC = () => {
         (item.relativePath || item.file.name)
           .replace(/\\+/g, "/")
           .replace(/^\/+/, "");
+      const normalizeRelativePathForRemote = (item: UploadedFile) => {
+        const segments = normalizeRelativePath(item).split("/").filter(Boolean);
+        if (segments.length <= 1) return segments.join("/");
+
+        const firstSegmentToken = normalizePathToken(
+          segments[0].replace(/\.[^.]+$/, ""),
+        ).toLowerCase();
+        const uploadNameToken = normalizePathToken(nameToken).toLowerCase();
+        if (firstSegmentToken === uploadNameToken) {
+          segments.shift();
+        }
+        return segments.join("/");
+      };
 
       for (const item of textFiles) {
         try {
@@ -1072,7 +835,7 @@ const BuildDemo: React.FC = () => {
 
           const ext = item.file.name.split(".").pop()?.toLowerCase();
           const isHtml = ext === "html" || ext === "htm";
-          const relativePath = normalizeRelativePath(item);
+          const relativePath = normalizeRelativePathForRemote(item);
           const relativeSegments = relativePath.split("/").filter(Boolean);
           const remoteFileName =
             relativeSegments[relativeSegments.length - 1] || item.file.name;
@@ -1124,7 +887,7 @@ const BuildDemo: React.FC = () => {
             reader.readAsDataURL(item.file);
           });
           const remoteFilePath =
-            `${remoteBase}/${normalizeRelativePath(item)}`.replace(
+            `${remoteBase}/${normalizeRelativePathForRemote(item)}`.replace(
               /\/{2,}/g,
               "/",
             );
@@ -1210,6 +973,7 @@ const BuildDemo: React.FC = () => {
         await openYomediaDemoPreview({
           remotePath: targetPath,
           serverApiUrl: baseUrl,
+          formatValue: selectedDemoOption?.value || undefined,
         });
       }
     } catch (err) {
@@ -1450,26 +1214,108 @@ const BuildDemo: React.FC = () => {
                   type="text"
                   value={replacementName}
                   onChange={(e) => setReplacementName(e.target.value)}
-                  minLength={6}
-                  placeholder="Tối thiểu 6 ký tự (ví dụ: banner-spring-2026)"
+                  minLength={5}
+                  placeholder="Tối thiểu 5 ký tự (ví dụ: banner-spring-2026)"
                   className={`w-full bg-[#141b2d] border rounded-2xl py-4 px-5 text-sm font-medium text-white outline-none transition-all placeholder-white/20 shadow-xl ${
                     directoryExists
                       ? "border-amber-400/30 focus:border-amber-300"
                       : "border-[#4cceac]/30 focus:border-[#4cceac]/60"
                   }`}
                 />
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (normalizedReplacementName.length < 5) {
+                        setSendError(
+                          "Tên thư mục demo phải tối thiểu 5 ký tự trước khi bấm Create.",
+                        );
+                        return;
+                      }
+                      setAppliedReplacementName(replacementName.trim());
+                      setSendError(null);
+                    }}
+                    disabled={normalizedReplacementName.length < 5}
+                    className="inline-flex items-center justify-center rounded-xl border border-[#4cceac]/35 bg-[#141b2d]/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#4cceac] hover:border-[#4cceac]/60 hover:bg-[#4cceac]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Create
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const baseToken =
+                        normalizedReplacementName || autoUploadNameToken;
+                      if (baseToken.length < 5) {
+                        setSendError(
+                          "Tên gốc phải tối thiểu 5 ký tự để Auto tạo hậu tố.",
+                        );
+                        return;
+                      }
+                      if (!config.model?.trim()) {
+                        setSendError(
+                          "Please select a brand before using Auto.",
+                        );
+                        return;
+                      }
+                      setCheckingDirectory(true);
+                      setSendError(null);
+                      try {
+                        let index = 1;
+                        let nextName = `${baseToken}-${index}`;
+                        while (true) {
+                          const target = buildRemoteSourcePath(nextName);
+                          const result = await checkRemotePathExists(target);
+                          if (!result.ok) {
+                            setSendError(
+                              result.error ||
+                                "Cannot verify remote path on SFTP. Check server connection.",
+                            );
+                            return;
+                          }
+                          if (!result.exists) {
+                            renamePrimaryTextFile(nextName);
+                            setReplacementName(nextName);
+                            setAppliedReplacementName(nextName);
+                            return;
+                          }
+                          index += 1;
+                          nextName = `${baseToken}-${index}`;
+                        }
+                      } catch {
+                        setSendError(
+                          "Cannot verify remote path on SFTP (network error).",
+                        );
+                      } finally {
+                        setCheckingDirectory(false);
+                      }
+                    }}
+                    disabled={
+                      !autoUploadNameToken ||
+                      checkingDirectory ||
+                      !config.model?.trim()
+                    }
+                    className="inline-flex items-center justify-center rounded-xl border border-amber-300/35 bg-[#141b2d]/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-amber-300 hover:border-amber-300/60 hover:bg-amber-300/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Auto
+                  </button>
+                </div>
               </div>
               <p
                 className={`text-[11px] ${directoryExists ? "text-amber-300/80" : "text-[#4cceac]/80"}`}
               >
                 {directoryExists
-                  ? "Đường dẫn đã tồn tại trên SFTP — nhập tên mới (trên 5 ký tự) để tránh ghi đè."
-                  : "Tên lấy từ file HTML/JS hiện ≤ 5 ký tự — nhập tên thư mục demo tối thiểu 6 ký tự."}
+                  ? "Đường dẫn đã tồn tại trên SFTP — nhập tên mới (tối thiểu 5 ký tự) để tránh ghi đè."
+                  : "Tên lấy từ file HTML/JS hiện < 5 ký tự — nhập tên thư mục demo tối thiểu 5 ký tự."}
                 {checkingDirectory ? " Checking..." : ""}
                 {!uploadNameValid && replacementName.trim().length > 0 ? (
                   <span className="block mt-1 text-rose-300/90">
-                    Còn thiếu: cần trên 5 ký tự (đã nhập{" "}
+                    Còn thiếu: cần tối thiểu 5 ký tự (đã nhập{" "}
                     {normalizePathToken(replacementName.trim()).length}).
+                  </span>
+                ) : null}
+                {normalizedAppliedReplacementName ? (
+                  <span className="block mt-1 text-emerald-300/90">
+                    Created name: {normalizedAppliedReplacementName}
                   </span>
                 ) : null}
               </p>
@@ -1593,7 +1439,7 @@ const BuildDemo: React.FC = () => {
                   disabled
                   className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
                 >
-                  {seasons.map((item) => (
+                  {SEASONS.map((item) => (
                     <option key={item} value={item}>
                       {item}
                     </option>
@@ -1665,7 +1511,7 @@ const BuildDemo: React.FC = () => {
                 files.length === 0 ||
                 sendingToSftp ||
                 checkingDirectory ||
-                (showUploadNameInput && !replacementName.trim())
+                (showUploadNameInput && !normalizedAppliedReplacementName)
               }
               className="flex-1 min-w-[200px] py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
             >
@@ -1674,14 +1520,14 @@ const BuildDemo: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setFiles([]);
+                clearUploadState();
                 setSourceUrl("");
-                setError(null);
                 setSendError(null);
                 setSelectedImage(null);
                 setSelectedTextFile(null);
                 setFilterType("all");
                 setReplacementName("");
+                setAppliedReplacementName("");
                 setDirectoryExists(false);
                 setCheckingDirectory(false);
                 setSendSuccess(null);
@@ -1770,12 +1616,7 @@ const BuildDemo: React.FC = () => {
                             setSelectedImage(file.preview);
                           } else if (
                             TEXT_EXTS.includes(ext) ||
-                            [
-                              "text/html",
-                              "application/xhtml+xml",
-                              "application/javascript",
-                              "text/javascript",
-                            ].includes(file.file.type)
+                            MIME_TYPES_FOR_TEXT_PREVIEW.has(file.file.type)
                           ) {
                             const reader = new FileReader();
                             reader.onload = () => {

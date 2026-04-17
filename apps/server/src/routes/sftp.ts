@@ -35,6 +35,7 @@ function flattenDirPaths(node: SftpDirTreeNode): string[] {
 }
 
 export const sftpRouter = Router();
+const SFTP_WRITE_ROLES = new Set(["admin", "design"]);
 
 function requireAdminRole(req: Request): void {
   const role = getUserRole(req);
@@ -42,6 +43,16 @@ function requireAdminRole(req: Request): void {
     throw new HttpError(
       403,
       "Forbidden: only admin can edit/delete SFTP files",
+    );
+  }
+}
+
+function requireSftpWriteRole(req: Request): void {
+  const role = getUserRole(req);
+  if (!SFTP_WRITE_ROLES.has(role)) {
+    throw new HttpError(
+      403,
+      "Forbidden: only admin/design can write SFTP files",
     );
   }
 }
@@ -247,7 +258,7 @@ sftpRouter.get(
 sftpRouter.post(
   "/write",
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    requireSftpWriteRole(req);
     const body = req.body as {
       path?: string;
       content?: string;
