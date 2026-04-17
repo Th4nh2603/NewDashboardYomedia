@@ -19,6 +19,7 @@ import {
 } from "../data/creativeDemos";
 import rolePermissions from "../data/rolePermissions.json";
 import { getServerBaseUrl } from "../lib/sftpBrowser";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 const BASE_REMOTE_PATH = "/script/demo";
 type RolePermissionConfig = Record<
@@ -359,11 +360,14 @@ const ManageDemo: React.FC = () => {
     };
 
     const fetchList = async (path: string): Promise<SftpEntry[]> => {
-      const res = await fetch(
+      const data = await fetchJsonOrThrow<{
+        ok?: boolean;
+        entries?: SftpEntry[];
+        error?: string;
+      }>(
         `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
       );
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(data.error || `Unable to list ${path}`);
       }
       return sortEntries((data.entries as SftpEntry[]) ?? []);
@@ -410,11 +414,13 @@ const ManageDemo: React.FC = () => {
         dirs.map(async (dir) => {
           const fullPath = buildEntryFullPath(dir.name, currentPath);
           try {
-            const res = await fetch(
+            const data = await fetchJsonOrThrow<{
+              ok?: boolean;
+              entries?: SftpEntry[];
+            }>(
               `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`,
             );
-            const data = await res.json();
-            if (!res.ok || !data?.ok || !Array.isArray(data?.entries)) {
+            if (!data?.ok || !Array.isArray(data?.entries)) {
               return [fullPath, false] as const;
             }
             const expectedByDirName = `${String(dir.name).toLowerCase()}.js`;
@@ -460,11 +466,14 @@ const ManageDemo: React.FC = () => {
   const handleOpenEditor = React.useCallback(async (fullPath: string) => {
     try {
       const baseUrl = getServerBaseUrl();
-      const res = await fetch(
+      const data = await fetchJsonOrThrow<{
+        ok?: boolean;
+        content?: string;
+        error?: string;
+      }>(
         `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`,
       );
-      const data = await res.json();
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         setListError(data?.error || "Unable to read file content");
         return;
       }
@@ -483,7 +492,9 @@ const ManageDemo: React.FC = () => {
     setSavingFile(true);
     try {
       const baseUrl = getServerBaseUrl();
-      const res = await fetch(`${baseUrl}/api/sftp/write`, {
+      const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
+        `${baseUrl}/api/sftp/write`,
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -494,8 +505,7 @@ const ManageDemo: React.FC = () => {
           content: editorContent,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data?.ok) {
+      if (!data?.ok) {
         setListError(data?.error || "Unable to save file");
         return;
       }
@@ -520,7 +530,9 @@ const ManageDemo: React.FC = () => {
       setDeletingPath(fullPath);
       try {
         const baseUrl = getServerBaseUrl();
-        const res = await fetch(`${baseUrl}/api/sftp/delete`, {
+        const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
+          `${baseUrl}/api/sftp/delete`,
+          {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -528,8 +540,7 @@ const ManageDemo: React.FC = () => {
           },
           body: JSON.stringify({ path: fullPath }),
         });
-        const data = await res.json();
-        if (!res.ok || !data?.ok) {
+        if (!data?.ok) {
           setListError(data?.error || "Unable to delete path");
           return;
         }

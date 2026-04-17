@@ -280,7 +280,11 @@ sftpRouter.post(
         };
       }
       await uploadSftpBuffer(body.path, buffer);
-      res.json({ ok: true, path: body.path, ...(videoMeta ? { video: videoMeta } : {}) });
+      res.json({
+        ok: true,
+        path: body.path,
+        ...(videoMeta ? { video: videoMeta } : {}),
+      });
       return;
     }
     await writeSftpFile(body.path, body.content ?? "");

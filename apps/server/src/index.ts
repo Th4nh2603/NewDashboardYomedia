@@ -67,7 +67,9 @@ const BASE_ALLOWED_ROUTES = [
 ];
 
 function normalizeText(value: string | undefined): string {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
@@ -205,7 +207,9 @@ app.post("/api/auth/role-routes", (req, res) => {
     return res.status(400).json({ ok: false, error: "Missing email" });
   }
 
-  const account = loadAccounts().find((item) => normalizeText(item.email) === emailNorm);
+  const account = loadAccounts().find(
+    (item) => normalizeText(item.email) === emailNorm,
+  );
 
   if (!account) {
     return res.json({

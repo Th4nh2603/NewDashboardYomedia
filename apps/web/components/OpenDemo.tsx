@@ -1,5 +1,6 @@
 import React from "react";
 import { loadActiveCreativeDemos } from "../data/creativeDemos";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 export type OpenYomediaDemoPreviewParams = {
   /** Đường dẫn tương đối (vd `2026/03/.../480x270`) hoặc full có prefix `/script/demo`. */
@@ -67,11 +68,13 @@ async function getSizeFromSftpDirectory(
   if (!directoryPath) return null;
 
   try {
-    const res = await fetch(
+    const data = await fetchJsonOrThrow<{
+      ok?: boolean;
+      entries?: Array<{ name?: string; type?: string }>;
+    }>(
       `${serverApiUrl}/api/sftp/list?path=${encodeURIComponent(directoryPath)}`,
     );
-    const data = await res.json();
-    if (!res.ok || !data?.ok || !Array.isArray(data?.entries)) return null;
+    if (!data?.ok || !Array.isArray(data?.entries)) return null;
 
     const entries = data.entries as Array<{ name?: string; type?: string }>;
     for (const entry of entries) {

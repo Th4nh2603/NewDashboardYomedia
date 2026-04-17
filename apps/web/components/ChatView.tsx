@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useError } from "../contexts/ErrorContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 type ChatMessage = {
   id: string;
@@ -304,14 +305,13 @@ const ChatView = () => {
         let exists: boolean | null = null;
         let message: string | null = null;
         try {
-          const res = await fetch(
+          const data = await fetchJsonOrThrow<
+            | { ok: true; exists: boolean; message?: string | null }
+            | { ok: false; error?: string }
+          >(
             `${baseUrl}/api/sftp/exists?path=${encodeURIComponent(sftpDir)}`,
           );
-          const data = (await res.json()) as
-            | { ok: true; exists: boolean; message?: string | null }
-            | { ok: false; error?: string };
-
-          if (res.ok && data.ok) {
+          if (data.ok) {
             exists = data.exists;
             message = "message" in data ? (data.message ?? null) : null;
           } else {
@@ -391,17 +391,15 @@ const ChatView = () => {
       const baseUrl =
         import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 
-      const res = await fetch(`${baseUrl}/api/rag/query`, {
+      const data = await fetchJsonOrThrow<
+        | { ok: true; answer?: string }
+        | { ok: false; error?: string }
+      >(`${baseUrl}/api/rag/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: trimmedInput }),
       });
-
-      const data = (await res.json()) as
-        | { ok: true; answer?: string }
-        | { ok: false; error?: string };
-
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(
           "error" in data && data.error
             ? data.error

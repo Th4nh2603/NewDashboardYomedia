@@ -12,10 +12,10 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import {
+  fetchSftpList,
+  fetchSftpSearch,
   getParentPath,
-  getServerBaseUrl,
   joinPath,
-  sortSftpEntries,
   type SftpEntry,
 } from "../lib/sftpBrowser";
 
@@ -46,19 +46,8 @@ const Dashboard: React.FC = () => {
     setLoadingList(true);
     setListError(null);
     try {
-      const baseUrl = getServerBaseUrl();
-      const res = await fetch(
-        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
-      );
-      const data = (await res.json()) as {
-        ok?: boolean;
-        entries?: SftpEntry[];
-        error?: string;
-      };
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `Unable to list ${path}`);
-      }
-      setListEntries(sortSftpEntries(Array.isArray(data.entries) ? data.entries : []));
+      const entries = await fetchSftpList(path);
+      setListEntries(entries);
       setSftpPath(path);
       setPathDraft(path);
     } catch (err) {
@@ -88,22 +77,11 @@ const Dashboard: React.FC = () => {
     let cancelled = false;
     setSearchLoading(true);
     setSearchError(null);
-    const baseUrl = getServerBaseUrl();
     void (async () => {
       try {
-        const res = await fetch(
-          `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(sftpPath)}&q=${encodeURIComponent(debouncedQ)}`,
-        );
-        const data = (await res.json()) as {
-          ok?: boolean;
-          matches?: SftpSearchMatch[];
-          error?: string;
-        };
-        if (!res.ok || !data.ok) {
-          throw new Error(data.error || "Tìm thư mục thất bại");
-        }
+        const data = await fetchSftpSearch(sftpPath, debouncedQ);
         if (!cancelled) {
-          setSearchMatches(Array.isArray(data.matches) ? data.matches : []);
+          setSearchMatches(data);
         }
       } catch (e) {
         if (!cancelled) {

@@ -81,3 +81,48 @@ export async function backendErrorFromResponse(
     body,
   });
 }
+
+function isNoContentResponse(res: Response): boolean {
+  return res.status === 204 || res.status === 205;
+}
+
+/**
+ * Standardized API JSON caller used across the web app.
+ * - Converts HTTP errors to `BackendRequestError`
+ * - Converts network failures to `BackendRequestError` with code `NETWORK_ERROR`
+ */
+export async function fetchJsonOrThrow<T>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(input, init);
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Network request failed";
+    throw new BackendRequestError(message, 0, {
+      code: "NETWORK_ERROR",
+      body: error,
+    });
+  }
+
+  if (!res.ok) {
+    throw await backendErrorFromResponse(res);
+  }
+
+  if (isNoContentResponse(res)) {
+    return {} as T;
+  }
+
+  try {
+    return (await res.json()) as T;
+  } catch (error) {
+    throw new BackendRequestError("Invalid JSON response", res.status, {
+      code: "INVALID_JSON",
+      body: error,
+    });
+  }
+}

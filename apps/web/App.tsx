@@ -15,7 +15,7 @@ import Live from "./pages/Live";
 import History from "./pages/History";
 import CreativeShowcase from "./pages/CreativeShowcase";
 import ImageGenerator from "./pages/ImageGenerator";
-import Login from "./pages/Login";
+import LoginPage from "./pages/LoginPage";
 import BuildDemo from "./pages/BuildDemo";
 import ManageDemo from "./pages/ManageDemo";
 import ManageSftp from "./pages/ManageSftp";
@@ -33,7 +33,7 @@ const App: React.FC = () => {
           <AppErrorBoundary>
             <HashRouter>
               <Routes>
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<LoginPage />} />
                 <Route
                   path="/*"
                   element={

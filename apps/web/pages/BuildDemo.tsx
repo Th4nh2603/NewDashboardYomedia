@@ -15,6 +15,7 @@ import demoConfig from "../data/demoConfig.json";
 import brandColors from "../data/brandColors.json";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -513,14 +514,16 @@ const BuildDemo: React.FC = () => {
     const checkDirectory = async () => {
       setCheckingDirectory(true);
       try {
-        const res = await fetch(
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          exists?: boolean;
+          kind?: string;
+        }>(
           `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(`/script/demo/${targetPath}`)}`,
           { headers: sftpRoleHeaders },
         );
-        const data = await res.json();
         if (!cancelled) {
           const exists = Boolean(
-            res.ok &&
             data?.ok &&
             data?.exists &&
             (data?.kind === "directory" ||
@@ -550,17 +553,16 @@ const BuildDemo: React.FC = () => {
     let cancelled = false;
     const loadDemoTitles = async () => {
       try {
-        const res = await fetch(
-          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
-        );
-        const data = (await res.json()) as {
+        const data = await fetchJsonOrThrow<{
           ok?: boolean;
           items?: Array<{
             id?: string;
             title?: string;
             size?: string | string[];
           }>;
-        };
+        }>(
+          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
+        );
         const items = Array.isArray(data.items)
           ? data.items
               .map((item) => ({
@@ -1023,12 +1025,15 @@ const BuildDemo: React.FC = () => {
     const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
 
     try {
-      const checkRes = await fetch(
+      const checkData = await fetchJsonOrThrow<{
+        ok?: boolean;
+        exists?: boolean;
+        error?: string;
+      }>(
         `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
         { headers: sftpRoleHeaders },
       );
-      const checkData = await checkRes.json();
-      if (!checkRes.ok || !checkData?.ok) {
+      if (!checkData?.ok) {
         setSendError(
           checkData?.error ||
             "Cannot verify remote path on SFTP. Check server connection.",
@@ -1087,7 +1092,9 @@ const BuildDemo: React.FC = () => {
               "/",
             );
 
-          const res = await fetch(`${baseUrl}/api/sftp/write`, {
+          const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
+            `${baseUrl}/api/sftp/write`,
+            {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1098,8 +1105,7 @@ const BuildDemo: React.FC = () => {
               content: convertedContent,
             }),
           });
-          const data = await res.json();
-          if (!res.ok || !data?.ok) {
+          if (!data?.ok) {
             sftpErrors.push(
               `${item.file.name}: ${data?.error || "upload failed"}`,
             );
@@ -1128,7 +1134,15 @@ const BuildDemo: React.FC = () => {
               /\/{2,}/g,
               "/",
             );
-          const res = await fetch(`${baseUrl}/api/sftp/write`, {
+          const data = await fetchJsonOrThrow<{
+            ok?: boolean;
+            error?: string;
+            video?: {
+              originalBytes?: number;
+              compressedBytes?: number;
+              videoCompressed?: boolean;
+            };
+          }>(`${baseUrl}/api/sftp/write`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1140,8 +1154,7 @@ const BuildDemo: React.FC = () => {
               encoding: "base64",
             }),
           });
-          const data = await res.json();
-          if (!res.ok || !data?.ok) {
+          if (!data?.ok) {
             sftpErrors.push(
               `${item.file.name}: ${data?.error || "video upload failed"}`,
             );

@@ -11,13 +11,25 @@ import {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
+  const hasLoggedJwtRef = React.useRef(false);
 
   React.useEffect(() => {
     if (isSignedIn) {
       navigate("/");
     }
   }, [isSignedIn, navigate]);
+
+  React.useEffect(() => {
+    const logJwt = async () => {
+      if (!isSignedIn || hasLoggedJwtRef.current) return;
+      const jwt = await getToken();
+      console.log("Clerk JWT after login:", jwt);
+      hasLoggedJwtRef.current = true;
+    };
+
+    void logJwt();
+  }, [isSignedIn, getToken]);
 
   return (
     <div className="min-h-screen bg-[#141b2d] flex items-center justify-center p-6 font-sans">

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/react";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 interface User {
   name: string;
@@ -25,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const { isSignedIn } = useClerkAuth();
+  const { isSignedIn, signOut } = useClerkAuth();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
   const getServerBaseUrl = () =>
@@ -52,7 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const emailFromClerk = clerkUser?.primaryEmailAddress?.emailAddress || "";
       const nameFromClerk =
-        clerkUser?.fullName || clerkUser?.firstName || clerkUser?.username || "";
+        clerkUser?.fullName ||
+        clerkUser?.firstName ||
+        clerkUser?.username ||
+        "";
       const emailToLookup = emailFromClerk || nextUser?.email || "";
 
       if (!cancelled && nextUser) {
@@ -68,14 +72,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        const res = await fetch(`${getServerBaseUrl()}/api/auth/me`, {
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          user?: {
+            name?: string;
+            email?: string;
+            role?: string;
+            roleTitle?: string;
+            allowedRoutes?: string[];
+          };
+        }>(`${getServerBaseUrl()}/api/auth/me`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: emailToLookup, name: nameFromClerk }),
         });
-        const data = await res.json().catch(() => ({}));
 
-        if (res.ok && data?.ok && data?.user) {
+        if (data?.ok && data?.user) {
           nextUser = {
             name: data.user.name || nameFromClerk || nextUser?.name || "User",
             email: data.user.email || emailToLookup,
@@ -107,7 +119,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         if (nextUser) {
-          window.localStorage.setItem("yomedia-auth-user", JSON.stringify(nextUser));
+          window.localStorage.setItem(
+            "yomedia-auth-user",
+            JSON.stringify(nextUser),
+          );
         } else {
           window.localStorage.removeItem("yomedia-auth-user");
         }
@@ -127,7 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthReady(true);
     if (options?.remember) {
       try {
-        window.localStorage.setItem("yomedia-auth-user", JSON.stringify(userData));
+        window.localStorage.setItem(
+          "yomedia-auth-user",
+          JSON.stringify(userData),
+        );
       } catch {
         // ignore storage errors
       }
@@ -148,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch {
       // ignore storage errors
     }
+    void signOut();
   };
 
   return (
