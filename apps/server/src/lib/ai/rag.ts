@@ -63,7 +63,13 @@ async function getRagSingleton(): Promise<RagSingleton> {
     }
 
     const docsFolder = path.join(process.cwd(), "rag", "docs");
-    const creativeDemosPath = path.join(__dirname, "..", "data", "creative-demos.json");
+    const creativeDemosPath = path.join(
+      __dirname,
+      "..",
+      "..",
+      "data",
+      "creative-demos.json",
+    );
 
     const [docsFromFolder, docsFromCreativeDemos] = await Promise.all([
       loadDocsFromFolder(docsFolder),

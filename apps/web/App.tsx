@@ -24,6 +24,7 @@ import Bar from "./pages/Bar";
 import AIGmail from "./pages/AIGmail";
 import Documentation from "./pages/Documentation";
 import TestData from "./pages/TestData";
+import AdminUsers from "./pages/AdminUsers";
 
 const App: React.FC = () => {
   return (
@@ -94,6 +95,14 @@ const App: React.FC = () => {
                           <Route path="/live" element={<Live />} />
                           <Route path="/history" element={<History />} />
                           <Route path="/ai-gmail" element={<AIGmail />} />
+                          <Route
+                            path="/admin/users"
+                            element={
+                              <RoleRoute allow={["admin"]}>
+                                <AdminUsers />
+                              </RoleRoute>
+                            }
+                          />
                         </Routes>
                       </DashboardLayout>
                     </PrivateRoute>

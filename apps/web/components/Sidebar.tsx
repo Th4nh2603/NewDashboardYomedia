@@ -7,6 +7,7 @@ import {
   HomeIcon,
   UsersIcon,
   UserPlusIcon,
+  ShieldCheckIcon,
   DocumentTextIcon,
   QuestionMarkCircleIcon,
   ArrowUpTrayIcon,
@@ -54,6 +55,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       : undefined;
   const displayRole =
     roleTitleFromServer || displayUser?.role || "Creative Director";
+  const normalizedRole = String(displayUser?.role || "")
+    .trim()
+    .toLowerCase();
   const sections = [
     {
       title: null,
@@ -96,7 +100,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         },
       ],
     },
+    {
+      title: "Administration",
+      items:
+        normalizedRole === "admin"
+          ? [
+              {
+                name: "User & Permissions",
+                path: "/admin/users",
+                icon: ShieldCheckIcon,
+              },
+            ]
+          : [],
+    },
   ];
+  const visibleSections = sections.filter((section) => section.items.length > 0);
+
   return (
     <motion.nav
       initial={false}
@@ -168,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
       {/* Navigation */}
       <div className="flex-1 px-4 pb-10 overflow-y-auto custom-scrollbar">
-        {sections.map((section, idx) => (
+        {visibleSections.map((section, idx) => (
           <div key={idx} className="mb-8">
             {section.title && !isCollapsed && (
               <motion.h3

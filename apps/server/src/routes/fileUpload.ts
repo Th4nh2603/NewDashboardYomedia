@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { asyncHandler, HttpError } from "../lib/httpErrors.js";
-import { getUserRole } from "../lib/authRole.js";
+import { asyncHandler, HttpError } from "../lib/http/errors.js";
+import { getUserRole } from "../lib/auth/role.js";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,11 +8,11 @@ import {
   uploadSftpBuffer,
   sftpPathExists,
   verifySftpWritableDirectory,
-} from "../lib/sftpClient.js";
+} from "../lib/sftp/index.js";
 import {
   isCompressibleVideoFilename,
   maybeCompressVideoUpload,
-} from "../lib/videoCompress.js";
+} from "../lib/media/videoCompress.js";
 
 const router = Router();
 const FILE_UPLOAD_DIR = path.join(process.cwd(), "uploads", "file-center");
@@ -133,9 +133,7 @@ async function recordFolderUploadToTestJson(payload: {
   };
 
   const prevHistory = existing.uploadHistory;
-  const history = Array.isArray(prevHistory)
-    ? [...prevHistory]
-    : [];
+  const history = Array.isArray(prevHistory) ? [...prevHistory] : [];
   history.unshift(record);
   const next = {
     ...existing,
@@ -143,11 +141,7 @@ async function recordFolderUploadToTestJson(payload: {
     uploadHistory: history.slice(0, 100),
   };
 
-  await writeFile(
-    TEST_JSON_PATH,
-    JSON.stringify(next, null, 2) + "\n",
-    "utf8",
-  );
+  await writeFile(TEST_JSON_PATH, JSON.stringify(next, null, 2) + "\n", "utf8");
 }
 
 router.use((req: Request, _res: Response, next) => {
@@ -322,8 +316,9 @@ router.post(
     const matchedDemo = demoId
       ? demosList.find(
           (item) =>
-            String(item?.id ?? "").trim().toLowerCase() ===
-            demoId.toLowerCase(),
+            String(item?.id ?? "")
+              .trim()
+              .toLowerCase() === demoId.toLowerCase(),
         )
       : demosList.find(
           (item) =>
@@ -349,8 +344,9 @@ router.post(
       );
     }
     const sftpBaseDir = mapSourceToSftpRoot(source);
-    const titleForZip =
-      String(matchedDemo?.title || demoTitleInput || "").trim();
+    const titleForZip = String(
+      matchedDemo?.title || demoTitleInput || "",
+    ).trim();
     const overwrite = body.overwrite === true;
 
     const safeFolderName = path.basename(body.folderName);
@@ -397,9 +393,7 @@ router.post(
       const buffer =
         pf.encoding === "base64"
           ? Buffer.from(
-              pf.content.includes(",")
-                ? pf.content.split(",")[1]
-                : pf.content,
+              pf.content.includes(",") ? pf.content.split(",")[1] : pf.content,
               "base64",
             )
           : Buffer.from(pf.content, "utf8");
@@ -432,9 +426,13 @@ router.post(
       const existingPaths: string[] = [];
       const uniqueTargets = Array.from(new Set(remoteTargetPaths));
       for (const targetPath of uniqueTargets) {
-        const existsInfo = await sftpPathExists(targetPath, {}, {
-          scope: "demo",
-        });
+        const existsInfo = await sftpPathExists(
+          targetPath,
+          {},
+          {
+            scope: "demo",
+          },
+        );
         if (existsInfo.exists) {
           existingPaths.push(existsInfo.checkedPath || targetPath);
         }

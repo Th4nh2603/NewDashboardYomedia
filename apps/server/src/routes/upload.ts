@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { asyncHandler, HttpError } from "../lib/httpErrors.js";
+import { asyncHandler, HttpError } from "../lib/http/errors.js";
 import { writeFile, mkdir, readFile, readdir, unlink } from "fs/promises";
 import path from "path";
 

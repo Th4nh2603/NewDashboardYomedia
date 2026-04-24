@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { answerWithRag } from "../lib/rag.js";
-import { asyncHandler, HttpError } from "../lib/httpErrors.js";
+import { answerWithRag } from "../lib/ai/rag.js";
+import { asyncHandler, HttpError } from "../lib/http/errors.js";
 
 export const ragRouter = Router();
 

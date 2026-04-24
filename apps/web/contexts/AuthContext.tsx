@@ -26,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const { isSignedIn, signOut } = useClerkAuth();
+  const { isSignedIn, signOut, getToken } = useClerkAuth();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
   const getServerBaseUrl = () =>
@@ -57,7 +57,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         clerkUser?.firstName ||
         clerkUser?.username ||
         "";
-      const emailToLookup = emailFromClerk || nextUser?.email || "";
+
+      if (isSignedIn) {
+        try {
+          const clerkJwt = await getToken();
+          if (clerkJwt) {
+            const clerkProfile = await fetchJsonOrThrow<{
+              ok?: boolean;
+              user?: {
+                id?: string;
+                name?: string;
+                firstName?: string;
+                lastName?: string;
+                username?: string;
+                email?: string;
+                imageUrl?: string;
+              };
+            }>(`${getServerBaseUrl()}/api/user/me`, {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${clerkJwt}`,
+              },
+            });
+
+            if (clerkProfile?.ok && clerkProfile?.user) {
+              nextUser = {
+                name:
+                  clerkProfile.user.name ||
+                  nameFromClerk ||
+                  nextUser?.name ||
+                  "User",
+                email:
+                  clerkProfile.user.email ||
+                  emailFromClerk ||
+                  nextUser?.email ||
+                  "",
+                picture:
+                  clerkProfile.user.imageUrl ||
+                  clerkUser?.imageUrl ||
+                  nextUser?.picture,
+                role: nextUser?.role,
+                roleTitle: nextUser?.roleTitle,
+                allowedRoutes: Array.isArray(nextUser?.allowedRoutes)
+                  ? nextUser?.allowedRoutes
+                  : [],
+              };
+            }
+          }
+        } catch {
+          // fallback to current Clerk client + local data
+        }
+      }
+
+      const emailToLookup = nextUser?.email || emailFromClerk || "";
 
       if (!cancelled && nextUser) {
         setUser(nextUser);
@@ -135,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [isClerkLoaded, isSignedIn, clerkUser]);
+  }, [isClerkLoaded, isSignedIn, clerkUser, getToken]);
 
   const login = (userData: User, options?: { remember?: boolean }) => {
     setUser(userData);
