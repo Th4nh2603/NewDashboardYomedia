@@ -15,6 +15,7 @@ import {
   openYomediaDemoPreview,
 } from "../components/OpenDemo";
 import { type CreativeDemoItem } from "../data/creativeDemos";
+import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
 
 /** Tỉ lệ ô preview: mobile + laptop (lg) gọn; từ xl trở lên khôi phục tỉ lệ phone đầy đủ như bản cũ. */
 const SHOWCASE_PREVIEW_ASPECT_CLASS =
@@ -488,14 +489,7 @@ const CreativeShowcase: React.FC = () => {
         `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(item.source)}`,
       );
       if (!res.ok) {
-        let message = "Download failed";
-        try {
-          const data = await res.json();
-          if (data?.error) message = String(data.error);
-        } catch {
-          // ignore json parse
-        }
-        throw new Error(message);
+        throw await backendErrorFromResponse(res);
       }
 
       const blob = await res.blob();
@@ -536,11 +530,9 @@ const CreativeShowcase: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${baseUrl}/api/creative-demos`);
-        if (!res.ok) {
-          throw new Error("Unable to load creative demos from server");
-        }
-        const data = (await res.json()) as CreativeDemosApiResponse;
+        const data = await fetchJsonOrThrow<CreativeDemosApiResponse>(
+          `${baseUrl}/api/creative-demos`,
+        );
         const demos = Array.isArray(data?.demos)
           ? data.demos
               .map(normalizeDemo)

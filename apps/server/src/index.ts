@@ -4,12 +4,15 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createClerkClient } from "@clerk/backend";
 import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
 import { fileUploadRouter } from "./routes/fileUpload.js";
 import { testDataRouter } from "./routes/testData.js";
-import { errorHandler, notFoundHandler } from "./lib/httpErrors.js";
+import { userRouter } from "./routes/user.js";
+import { errorHandler, notFoundHandler } from "./lib/http/errors.js";
+import { getUserRole } from "./lib/auth/role.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -21,7 +24,7 @@ app.use(
       cb: (err: null, allow: boolean | string) => void,
     ) => cb(null, origin || true),
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-user-role"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-user-role"],
   }),
 );
 app.use(express.json({ limit: "50mb" }));
@@ -31,6 +34,7 @@ app.use("/api/rag", ragRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/file-upload", fileUploadRouter);
 app.use("/api/test-data", testDataRouter);
+app.use("/api/user", userRouter);
 
 // Simple JSON-file-based data
 const __filename = fileURLToPath(import.meta.url);
@@ -50,6 +54,131 @@ type Account = {
 
 let accountsCache: Account[] | null = null;
 
+const BASE_ALLOWED_ROUTES = [
+  "/",
+  "/chat",
+  "/vision",
+  "/image-generator",
+  "/creative-showcase",
+  "/document",
+  "/documentation",
+  "/manage-demo",
+  "/bar",
+  "/cinema",
+  "/live",
+  "/history",
+  "/ai-gmail",
+];
+
+function normalizeText(value: string | undefined): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
+  const role = normalizeText(roleRaw);
+  const routes = new Set(BASE_ALLOWED_ROUTES);
+
+  if (role !== "guest") {
+    routes.add("/test-data");
+  }
+  if (role === "admin" || role === "design") {
+    routes.add("/build-demo");
+    routes.add("/upload");
+  }
+  if (role === "admin") {
+    routes.add("/manage-sftp");
+    routes.add("/admin/users");
+  }
+
+  return Array.from(routes);
+}
+
+function buildUserPayload(account: Account) {
+  return {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    phone: account.phone,
+    role: account.role,
+    roleTitle: account.roleTitle,
+    status: account.status,
+    allowedRoutes: getAllowedRoutesByRole(account.role),
+  };
+}
+
+function buildGuestPayload(email: string, name?: string) {
+  const fallbackName = String(name || "").trim() || "Guest";
+  const fallbackEmail = String(email || "").trim();
+  return {
+    id: "guest",
+    name: fallbackName,
+    email: fallbackEmail,
+    phone: "",
+    role: "guest",
+    roleTitle: "Guest",
+    status: "active",
+    allowedRoutes: getAllowedRoutesByRole("guest"),
+  };
+}
+
+function roleTitleFromRole(roleRaw: string): string {
+  const role = normalizeText(roleRaw);
+  if (role === "admin") return "Administrator";
+  if (role === "adsopmanager") return "AdsOp Manager";
+  if (role === "adsop") return "AdsOp";
+  if (role === "design") return "Design";
+  if (role === "guest") return "Guest";
+  return "User";
+}
+
+function nullableText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeRoleOrGuest(value: unknown): string {
+  const role = nullableText(value);
+  return role ? role.toLowerCase() : "guest";
+}
+
+function mapClerkUserToAdminAccount(clerkUser: any, localAccount?: Account) {
+  const primaryEmailObj = clerkUser.emailAddresses?.find(
+    (email: any) => email.id === clerkUser.primaryEmailAddressId,
+  );
+  const primaryPhoneObj = clerkUser.phoneNumbers?.find(
+    (phone: any) => phone.id === clerkUser.primaryPhoneNumberId,
+  );
+  const publicMetadata = clerkUser.publicMetadata || {};
+  const role = normalizeRoleOrGuest(publicMetadata.role ?? localAccount?.role);
+  const roleTitle =
+    nullableText(publicMetadata.roleTitle) ||
+    nullableText(localAccount?.roleTitle) ||
+    roleTitleFromRole(role);
+  const status =
+    nullableText(publicMetadata.status) ||
+    nullableText(localAccount?.status) ||
+    "active";
+
+  return {
+    id: String(clerkUser.id),
+    name:
+      nullableText(
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" "),
+      ) ||
+      nullableText(clerkUser.fullName) ||
+      nullableText(clerkUser.username),
+    email: nullableText(primaryEmailObj?.emailAddress),
+    phone: nullableText(primaryPhoneObj?.phoneNumber),
+    role,
+    roleTitle,
+    status,
+    allowedRoutes: getAllowedRoutesByRole(role),
+  };
+}
+
 function loadAccounts(): Account[] {
   if (!accountsCache) {
     const raw = fs.readFileSync(accountsPath, "utf8");
@@ -59,14 +188,80 @@ function loadAccounts(): Account[] {
   return accountsCache;
 }
 
+function saveAccounts(accounts: Account[]) {
+  accountsCache = accounts;
+  fs.writeFileSync(accountsPath, JSON.stringify({ accounts }, null, 2), "utf8");
+}
+
+function upsertLocalAccountFromClerkUser(clerkUser: any) {
+  const normalized = mapClerkUserToAdminAccount(clerkUser);
+  const email = nullableText(normalized.email);
+  if (!email) {
+    return;
+  }
+
+  const accounts = loadAccounts();
+  const emailKey = normalizeText(email);
+  const existingIndex = accounts.findIndex(
+    (account) => normalizeText(account.email) === emailKey,
+  );
+
+  const nextAccount: Account = {
+    id:
+      normalized.id ||
+      (existingIndex >= 0 ? accounts[existingIndex].id : `u_${Date.now()}`),
+    name:
+      normalized.name ||
+      (existingIndex >= 0 ? accounts[existingIndex].name : email.split("@")[0]),
+    email,
+    phone:
+      normalized.phone ||
+      (existingIndex >= 0 ? accounts[existingIndex].phone : ""),
+    role:
+      normalized.role ||
+      (existingIndex >= 0 ? accounts[existingIndex].role : "guest"),
+    roleTitle:
+      normalized.roleTitle ||
+      (existingIndex >= 0
+        ? accounts[existingIndex].roleTitle
+        : roleTitleFromRole(normalized.role || "guest")),
+    status:
+      normalized.status ||
+      (existingIndex >= 0 ? accounts[existingIndex].status : "active"),
+  };
+
+  if (existingIndex >= 0) {
+    const nextAccounts = [...accounts];
+    nextAccounts[existingIndex] = nextAccount;
+    saveAccounts(nextAccounts);
+    return;
+  }
+
+  saveAccounts([...accounts, nextAccount]);
+}
+
 function loadCreativeDemos() {
   const raw = fs.readFileSync(creativeDemosPath, "utf8");
   const parsed = JSON.parse(raw) as { demos?: any[] };
   return parsed.demos || [];
 }
 
+function ensureAdmin(req: express.Request, res: express.Response): boolean {
+  const role = getUserRole(req);
+  if (role !== "admin") {
+    res
+      .status(403)
+      .json({ ok: false, error: "Forbidden: admin role required" });
+    return false;
+  }
+  return true;
+}
+
 app.post("/api/login", (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
+  const { email, password } = req.body as {
+    email?: string;
+    password?: string;
+  };
 
   if (!email || !password) {
     return res
@@ -81,7 +276,7 @@ app.post("/api/login", (req, res) => {
 
   const account = accounts.find(
     (a) =>
-      a.email.toLowerCase() === email.toLowerCase() &&
+      normalizeText(a.email) === normalizeText(email) &&
       normalizePhone(a.phone) === normalizePhone(password),
   );
 
@@ -93,15 +288,68 @@ app.post("/api/login", (req, res) => {
 
   return res.json({
     ok: true,
-    user: {
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      phone: account.phone,
-      role: account.role,
-      roleTitle: account.roleTitle,
-      status: account.status,
-    },
+    user: buildUserPayload(account),
+  });
+});
+
+app.post("/api/auth/me", (req, res) => {
+  const { email, name } = req.body as { email?: string; name?: string };
+  const emailNorm = normalizeText(email);
+  const nameNorm = normalizeText(name);
+
+  if (!emailNorm) {
+    return res.status(400).json({ ok: false, error: "Missing email" });
+  }
+
+  const account = loadAccounts().find(
+    (item) => normalizeText(item.email) === emailNorm,
+  );
+
+  if (!account) {
+    return res.json({
+      ok: true,
+      nameMatched: false,
+      user: buildGuestPayload(email || emailNorm, name),
+      isGuest: true,
+    });
+  }
+
+  const nameMatched = !nameNorm || normalizeText(account.name) === nameNorm;
+
+  return res.json({
+    ok: true,
+    nameMatched,
+    user: buildUserPayload(account),
+  });
+});
+
+app.post("/api/auth/role-routes", (req, res) => {
+  const { email, name } = req.body as { email?: string; name?: string };
+  const emailNorm = normalizeText(email);
+  const nameNorm = normalizeText(name);
+  if (!emailNorm) {
+    return res.status(400).json({ ok: false, error: "Missing email" });
+  }
+
+  const account = loadAccounts().find(
+    (item) => normalizeText(item.email) === emailNorm,
+  );
+
+  if (!account) {
+    return res.json({
+      ok: true,
+      nameMatched: false,
+      user: buildGuestPayload(email || emailNorm, name),
+      isGuest: true,
+    });
+  }
+
+  const nameMatched = !nameNorm || normalizeText(account.name) === nameNorm;
+
+  return res.json({
+    ok: true,
+    nameMatched,
+    user: buildUserPayload(account),
   });
 });
 
@@ -135,6 +383,120 @@ app.get("/api/account-profile", (req, res) => {
       status: account.status,
     },
   });
+});
+
+app.get("/api/admin/accounts", async (req, res) => {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const secretKey = process.env.CLERK_SECRET_KEY;
+    if (!secretKey) {
+      return res
+        .status(500)
+        .json({ ok: false, error: "Missing CLERK_SECRET_KEY on server" });
+    }
+
+    const clerkClient = createClerkClient({ secretKey });
+    const response = await clerkClient.users.getUserList({ limit: 500 });
+    const users = Array.isArray((response as any).data)
+      ? (response as any).data
+      : Array.isArray(response)
+        ? response
+        : [];
+
+    const localAccountsByEmail = new Map(
+      loadAccounts().map((account) => [normalizeText(account.email), account]),
+    );
+
+    return res.json({
+      ok: true,
+      accounts: users.map((clerkUser: any) => {
+        const primaryEmailObj = clerkUser.emailAddresses?.find(
+          (email: any) => email.id === clerkUser.primaryEmailAddressId,
+        );
+        const emailKey = normalizeText(primaryEmailObj?.emailAddress);
+        const localAccount = localAccountsByEmail.get(emailKey);
+        return mapClerkUserToAdminAccount(clerkUser, localAccount);
+      }),
+    });
+  } catch (error) {
+    console.error("Failed to fetch admin accounts from Clerk", error);
+    return res
+      .status(500)
+      .json({ ok: false, error: "Unable to fetch users from Clerk" });
+  }
+});
+
+app.put("/api/admin/accounts/:id", async (req, res) => {
+  if (!ensureAdmin(req, res)) return;
+  const id = String(req.params.id || "").trim();
+  if (!id) {
+    return res.status(400).json({ ok: false, error: "Missing account id" });
+  }
+
+  const payload = req.body as {
+    role?: string;
+    roleTitle?: string;
+    status?: string;
+  };
+  const updates: Partial<Account> = {};
+
+  if (typeof payload.role === "string") {
+    updates.role = payload.role.trim().toLowerCase();
+  }
+  if (typeof payload.roleTitle === "string") {
+    updates.roleTitle = payload.roleTitle.trim();
+  }
+  if (typeof payload.status === "string") {
+    updates.status = payload.status.trim().toLowerCase();
+  }
+
+  if (!updates.role && !updates.roleTitle && !updates.status) {
+    return res.status(400).json({ ok: false, error: "No valid update fields" });
+  }
+  try {
+    const secretKey = process.env.CLERK_SECRET_KEY;
+    if (!secretKey) {
+      return res
+        .status(500)
+        .json({ ok: false, error: "Missing CLERK_SECRET_KEY on server" });
+    }
+
+    const clerkClient = createClerkClient({ secretKey });
+    const currentUser = await clerkClient.users.getUser(id);
+    const currentMetadata = (currentUser.publicMetadata || {}) as Record<
+      string,
+      unknown
+    >;
+
+    const nextPublicMetadata: Record<string, unknown> = {
+      ...currentMetadata,
+    };
+    if (updates.role) {
+      nextPublicMetadata.role = updates.role;
+    }
+    if (updates.roleTitle) {
+      nextPublicMetadata.roleTitle = updates.roleTitle;
+    } else if (updates.role) {
+      nextPublicMetadata.roleTitle = roleTitleFromRole(updates.role);
+    }
+    if (updates.status) {
+      nextPublicMetadata.status = updates.status;
+    }
+
+    const updatedUser = await clerkClient.users.updateUserMetadata(id, {
+      publicMetadata: nextPublicMetadata,
+    });
+
+    upsertLocalAccountFromClerkUser(updatedUser);
+
+    return res.json({
+      ok: true,
+      user: mapClerkUserToAdminAccount(updatedUser),
+    });
+  } catch (error) {
+    console.error(`Failed to update Clerk user ${id}`, error);
+    return res.status(500).json({ ok: false, error: "Unable to update user" });
+  }
 });
 
 app.get("/api/creative-demos", (_req, res) => {

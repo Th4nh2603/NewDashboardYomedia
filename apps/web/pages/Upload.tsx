@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 type DemoListItem = {
   id: string;
@@ -128,15 +129,14 @@ const Upload: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${baseUrl}/api/file-upload`, {
-        headers: { "x-user-role": role },
-      });
-      const data = (await res.json()) as {
+      const data = await fetchJsonOrThrow<{
         ok?: boolean;
         files?: string[];
         error?: string;
-      };
-      if (!res.ok || !data.ok) {
+      }>(`${baseUrl}/api/file-upload`, {
+        headers: { "x-user-role": role },
+      });
+      if (!data.ok) {
         throw new Error(data.error || "Unable to load uploaded files");
       }
       setFiles(Array.isArray(data.files) ? data.files : []);
@@ -157,13 +157,12 @@ const Upload: React.FC = () => {
     if (!canUpload) return;
     const loadDemoTitles = async () => {
       try {
-        const res = await fetch(
-          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
-        );
-        const data = (await res.json()) as {
+        const data = await fetchJsonOrThrow<{
           ok?: boolean;
           items?: DemoListItem[];
-        };
+        }>(
+          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
+        );
         const items = Array.isArray(data.items) ? data.items : [];
         setDemoItems(items);
       } catch {
@@ -451,7 +450,9 @@ const Upload: React.FC = () => {
         existingPaths?: string[];
       };
       const uploadOnce = async (overwrite: boolean) => {
-        const res = await fetch(`${baseUrl}/api/file-upload/folder`, {
+        const data = await fetchJsonOrThrow<UploadFolderResponse>(
+          `${baseUrl}/api/file-upload/folder`,
+          {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -465,12 +466,11 @@ const Upload: React.FC = () => {
             overwrite,
           }),
         });
-        const data = (await res.json()) as UploadFolderResponse;
-        return { res, data };
+        return data;
       };
 
-      let { res, data } = await uploadOnce(false);
-      if (res.status === 409 && data.conflict) {
+      let data = await uploadOnce(false);
+      if (data.conflict) {
         const conflictList = Array.isArray(data.existingPaths)
           ? data.existingPaths.join("\n")
           : "";
@@ -482,10 +482,10 @@ const Upload: React.FC = () => {
           setMessage("Upload cancelled. Form has been reset.");
           return;
         }
-        ({ res, data } = await uploadOnce(true));
+        data = await uploadOnce(true);
       }
 
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(data.error || "Folder upload failed");
       }
 

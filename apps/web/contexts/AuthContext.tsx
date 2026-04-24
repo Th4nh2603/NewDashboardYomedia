@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useAuth as useClerkAuth, useUser } from "@clerk/react";
+import { fetchJsonOrThrow } from "../lib/apiError";
 
 interface User {
   name: string;
@@ -6,11 +8,13 @@ interface User {
   picture?: string;
   role?: string;
   roleTitle?: string;
+  allowedRoutes?: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  authReady: boolean;
   login: (user: User, options?: { remember?: boolean }) => void;
   logout: () => void;
 }
@@ -21,57 +25,179 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const { isSignedIn, signOut, getToken } = useClerkAuth();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
   const getServerBaseUrl = () =>
     (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
 
   useEffect(() => {
     let cancelled = false;
-    try {
-      const stored = window.localStorage.getItem("yomedia-auth-user");
-      if (stored) {
-        const parsed = JSON.parse(stored) as User;
-        if (parsed && parsed.email) {
-          setUser(parsed);
-          void (async () => {
-            try {
-              const res = await fetch(
-                `${getServerBaseUrl()}/api/account-profile?email=${encodeURIComponent(parsed.email)}`,
-              );
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok || !data?.ok || !data?.user || cancelled) return;
 
-              const refreshedUser: User = {
-                ...parsed,
-                name: data.user.name || parsed.name,
-                email: data.user.email || parsed.email,
-                role: data.user.role || parsed.role,
-                roleTitle: data.user.roleTitle || parsed.roleTitle,
+    const hydrateAuthState = async () => {
+      if (!isClerkLoaded) return;
+      let nextUser: User | null = null;
+
+      try {
+        const stored = window.localStorage.getItem("yomedia-auth-user");
+        if (stored) {
+          const parsed = JSON.parse(stored) as User;
+          if (parsed?.email) {
+            nextUser = parsed;
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
+
+      const emailFromClerk = clerkUser?.primaryEmailAddress?.emailAddress || "";
+      const nameFromClerk =
+        clerkUser?.fullName ||
+        clerkUser?.firstName ||
+        clerkUser?.username ||
+        "";
+
+      if (isSignedIn) {
+        try {
+          const clerkJwt = await getToken();
+          if (clerkJwt) {
+            const clerkProfile = await fetchJsonOrThrow<{
+              ok?: boolean;
+              user?: {
+                id?: string;
+                name?: string;
+                firstName?: string;
+                lastName?: string;
+                username?: string;
+                email?: string;
+                imageUrl?: string;
               };
-              setUser(refreshedUser);
-              window.localStorage.setItem(
-                "yomedia-auth-user",
-                JSON.stringify(refreshedUser),
-              );
-            } catch {
-              // keep stored user when profile refresh fails
+            }>(`${getServerBaseUrl()}/api/user/me`, {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${clerkJwt}`,
+              },
+            });
+
+            if (clerkProfile?.ok && clerkProfile?.user) {
+              nextUser = {
+                name:
+                  clerkProfile.user.name ||
+                  nameFromClerk ||
+                  nextUser?.name ||
+                  "User",
+                email:
+                  clerkProfile.user.email ||
+                  emailFromClerk ||
+                  nextUser?.email ||
+                  "",
+                picture:
+                  clerkProfile.user.imageUrl ||
+                  clerkUser?.imageUrl ||
+                  nextUser?.picture,
+                role: nextUser?.role,
+                roleTitle: nextUser?.roleTitle,
+                allowedRoutes: Array.isArray(nextUser?.allowedRoutes)
+                  ? nextUser?.allowedRoutes
+                  : [],
+              };
             }
-          })();
+          }
+        } catch {
+          // fallback to current Clerk client + local data
         }
       }
-    } catch {
-      // ignore storage errors
-    }
+
+      const emailToLookup = nextUser?.email || emailFromClerk || "";
+
+      if (!cancelled && nextUser) {
+        setUser(nextUser);
+      }
+
+      if (!emailToLookup) {
+        if (!cancelled) {
+          setUser(isSignedIn && clerkUser ? nextUser : null);
+          setAuthReady(true);
+        }
+        return;
+      }
+
+      try {
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          user?: {
+            name?: string;
+            email?: string;
+            role?: string;
+            roleTitle?: string;
+            allowedRoutes?: string[];
+          };
+        }>(`${getServerBaseUrl()}/api/auth/me`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailToLookup, name: nameFromClerk }),
+        });
+
+        if (data?.ok && data?.user) {
+          nextUser = {
+            name: data.user.name || nameFromClerk || nextUser?.name || "User",
+            email: data.user.email || emailToLookup,
+            picture: clerkUser?.imageUrl || nextUser?.picture,
+            role: data.user.role || nextUser?.role,
+            roleTitle: data.user.roleTitle || nextUser?.roleTitle,
+            allowedRoutes: Array.isArray(data.user.allowedRoutes)
+              ? data.user.allowedRoutes
+              : [],
+          };
+        } else if (isSignedIn && clerkUser && emailFromClerk) {
+          nextUser = {
+            name: nameFromClerk || "User",
+            email: emailFromClerk,
+            picture: clerkUser.imageUrl,
+            role: "guest",
+            roleTitle: "Guest",
+            allowedRoutes: [],
+          };
+        }
+      } catch {
+        // keep current user data when sync fails
+      }
+
+      if (!cancelled) {
+        setUser(nextUser);
+        setAuthReady(true);
+      }
+
+      try {
+        if (nextUser) {
+          window.localStorage.setItem(
+            "yomedia-auth-user",
+            JSON.stringify(nextUser),
+          );
+        } else {
+          window.localStorage.removeItem("yomedia-auth-user");
+        }
+      } catch {
+        // ignore storage errors
+      }
+    };
+
+    void hydrateAuthState();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isClerkLoaded, isSignedIn, clerkUser, getToken]);
 
   const login = (userData: User, options?: { remember?: boolean }) => {
     setUser(userData);
+    setAuthReady(true);
     if (options?.remember) {
       try {
-        window.localStorage.setItem("yomedia-auth-user", JSON.stringify(userData));
+        window.localStorage.setItem(
+          "yomedia-auth-user",
+          JSON.stringify(userData),
+        );
       } catch {
         // ignore storage errors
       }
@@ -86,15 +212,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = () => {
     setUser(null);
+    setAuthReady(true);
     try {
       window.localStorage.removeItem("yomedia-auth-user");
     } catch {
       // ignore storage errors
     }
+    void signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, authReady, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

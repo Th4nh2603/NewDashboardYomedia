@@ -1,4 +1,4 @@
-import { backendErrorFromResponse } from "./apiError";
+import { fetchJsonOrThrow } from "./apiError";
 
 export type SftpEntry = {
   name: string;
@@ -45,17 +45,13 @@ export function joinPath(base: string, name: string): string {
 
 export async function fetchSftpList(path: string): Promise<SftpEntry[]> {
   const baseUrl = getServerBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
-  );
-  if (!res.ok) {
-    throw await backendErrorFromResponse(res);
-  }
-  const data = (await res.json()) as {
+  const data = await fetchJsonOrThrow<{
     ok?: boolean;
     entries?: SftpEntry[];
     error?: string;
-  };
+  }>(
+    `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
+  );
   if (!data.ok) {
     throw new Error(data.error || `Unable to list ${path}`);
   }
@@ -67,17 +63,13 @@ export async function fetchSftpSearch(
   query: string,
 ): Promise<SftpSearchMatch[]> {
   const baseUrl = getServerBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(path)}&q=${encodeURIComponent(query)}`,
-  );
-  if (!res.ok) {
-    throw await backendErrorFromResponse(res);
-  }
-  const data = (await res.json()) as {
+  const data = await fetchJsonOrThrow<{
     ok?: boolean;
     matches?: SftpSearchMatch[];
     error?: string;
-  };
+  }>(
+    `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(path)}&q=${encodeURIComponent(query)}`,
+  );
   if (!data.ok) {
     throw new Error(data.error || "Tìm thư mục thất bại");
   }

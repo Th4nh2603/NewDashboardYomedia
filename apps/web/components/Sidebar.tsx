@@ -1,14 +1,15 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { motion, AnimatePresence } from "motion/react";
+import { useUser } from "@clerk/react";
+import { motion } from "motion/react";
 import {
   HomeIcon,
   UsersIcon,
   UserPlusIcon,
+  ShieldCheckIcon,
   DocumentTextIcon,
   QuestionMarkCircleIcon,
-  Bars3Icon,
   ArrowUpTrayIcon,
   ClipboardDocumentListIcon,
   ServerStackIcon,
@@ -24,16 +25,39 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  if (!user) return null; // Hoặc hiển thị nút Login
-  const normalizedRole = (user?.role || "").toLowerCase();
-  const canAccessBuildDemo =
-    normalizedRole === "admin" || normalizedRole === "design";
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const displayUser = user
+    ? user
+    : clerkUser
+      ? {
+          name:
+            clerkUser.fullName ||
+            clerkUser.firstName ||
+            clerkUser.primaryEmailAddress?.emailAddress ||
+            "User",
+          email: clerkUser.primaryEmailAddress?.emailAddress || "",
+          picture: clerkUser.imageUrl,
+          role: "guest",
+          roleTitle: "Clerk User",
+        }
+      : null;
+  React.useEffect(() => {
+    if (displayUser?.email) {
+      console.log("Logged in email:", displayUser.email);
+    }
+  }, [displayUser?.email]);
+
+  if (!displayUser && isClerkLoaded) return null;
 
   const roleTitleFromServer =
-    "roleTitle" in user
-      ? (user as { roleTitle?: string }).roleTitle
+    displayUser && "roleTitle" in displayUser
+      ? (displayUser as { roleTitle?: string }).roleTitle
       : undefined;
-  const displayRole = roleTitleFromServer || user?.role || "Creative Director";
+  const displayRole =
+    roleTitleFromServer || displayUser?.role || "Creative Director";
+  const normalizedRole = String(displayUser?.role || "")
+    .trim()
+    .toLowerCase();
   const sections = [
     {
       title: null,
@@ -76,7 +100,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         },
       ],
     },
+    {
+      title: "Administration",
+      items:
+        normalizedRole === "admin"
+          ? [
+              {
+                name: "User & Permissions",
+                path: "/admin/users",
+                icon: ShieldCheckIcon,
+              },
+            ]
+          : [],
+    },
   ];
+  const visibleSections = sections.filter((section) => section.items.length > 0);
+
   return (
     <motion.nav
       initial={false}
@@ -111,47 +150,44 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </div>
 
       {/* Profile Section */}
-      <AnimatePresence mode="wait">
-        {!isCollapsed && (
-          <motion.div
-            key="profile"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="px-6 mb-10"
-          >
-            <div className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col items-center text-center relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4cceac]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      {!isCollapsed && (
+        <motion.div
+          key="profile"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="px-6 mb-10"
+        >
+          <div className="bg-white/5 border border-white/5 rounded-3xl p-5 flex flex-col items-center text-center relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4cceac]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-              <div className="relative">
-                <div className="absolute -inset-2 bg-[#4cceac]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl">
-                  <img
-                    src={
-                      user?.picture ||
-                      `https://picsum.photos/seed/${user?.name || "nova"}/200/200`
-                    }
-                    alt={user?.name || "User avatar"}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+            <div className="relative">
+              <div className="absolute -inset-2 bg-[#4cceac]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl">
+                <img
+                  src={
+                    displayUser?.picture ||
+                    `https://picsum.photos/seed/${displayUser?.name || "nova"}/200/200`
+                  }
+                  alt={displayUser?.name || "User avatar"}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               </div>
-
-              <h2 className="text-lg font-bold text-white mt-4 tracking-tight truncate w-full">
-                {user?.name || "User"}
-              </h2>
-              <p className="text-[#4cceac] text-[10px] font-black uppercase tracking-[0.2em] mt-1 opacity-80">
-                {displayRole}
-              </p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            <h2 className="text-lg font-bold text-white mt-4 tracking-tight truncate w-full">
+              {displayUser?.name || "User"}
+            </h2>
+            <p className="text-[#4cceac] text-[10px] font-black uppercase tracking-[0.2em] mt-1 opacity-80">
+              {displayRole}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Navigation */}
       <div className="flex-1 px-4 pb-10 overflow-y-auto custom-scrollbar">
-        {sections.map((section, idx) => (
+        {visibleSections.map((section, idx) => (
           <div key={idx} className="mb-8">
             {section.title && !isCollapsed && (
               <motion.h3
@@ -164,25 +200,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             )}
             <div className="space-y-1.5">
               {section.items.map((item) => {
-                if (item.path === "/build-demo" && !canAccessBuildDemo) {
-                  return null;
-                }
-                if (
-                  item.path === "/manage-sftp" &&
-                  normalizedRole !== "admin"
-                ) {
-                  return null;
-                }
-                if (
-                  item.path === "/upload" &&
-                  normalizedRole !== "admin" &&
-                  normalizedRole !== "design"
-                ) {
-                  return null;
-                }
-                if (item.path === "/test-data" && normalizedRole === "guest") {
-                  return null;
-                }
                 const isActive = location.pathname === item.path;
                 return (
                   <Link

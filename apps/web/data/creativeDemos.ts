@@ -1,3 +1,5 @@
+import { fetchJsonOrThrow } from "../lib/apiError";
+
 export type CreativeDemoItem = {
   id: string;
   title: string;
@@ -62,16 +64,14 @@ export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
   if (cache) return cache;
   let data: CreativeDemoResponse | null = null;
   try {
-    const apiRes = await fetch(`${getServerBaseUrl()}/api/creative-demos`);
-    if (apiRes.ok) {
-      data = (await apiRes.json()) as CreativeDemoResponse;
-    }
+    data = await fetchJsonOrThrow<CreativeDemoResponse>(
+      `${getServerBaseUrl()}/api/creative-demos`,
+    );
   } catch {
     // fallback below
   }
   if (!data) {
-    const res = await fetch("/creative-demos.json");
-    data = (await res.json()) as CreativeDemoResponse;
+    data = await fetchJsonOrThrow<CreativeDemoResponse>("/creative-demos.json");
   }
   const demos = Array.isArray(data?.demos)
     ? data.demos

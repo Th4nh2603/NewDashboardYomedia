@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { asyncHandler, HttpError } from "../lib/httpErrors.js";
-import { getUserRole } from "../lib/authRole.js";
+import { asyncHandler, HttpError } from "../lib/http/errors.js";
+import { getUserRole } from "../lib/auth/role.js";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -16,11 +16,11 @@ import {
   deleteSftpPath,
   uploadSftpBuffer,
   downloadSftpDirectoryAsZip,
-} from "../lib/sftpClient.js";
+} from "../lib/sftp/index.js";
 import {
   isCompressibleVideoFilename,
   maybeCompressVideoUpload,
-} from "../lib/videoCompress.js";
+} from "../lib/media/videoCompress.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -280,7 +280,11 @@ sftpRouter.post(
         };
       }
       await uploadSftpBuffer(body.path, buffer);
-      res.json({ ok: true, path: body.path, ...(videoMeta ? { video: videoMeta } : {}) });
+      res.json({
+        ok: true,
+        path: body.path,
+        ...(videoMeta ? { video: videoMeta } : {}),
+      });
       return;
     }
     await writeSftpFile(body.path, body.content ?? "");

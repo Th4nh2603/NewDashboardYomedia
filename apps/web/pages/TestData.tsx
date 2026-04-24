@@ -5,6 +5,7 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
+import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
 
 const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
 
@@ -46,15 +47,14 @@ const TestData: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(`${baseUrl}/api/test-data`, {
-        headers: { "x-user-role": role },
-      });
-      const data = (await res.json()) as {
+      const data = await fetchJsonOrThrow<{
         ok?: boolean;
         content?: string;
         error?: string;
-      };
-      if (!res.ok || !data.ok) {
+      }>(`${baseUrl}/api/test-data`, {
+        headers: { "x-user-role": role },
+      });
+      if (!data.ok) {
         throw new Error(data.error || "Unable to load creative-demos.json");
       }
       setContent(
@@ -81,7 +81,9 @@ const TestData: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(`${baseUrl}/api/test-data`, {
+      const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
+        `${baseUrl}/api/test-data`,
+        {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -91,8 +93,7 @@ const TestData: React.FC = () => {
           content: content == null ? "" : String(content),
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(data.error || "Save failed");
       }
       setMessage("Đã lưu creative-demos.json.");
@@ -134,7 +135,16 @@ const TestData: React.FC = () => {
       const base =
         videoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_") || `video.${ext}`;
       const savedName = `compress-test-${Date.now()}-${base}`;
-      const res = await fetch(`${baseUrl}/api/file-upload`, {
+      const data = await fetchJsonOrThrow<{
+        ok?: boolean;
+        name?: string;
+        error?: string;
+        video?: {
+          originalBytes?: number;
+          compressedBytes?: number;
+          videoCompressed?: boolean;
+        };
+      }>(`${baseUrl}/api/file-upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -146,17 +156,7 @@ const TestData: React.FC = () => {
           encoding: "base64",
         }),
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        name?: string;
-        error?: string;
-        video?: {
-          originalBytes?: number;
-          compressedBytes?: number;
-          videoCompressed?: boolean;
-        };
-      };
-      if (!res.ok || !data.ok) {
+      if (!data.ok) {
         throw new Error(data.error || "Upload thất bại");
       }
       const v = data.video;
@@ -189,10 +189,7 @@ const TestData: React.FC = () => {
         headers: { "x-user-role": role },
       });
       if (!res.ok) {
-        const errBody = (await res.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(errBody.error || `Tải xuống thất bại (${res.status})`);
+        throw await backendErrorFromResponse(res);
       }
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);

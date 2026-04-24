@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { asyncHandler, HttpError } from "../lib/httpErrors.js";
-import { getUserRole } from "../lib/authRole.js";
+import { asyncHandler, HttpError } from "../lib/http/errors.js";
+import { getUserRole } from "../lib/auth/role.js";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -22,7 +22,9 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const role = getUserRole(req);
     if (!role) {
-      throw new HttpError(403, "Missing or invalid role", { code: "FORBIDDEN" });
+      throw new HttpError(403, "Missing or invalid role", {
+        code: "FORBIDDEN",
+      });
     }
     let raw = await readFile(CREATIVE_DEMOS_JSON_PATH, "utf8").catch(
       (err: NodeJS.ErrnoException) => {
