@@ -16,6 +16,7 @@ import brandColors from "../data/brandColors.json";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import Button from "../components/Button";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -560,9 +561,7 @@ const BuildDemo: React.FC = () => {
             title?: string;
             size?: string | string[];
           }>;
-        }>(
-          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
-        );
+        }>(`${baseUrl}/api/creative-demo-titles?activeOnly=0`);
         const items = Array.isArray(data.items)
           ? data.items
               .map((item) => ({
@@ -1095,16 +1094,17 @@ const BuildDemo: React.FC = () => {
           const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
             `${baseUrl}/api/sftp/write`,
             {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(sftpRoleHeaders ?? {}),
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(sftpRoleHeaders ?? {}),
+              },
+              body: JSON.stringify({
+                path: remoteFilePath,
+                content: convertedContent,
+              }),
             },
-            body: JSON.stringify({
-              path: remoteFilePath,
-              content: convertedContent,
-            }),
-          });
+          );
           if (!data?.ok) {
             sftpErrors.push(
               `${item.file.name}: ${data?.error || "upload failed"}`,
@@ -1235,18 +1235,64 @@ const BuildDemo: React.FC = () => {
   };
 
   return (
-    <div className="max-w-full mx-auto">
-      <header className="mb-8 relative">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-1 h-6 bg-[#4cceac] rounded-full" />
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
-            Build Demo
-          </h1>
+    <div className="max-w-full mx-auto space-y-8">
+      <header className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#1f2a40]/85 via-[#141b2d]/95 to-[#0f172a] p-6 md:p-8 shadow-[0_16px_50px_rgba(15,23,42,0.45)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[#4cceac]/20 blur-3xl" />
+          <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-violet-500/20 blur-3xl" />
         </div>
-        <p className="text-[#a3a3a3] font-medium tracking-widest uppercase text-[9px] ml-4">
-          Neural Asset Ingestion & Creative Pipeline
-        </p>
-        <div className="absolute -bottom-3 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-1 h-6 bg-[#4cceac] rounded-full" />
+            <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+              Build Demo
+            </h1>
+          </div>
+          <p className="text-[#a3a3a3] font-medium tracking-widest uppercase text-[9px] ml-4">
+            Neural Asset Ingestion & Creative Pipeline
+          </p>
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+                GPU Usage
+              </p>
+              <p className="mt-1 text-lg font-black text-[#4cceac]">
+                {Math.round(metrics.gpu)}%
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+                RAM
+              </p>
+              <p className="mt-1 text-lg font-black text-cyan-300">
+                {metrics.ram.toFixed(1)} GB
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+                Latency
+              </p>
+              <p className="mt-1 text-lg font-black text-violet-300">
+                {Math.round(metrics.latency)} ms
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+                Health
+              </p>
+              <p
+                className={`mt-1 text-lg font-black ${
+                  metrics.health === "Warning"
+                    ? "text-amber-300"
+                    : "text-emerald-300"
+                }`}
+              >
+                {metrics.health}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
@@ -1298,7 +1344,7 @@ const BuildDemo: React.FC = () => {
                       {error.message}
                     </p>
                     {error.action && (
-                      <button
+                      <Button
                         onClick={error.action}
                         className={
                           error.type === "partial"
@@ -1308,10 +1354,10 @@ const BuildDemo: React.FC = () => {
                       >
                         <ArrowPathIcon className="w-3 h-3" />
                         {error.actionLabel || "Retry Action"}
-                      </button>
+                      </Button>
                     )}
                   </div>
-                  <button
+                  <Button
                     onClick={() => setError(null)}
                     className={
                       error.type === "partial"
@@ -1320,7 +1366,7 @@ const BuildDemo: React.FC = () => {
                     }
                   >
                     <XMarkIcon className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -1333,10 +1379,10 @@ const BuildDemo: React.FC = () => {
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            className={`relative h-[420px] rounded-[3rem] border border-dashed transition-all duration-500 flex flex-col items-center justify-center p-12 text-center cursor-pointer overflow-hidden group ${
+            className={`relative h-[340px] rounded-[2.2rem] border border-dashed transition-all duration-500 flex flex-col items-center justify-center p-8 text-center cursor-pointer overflow-hidden group shadow-[0_22px_65px_rgba(2,6,23,0.45)] ${
               isDragging
                 ? "border-[#4cceac] bg-[#4cceac]/5 scale-[1.01] shadow-[0_0_50px_rgba(76,206,172,0.1)]"
-                : "border-white/10 bg-[#1f2a40]/20 hover:border-[#4cceac]/40 hover:bg-[#1f2a40]/40"
+                : "border-white/10 bg-gradient-to-br from-[#1f2a40]/55 via-[#141b2d]/70 to-[#0f172a]/90 hover:border-[#4cceac]/40 hover:bg-[#1f2a40]/40"
             }`}
           >
             {/* Không phủ full + pointer-events: drop thả nhiều file lên <input> thì Chrome/Edge chỉ gán 1 file */}
@@ -1382,22 +1428,22 @@ const BuildDemo: React.FC = () => {
                 y: isDragging ? -15 : 0,
                 scale: isDragging ? 1.1 : 1,
               }}
-              className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 relative ${
+              className={`w-20 h-20 rounded-[1.3rem] flex items-center justify-center mb-5 relative ${
                 isDragging
                   ? "bg-[#4cceac] text-[#141b2d]"
                   : "bg-[#141b2d] text-[#4cceac]"
               } transition-all duration-500 shadow-2xl`}
             >
-              <CloudArrowUpIcon className="w-12 h-12" />
+              <CloudArrowUpIcon className="w-10 h-10" />
               {!isDragging && (
-                <div className="absolute inset-0 rounded-[2rem] border border-[#4cceac]/20 animate-ping" />
+                <div className="absolute inset-0 rounded-[1.3rem] border border-[#4cceac]/20 animate-ping" />
               )}
             </motion.div>
 
-            <h3 className="text-2xl font-black text-white mb-3 tracking-tight uppercase italic">
+            <h3 className="text-xl font-black text-white mb-2 tracking-tight uppercase italic">
               {isDragging ? "Release to Ingest" : "Drop Assets Here"}
             </h3>
-            <p className="text-[#a3a3a3] max-w-sm mx-auto text-xs font-medium leading-relaxed tracking-wide">
+            <p className="text-[#a3a3a3] max-w-sm mx-auto text-[11px] font-medium leading-relaxed tracking-wide">
               INTELLIGENT UPLOAD SYSTEM v2.0
               <br />
               <span className="opacity-60">
@@ -1409,17 +1455,17 @@ const BuildDemo: React.FC = () => {
               </span>
             </p>
             <div
-              className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-3"
+              className="relative z-10 mt-4 flex flex-wrap items-center justify-center gap-3"
               onClick={(e) => e.stopPropagation()}
             >
-              <button
+              <Button
                 type="button"
                 onClick={() => folderInputRef.current?.click()}
                 className="inline-flex items-center gap-2 rounded-2xl border border-[#4cceac]/35 bg-[#141b2d]/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#4cceac] hover:border-[#4cceac]/60 hover:bg-[#4cceac]/10 transition-colors"
               >
                 <FolderOpenIcon className="h-4 w-4" />
                 Chọn thư mục
-              </button>
+              </Button>
             </div>
 
             {/* Background decorative elements */}
@@ -1489,185 +1535,200 @@ const BuildDemo: React.FC = () => {
             </div>
           )}
           {/* Configuration Section */}
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Creative Demo
-                </label>
+          <div className="mt-8 rounded-[1.6rem] border border-white/10 bg-gradient-to-b from-[#141b2d]/85 to-[#0f172a]/95 p-4 md:p-5 shadow-[0_16px_45px_rgba(2,6,23,0.38)]">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">
+                  Demo Metadata
+                </h3>
+                <p className="mt-0.5 text-[11px] text-[#94a3b8]">
+                  Configure destination and match the correct creative profile.
+                </p>
               </div>
-              <div className="relative group">
-                <select
-                  value={selectedDemoTitle}
-                  onChange={(e) => setSelectedDemoTitle(e.target.value)}
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
-                >
-                  <option value="">
-                    {filteredDemoTitleOptions.length > 0
-                      ? "Select creative demo..."
-                      : "No matched demo title"}
-                  </option>
-                  {filteredDemoTitleOptions.map((item) => (
-                    <option key={item.id} value={item.title}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <span className="rounded-full border border-[#4cceac]/30 bg-[#4cceac]/10 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-[#4cceac]">
+                Smart Mapping
+              </span>
             </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Brand
-                </label>
-              </div>
-              <div className="relative group">
-                <select
-                  value={config.model}
-                  onChange={(e) => {
-                    const nextModel = e.target.value;
-                    const nextProductCates =
-                      getProductCateOptionsByBrand(nextModel);
-                    setConfig({
-                      ...config,
-                      model: nextModel,
-                      productCate: nextProductCates.some(
-                        (item: any) => item.id === config.productCate,
-                      )
-                        ? config.productCate
-                        : (nextProductCates[0]?.id ?? ""),
-                    });
-                  }}
-                  className={`w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
-                    config.model
-                      ? getBrandColorClass(config.model)
-                      : "text-white"
-                  }`}
-                >
-                  <option value="" disabled>
-                    Select model...
-                  </option>
-                  {brands.map((item: any) => (
-                    <option
-                      key={item.id}
-                      value={item.id}
-                      className={getBrandColorClass(item.label || item.id)}
-                    >
-                      {item.label}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Creative Demo
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={selectedDemoTitle}
+                    onChange={(e) => setSelectedDemoTitle(e.target.value)}
+                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                  >
+                    <option value="">
+                      {filteredDemoTitleOptions.length > 0
+                        ? "Select creative demo..."
+                        : "No matched demo title"}
                     </option>
-                  ))}
-                </select>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                  <BoltIcon className="w-4 h-4 text-[#4cceac]" />
+                    {filteredDemoTitleOptions.map((item) => (
+                      <option key={item.id} value={item.title}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Product Category
-                </label>
-              </div>
-              <div className="relative group">
-                <select
-                  value={config.productCate}
-                  onChange={(e) =>
-                    setConfig({ ...config, productCate: e.target.value })
-                  }
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
-                >
-                  {productCateOptions.map((item: any) => (
-                    <option key={item.id} value={item.id}>
-                      {item.label}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Brand
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.model}
+                    onChange={(e) => {
+                      const nextModel = e.target.value;
+                      const nextProductCates =
+                        getProductCateOptionsByBrand(nextModel);
+                      setConfig({
+                        ...config,
+                        model: nextModel,
+                        productCate: nextProductCates.some(
+                          (item: any) => item.id === config.productCate,
+                        )
+                          ? config.productCate
+                          : (nextProductCates[0]?.id ?? ""),
+                      });
+                    }}
+                    className={`w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
+                      config.model
+                        ? getBrandColorClass(config.model)
+                        : "text-white"
+                    }`}
+                  >
+                    <option value="" disabled>
+                      Select model...
                     </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Season
-                </label>
-              </div>
-              <div className="relative group">
-                <select
-                  value={config.season}
-                  onChange={(e) =>
-                    setConfig({ ...config, season: e.target.value })
-                  }
-                  disabled
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
-                >
-                  {seasons.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Year
-                </label>
-              </div>
-              <div className="relative group">
-                <select
-                  value={config.quality}
-                  disabled
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none cursor-default shadow-xl"
-                >
-                  {years.map((item: any) => (
-                    <option key={item.id} value={item.id}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                  <PhotoIcon className="w-4 h-4 text-indigo-400" />
+                    {brands.map((item: any) => (
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        className={getBrandColorClass(item.label || item.id)}
+                      >
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                    <BoltIcon className="w-4 h-4 text-[#4cceac]" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
-                  Month
-                </label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Product Category
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.productCate}
+                    onChange={(e) =>
+                      setConfig({ ...config, productCate: e.target.value })
+                    }
+                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                  >
+                    {productCateOptions.map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="relative group">
-                <select
-                  value={config.mode}
-                  disabled
-                  className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-4 px-5 text-sm font-bold text-white outline-none cursor-default shadow-xl"
-                >
-                  {months.map((item: any) => (
-                    <option key={item.id} value={item.id}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                  <SignalIcon className="w-4 h-4 text-rose-400" />
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Season
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.season}
+                    onChange={(e) =>
+                      setConfig({ ...config, season: e.target.value })
+                    }
+                    disabled
+                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                  >
+                    {seasons.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Year
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.quality}
+                    disabled
+                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none cursor-default shadow-xl"
+                  >
+                    {years.map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                    <PhotoIcon className="w-4 h-4 text-indigo-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                    Month
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.mode}
+                    disabled
+                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none cursor-default shadow-xl"
+                  >
+                    {months.map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                    <SignalIcon className="w-4 h-4 text-rose-400" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           {/* Action Buttons */}
-          <div className="mt-12 flex flex-wrap gap-6 items-center">
-            <button
+          <div className="mt-8 rounded-[2rem] border border-white/10 bg-[#0f172a]/80 p-4 md:p-5 flex flex-wrap gap-4 items-center shadow-[0_18px_50px_rgba(2,6,23,0.45)]">
+            <Button
               type="button"
               onClick={handleReplaceBase64AndUploadSftp}
               disabled={
@@ -1680,11 +1741,11 @@ const BuildDemo: React.FC = () => {
                 checkingDirectory ||
                 (showUploadNameInput && !replacementName.trim())
               }
-              className="flex-1 min-w-[200px] py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
+              className="px-8 py-4 min-w-[120px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
             >
-              {sendingToSftp ? "Uploading..." : "Replace base64 + Upload SFTP"}
-            </button>
-            <button
+              {sendingToSftp ? "Uploading..." : "Convert and Upload"}
+            </Button>
+            <Button
               type="button"
               onClick={() => {
                 setFiles([]);
@@ -1700,10 +1761,10 @@ const BuildDemo: React.FC = () => {
                 setSendSuccess(null);
               }}
               disabled={files.length === 0 && !sourceUrl}
-              className="px-10 py-5 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-3xl border border-white/5 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
+              className="px-8 py-4 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-2xl border border-white/10 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
             >
               Reset
-            </button>
+            </Button>
           </div>
           {sendError && (
             <p className="mt-2 text-sm text-red-400 font-medium">{sendError}</p>
@@ -1716,7 +1777,7 @@ const BuildDemo: React.FC = () => {
         </div>
 
         {/* Preview Sidebar */}
-        <div className="bg-[#141b2d] rounded-[3rem] border border-white/5 p-8 shadow-2xl flex flex-col h-[700px] relative overflow-hidden">
+        <div className="bg-gradient-to-b from-[#141b2d]/95 to-[#0b1220] rounded-[3rem] border border-white/10 p-8 shadow-[0_24px_70px_rgba(2,6,23,0.55)] flex flex-col h-[700px] relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4cceac]/20 to-transparent" />
 
           <div className="flex items-center justify-between mb-8">
@@ -1729,18 +1790,18 @@ const BuildDemo: React.FC = () => {
                   Staging Environment
                 </span>
                 <div className="flex items-center gap-2 bg-white/5 rounded-full px-2 py-0.5 border border-white/5">
-                  <button
+                  <Button
                     onClick={() => setFilterType("all")}
                     className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all ${filterType === "all" ? "bg-[#4cceac] text-[#141b2d]" : "text-[#a3a3a3] hover:text-white"}`}
                   >
                     All
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setFilterType("recent")}
                     className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all ${filterType === "recent" ? "bg-[#4cceac] text-[#141b2d]" : "text-[#a3a3a3] hover:text-white"}`}
                   >
                     Recent
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1837,7 +1898,7 @@ const BuildDemo: React.FC = () => {
                       <div className="absolute top-2 right-2 flex gap-1 items-center">
                         {file.file.type.startsWith("image/") &&
                           file.imageBase64 && (
-                            <button
+                            <Button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigator.clipboard.writeText(
@@ -1848,9 +1909,9 @@ const BuildDemo: React.FC = () => {
                               title={`Copy base64: ${file.imageBase64.name}`}
                             >
                               <ClipboardDocumentIcon className="w-3 h-3" />
-                            </button>
+                            </Button>
                           )}
-                        <button
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             removeFile(file.id);
@@ -1858,7 +1919,7 @@ const BuildDemo: React.FC = () => {
                           className="bg-red-500/20 text-red-400 p-0.5 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
                         >
                           <XMarkIcon className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   ))
@@ -1890,13 +1951,13 @@ const BuildDemo: React.FC = () => {
                 alt="Review"
                 className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl border border-white/10 object-contain"
               />
-              <button
+              <Button
                 onClick={() => setSelectedImage(null)}
                 className="absolute -top-12 right-0 text-[#e0e0e0] hover:text-[#4cceac] transition-colors flex items-center gap-2 font-bold uppercase tracking-widest text-xs"
               >
                 <XMarkIcon className="w-6 h-6" />
                 Close Review
-              </button>
+              </Button>
             </motion.div>
           </motion.div>
         )}
@@ -1924,7 +1985,7 @@ const BuildDemo: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={() =>
                       setSelectedTextFile({
@@ -1936,14 +1997,14 @@ const BuildDemo: React.FC = () => {
                     className="px-3 py-1.5 rounded-xl bg-white/5 text-[10px] text-[#e5e7eb] uppercase tracking-widest hover:bg-white/10"
                   >
                     {selectedTextFile.mode === "edit" ? "View only" : "Edit"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setSelectedTextFile(null)}
                     className="px-3 py-1.5 rounded-xl bg-white/5 text-[10px] text-[#e5e7eb] uppercase tracking-widest hover:bg-white/10"
                   >
                     Close
-                  </button>
+                  </Button>
                 </div>
               </div>
               <textarea

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { useError } from '../contexts/ErrorContext';
+import Button from './Button';
 
 const CinemaView = () => {
   const [prompt, setPrompt] = useState('');
@@ -89,12 +90,12 @@ const CinemaView = () => {
             Learn more about <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-indigo-400 hover:underline">Gemini API Billing</a>.
           </div>
         </div>
-        <button
+        <Button
           onClick={handleSelectKey}
           className="w-full py-4 bg-rose-600 hover:bg-rose-500 rounded-xl font-bold transition-all shadow-lg"
         >
           Select API Key
-        </button>
+        </Button>
       </div>
     );
   }
@@ -121,13 +122,13 @@ const CinemaView = () => {
               className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-slate-100 min-h-[160px] focus:ring-2 focus:ring-rose-500/50 outline-none transition-all"
             />
             
-            <button
+            <Button
               onClick={handleGenerate}
               disabled={!prompt.trim() || isGenerating}
               className="w-full py-4 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:grayscale transition-all rounded-xl font-bold flex items-center justify-center gap-2"
             >
               {isGenerating ? 'Rendering...' : 'Generate Video'}
-            </button>
+            </Button>
 
             {isGenerating && (
               <div className="space-y-3">

@@ -9,19 +9,23 @@ import {
   CodeBracketIcon,
   GlobeAltIcon,
   CheckCircleIcon,
+  PencilIcon,
   PencilSquareIcon,
   TrashIcon,
+  FolderPlusIcon,
 } from "@heroicons/react/24/outline";
 import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 import {
   loadActiveCreativeDemos,
   type CreativeDemoItem,
 } from "../data/creativeDemos";
-import rolePermissions from "../data/rolePermissions.json";
 import { getServerBaseUrl } from "../lib/sftpBrowser";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import Button from "../components/Button";
 
 const BASE_REMOTE_PATH = "/script/demo";
+const VIDEO_TARGET_MAX_BYTES = 4 * 1024 * 1024;
+const VIDEO_COMPRESSIBLE_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
 type RolePermissionConfig = Record<
   string,
   {
@@ -34,11 +38,14 @@ type RolePermissionConfig = Record<
 const ManageDemo: React.FC = () => {
   const { user } = useAuth();
   const normalizedRole = (user?.role || "").toLowerCase();
-  const permissions = rolePermissions as RolePermissionConfig;
+  const [permissions, setPermissions] = React.useState<RolePermissionConfig>({
+    default: { manageDemo: { canUseFileActionButtons: false } },
+  });
   const canUseFileActionButtons =
     permissions[normalizedRole]?.manageDemo?.canUseFileActionButtons ??
     permissions.default?.manageDemo?.canUseFileActionButtons ??
     false;
+  const canDropUpload = normalizedRole === "admin";
   const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
     const id = String(i + 1).padStart(2, "0");
     return { id, label: id };
@@ -90,6 +97,12 @@ const ManageDemo: React.FC = () => {
   const [editorContent, setEditorContent] = React.useState<string>("");
   const [savingFile, setSavingFile] = React.useState(false);
   const [deletingPath, setDeletingPath] = React.useState<string | null>(null);
+  const [renamingPath, setRenamingPath] = React.useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = React.useState(false);
+  const [isDragOverTable, setIsDragOverTable] = React.useState(false);
+  const [dragDepth, setDragDepth] = React.useState(0);
+  const [uploadingDropFiles, setUploadingDropFiles] = React.useState(false);
+  const [uploadSummary, setUploadSummary] = React.useState<string | null>(null);
   const [reloadTick, setReloadTick] = React.useState(0);
   const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
   const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
@@ -129,6 +142,28 @@ const ManageDemo: React.FC = () => {
         if (!cancelled) setActiveDemos(demos);
       } catch {
         if (!cancelled) setActiveDemos([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          permissions?: RolePermissionConfig;
+        }>(`${getServerBaseUrl()}/api/permissions`);
+        if (!cancelled && data?.permissions) {
+          setPermissions(data.permissions);
+        }
+      } catch {
+        if (!cancelled) {
+          setPermissions({ default: { manageDemo: { canUseFileActionButtons: false } } });
+        }
       }
     })();
     return () => {
@@ -364,9 +399,7 @@ const ManageDemo: React.FC = () => {
         ok?: boolean;
         entries?: SftpEntry[];
         error?: string;
-      }>(
-        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
-      );
+      }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`);
       if (!data.ok) {
         throw new Error(data.error || `Unable to list ${path}`);
       }
@@ -417,9 +450,7 @@ const ManageDemo: React.FC = () => {
             const data = await fetchJsonOrThrow<{
               ok?: boolean;
               entries?: SftpEntry[];
-            }>(
-              `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`,
-            );
+            }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`);
             if (!data?.ok || !Array.isArray(data?.entries)) {
               return [fullPath, false] as const;
             }
@@ -470,9 +501,7 @@ const ManageDemo: React.FC = () => {
         ok?: boolean;
         content?: string;
         error?: string;
-      }>(
-        `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`,
-      );
+      }>(`${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`);
       if (!data?.ok) {
         setListError(data?.error || "Unable to read file content");
         return;
@@ -495,16 +524,17 @@ const ManageDemo: React.FC = () => {
       const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
         `${baseUrl}/api/sftp/write`,
         {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(roleHeader ?? {}),
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(roleHeader ?? {}),
+          },
+          body: JSON.stringify({
+            path: editorPath,
+            content: editorContent,
+          }),
         },
-        body: JSON.stringify({
-          path: editorPath,
-          content: editorContent,
-        }),
-      });
+      );
       if (!data?.ok) {
         setListError(data?.error || "Unable to save file");
         return;
@@ -533,13 +563,14 @@ const ManageDemo: React.FC = () => {
         const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
           `${baseUrl}/api/sftp/delete`,
           {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(roleHeader ?? {}),
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(roleHeader ?? {}),
+            },
+            body: JSON.stringify({ path: fullPath }),
           },
-          body: JSON.stringify({ path: fullPath }),
-        });
+        );
         if (!data?.ok) {
           setListError(data?.error || "Unable to delete path");
           return;
@@ -567,18 +598,355 @@ const ManageDemo: React.FC = () => {
     ],
   );
 
+  const handleRenamePath = React.useCallback(
+    async (fullPath: string, currentName: string) => {
+      if (!canUseFileActionButtons || renamingPath) return;
+      const input = window.prompt("Enter new name", currentName);
+      if (input == null) return;
+      const nextName = input.trim();
+      if (!nextName || nextName === currentName) return;
+      if (
+        nextName.includes("/") ||
+        nextName.includes("\\") ||
+        nextName === "." ||
+        nextName === ".."
+      ) {
+        setListError("New name is invalid.");
+        return;
+      }
+
+      const parent = getParentPath(fullPath) || "/";
+      const targetPath = buildEntryFullPath(nextName, parent);
+      setRenamingPath(fullPath);
+      try {
+        const baseUrl = getServerBaseUrl();
+        const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
+          `${baseUrl}/api/sftp/rename`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(roleHeader ?? {}),
+            },
+            body: JSON.stringify({
+              oldPath: fullPath,
+              newPath: targetPath,
+            }),
+          },
+        );
+        if (!data?.ok) {
+          setListError(data?.error || "Unable to rename path");
+          return;
+        }
+        setListError(null);
+        setReloadTick((prev) => prev + 1);
+      } catch (err) {
+        setListError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
+      } finally {
+        setRenamingPath(null);
+      }
+    },
+    [
+      canUseFileActionButtons,
+      renamingPath,
+      getParentPath,
+      buildEntryFullPath,
+      roleHeader,
+    ],
+  );
+
+  const handleCreateFolder = React.useCallback(async () => {
+    if (!canUseFileActionButtons || creatingFolder) return;
+
+    const input = window.prompt("Enter new folder name");
+    if (input == null) return;
+
+    const folderName = input.trim();
+    if (!folderName) return;
+
+    if (
+      folderName.includes("/") ||
+      folderName.includes("\\") ||
+      folderName === "." ||
+      folderName === ".."
+    ) {
+      setListError("Folder name is invalid.");
+      return;
+    }
+
+    const targetPath = buildEntryFullPath(folderName, currentPath);
+    setCreatingFolder(true);
+    try {
+      const baseUrl = getServerBaseUrl();
+      const data = await fetchJsonOrThrow<{
+        ok?: boolean;
+        path?: string;
+        error?: string;
+      }>(`${baseUrl}/api/sftp/mkdir`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(roleHeader ?? {}),
+        },
+        body: JSON.stringify({ path: targetPath }),
+      });
+
+      if (!data?.ok) {
+        setListError(data?.error || "Unable to create folder");
+        return;
+      }
+
+      setListError(null);
+      setReloadTick((prev) => prev + 1);
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Unknown network error",
+      );
+    } finally {
+      setCreatingFolder(false);
+    }
+  }, [
+    canUseFileActionButtons,
+    creatingFolder,
+    buildEntryFullPath,
+    currentPath,
+    roleHeader,
+  ]);
+
+  const readFileAsDataUrl = React.useCallback(
+    (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () =>
+          reject(
+            reader.error ?? new Error(`Unable to read file: ${file.name}`),
+          );
+        reader.readAsDataURL(file);
+      }),
+    [],
+  );
+
+  const isCompressibleVideoFileName = React.useCallback((name: string) => {
+    const ext = name.split(".").pop()?.toLowerCase() ?? "";
+    return VIDEO_COMPRESSIBLE_EXT.has(ext);
+  }, []);
+
+  const handleDropFiles = React.useCallback(
+    async (files: File[]) => {
+      if (!canDropUpload || uploadingDropFiles) return;
+      const validFiles = files.filter(
+        (file) => file && file.name && file.size >= 0,
+      );
+      if (validFiles.length === 0) return;
+
+      setUploadingDropFiles(true);
+      setListError(null);
+      setUploadSummary(null);
+      try {
+        const baseUrl = getServerBaseUrl();
+        const videoCompressionLogs: string[] = [];
+        for (const file of validFiles) {
+          const fileName = file.name.replace(/[\\/]/g, "_").trim();
+          if (!fileName) continue;
+
+          const targetPath = buildEntryFullPath(fileName, currentPath);
+          const isVideoFile = isCompressibleVideoFileName(fileName);
+          const data = isVideoFile
+            ? await fetchJsonOrThrow<{
+                ok?: boolean;
+                error?: string;
+                video?: {
+                  originalBytes?: number;
+                  compressedBytes?: number;
+                  videoCompressed?: boolean;
+                };
+              }>(
+                `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(targetPath)}`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/octet-stream",
+                    ...(roleHeader ?? {}),
+                  },
+                  body: file,
+                },
+              )
+            : await (async () => {
+                const dataUrl = await readFileAsDataUrl(file);
+                const base64 = dataUrl.includes(",")
+                  ? dataUrl.split(",")[1]
+                  : dataUrl;
+                return fetchJsonOrThrow<{
+                  ok?: boolean;
+                  error?: string;
+                  video?: {
+                    originalBytes?: number;
+                    compressedBytes?: number;
+                    videoCompressed?: boolean;
+                  };
+                }>(`${baseUrl}/api/sftp/write`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(roleHeader ?? {}),
+                  },
+                  body: JSON.stringify({
+                    path: targetPath,
+                    content: base64,
+                    encoding: "base64",
+                  }),
+                });
+              })();
+
+          if (!data?.ok) {
+            throw new Error(
+              data?.error || `Unable to upload file: ${file.name}`,
+            );
+          }
+
+          if (isVideoFile) {
+            const originalBytes = Number(data.video?.originalBytes);
+            const compressedBytes = Number(data.video?.compressedBytes);
+            if (
+              Number.isFinite(originalBytes) &&
+              Number.isFinite(compressedBytes)
+            ) {
+              if (data.video?.videoCompressed) {
+                const savedPercent =
+                  originalBytes > 0
+                    ? Math.max(0, (1 - compressedBytes / originalBytes) * 100)
+                    : 0;
+                const targetState =
+                  compressedBytes <= VIDEO_TARGET_MAX_BYTES
+                    ? "target <= 4MB"
+                    : "still > 4MB";
+                videoCompressionLogs.push(
+                  `${fileName}: ${formatSizeInMb(originalBytes)} -> ${formatSizeInMb(compressedBytes)} (${savedPercent.toFixed(1)}% saved, ${targetState})`,
+                );
+              } else {
+                videoCompressionLogs.push(
+                  `${fileName}: kept original ${formatSizeInMb(originalBytes)}`,
+                );
+              }
+            }
+          }
+        }
+
+        setReloadTick((prev) => prev + 1);
+        if (videoCompressionLogs.length > 0) {
+          setUploadSummary(
+            `Video processing (server compress before SFTP upload): ${videoCompressionLogs.join(" | ")}`,
+          );
+        } else {
+          setUploadSummary(
+            `Uploaded ${validFiles.length} file(s) to SFTP successfully.`,
+          );
+        }
+      } catch (err) {
+        setListError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
+      } finally {
+        setUploadingDropFiles(false);
+      }
+    },
+    [
+      canDropUpload,
+      uploadingDropFiles,
+      buildEntryFullPath,
+      currentPath,
+      readFileAsDataUrl,
+      isCompressibleVideoFileName,
+      formatSizeInMb,
+      roleHeader,
+    ],
+  );
+
+  const handleTableDragEnter = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth((prev) => prev + 1);
+      setIsDragOverTable(true);
+    },
+    [canDropUpload],
+  );
+
+  const handleTableDragOver = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    [canDropUpload],
+  );
+
+  const handleTableDragLeave = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next === 0) setIsDragOverTable(false);
+        return next;
+      });
+    },
+    [canDropUpload],
+  );
+
+  const handleTableDrop = React.useCallback(
+    async (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth(0);
+      setIsDragOverTable(false);
+      const droppedFiles = Array.from(event.dataTransfer.files ?? []);
+      await handleDropFiles(droppedFiles);
+    },
+    [canDropUpload, handleDropFiles],
+  );
+
   return (
-    <div className="w-full px-4 sm:px-6   space-y-6 sm:space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#e0e0e0] tracking-tight">
-          Manage Demo
-        </h1>
+    <div className="w-full px-4 sm:px-5 space-y-4 sm:space-y-5">
+      <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730] via-[#0b1730]/95 to-[#102449] p-4 sm:p-5 shadow-[0_18px_36px_rgba(2,6,23,0.42)]">
+        <div className="pointer-events-none absolute -right-16 -top-14 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-indigo-400/10 blur-3xl" />
+        <div className="relative z-10 flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-300/80">
+              SFTP demo manager
+            </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#e0e0e0] tracking-tight">
+              Manage Demo
+            </h1>
+            <p className="text-xs text-slate-300/80">
+              Browse demo assets, preview quickly, and edit production files
+              with stronger visual clarity.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+              Current month
+            </p>
+            <p className="text-base font-semibold text-white">
+              {getItemLabelById(manageYearOptions, config.quality)}/
+              {demoPaths.month}
+            </p>
+          </div>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(560px,760px)_minmax(0,1fr)] gap-8 items-start">
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)]">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(560px,760px)_minmax(0,1fr)] gap-5 items-start">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730]/80 to-[#0e203f]/75 p-3.5 shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
@@ -591,7 +959,7 @@ const ManageDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig({ ...config, quality: e.target.value })
                   }
-                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
                 >
                   {manageYearOptions.map((item) => (
                     <option
@@ -609,7 +977,7 @@ const ManageDemo: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)]">
+            <div className="space-y-2 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730]/80 to-[#13284b]/75 p-3.5 shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
@@ -622,7 +990,7 @@ const ManageDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig({ ...config, mode: e.target.value })
                   }
-                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
                 >
                   {manageMonthOptions.map((item) => (
                     <option
@@ -640,7 +1008,7 @@ const ManageDemo: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)] md:col-span-2">
+            <div className="space-y-2 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730]/80 to-[#10283f]/75 p-3.5 shadow-[0_12px_28px_rgba(2,6,23,0.38)] md:col-span-2">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
@@ -653,7 +1021,7 @@ const ManageDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig({ ...config, formatValue: e.target.value })
                   }
-                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
                 >
                   <option value="" className="bg-[#0b1730]">
                     Auto detect
@@ -671,7 +1039,7 @@ const ManageDemo: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-3xl border border-white/5 bg-[#0b1730]/60 p-4 shadow-[0_12px_36px_rgba(2,6,23,0.35)] md:col-span-2">
+            <div className="space-y-2 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730]/80 to-[#10283f]/75 p-3.5 shadow-[0_12px_28px_rgba(2,6,23,0.38)] md:col-span-2">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
@@ -687,7 +1055,7 @@ const ManageDemo: React.FC = () => {
                       category: e.target.value as "Mobile" | "Display",
                     }))
                   }
-                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(2,6,23,0.35)]"
+                  className="w-full bg-[#111c36] border border-white/10 rounded-2xl py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-white outline-none focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
                 >
                   <option value="Mobile" className="bg-[#0b1730]">
                     Mobile
@@ -700,7 +1068,7 @@ const ManageDemo: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3 pb-8 sm:pb-12">
+          <div className="space-y-2.5 pb-4 sm:pb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
@@ -709,25 +1077,40 @@ const ManageDemo: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                {canUseFileActionButtons && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleCreateFolder()}
+                    disabled={creatingFolder || listBusy}
+                    variant="secondary"
+                    size="md"
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <FolderPlusIcon className="h-4 w-4" />
+                    {creatingFolder ? "Creating..." : "Create folder"}
+                  </Button>
+                )}
+                <Button
                   type="button"
                   onClick={() => {
                     const parent = getParentPath(currentPath);
                     if (parent) navigateToPath(parent);
                   }}
                   disabled={!getParentPath(currentPath) || listBusy}
-                  className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  variant="secondary"
+                  size="md"
                 >
                   Back
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={openCurrentDemo}
                   disabled={!previewUrl}
-                  className="rounded-2xl bg-[#4cceac]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                  variant="primary"
+                  size="md"
                 >
                   Open demo
-                </button>
+                </Button>
               </div>
             </div>
             <div className="flex items-center gap-2 ml-1">
@@ -741,39 +1124,70 @@ const ManageDemo: React.FC = () => {
             {listError && (
               <p className="text-sm text-amber-400/90 px-1">{listError}</p>
             )}
-            <div className="rounded-3xl border border-[#1f2937] bg-[#020617] overflow-hidden shadow-lg">
+            {uploadSummary && !listError && (
+              <p className="text-xs text-emerald-300/90 px-1">
+                {uploadSummary}
+              </p>
+            )}
+            <div
+              className="relative rounded-3xl border border-slate-800/90 bg-gradient-to-b from-[#030a1a] via-[#020617] to-[#020617] overflow-hidden shadow-[0_14px_32px_rgba(2,6,23,0.5)]"
+              onDragEnter={handleTableDragEnter}
+              onDragOver={handleTableDragOver}
+              onDragLeave={handleTableDragLeave}
+              onDrop={handleTableDrop}
+            >
+              {canDropUpload && isDragOverTable && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#020617]/85 backdrop-blur-[1px]">
+                  <div className="rounded-2xl border border-cyan-400/45 bg-cyan-500/10 px-5 py-4 text-center shadow-[0_0_0_2px_rgba(34,211,238,0.2)]">
+                    <p className="text-sm font-semibold text-cyan-200">
+                      Drop files here to upload
+                    </p>
+                    <p className="mt-1 text-[11px] text-cyan-100/80 font-mono break-all">
+                      {currentPath}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {canDropUpload && uploadingDropFiles && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#020617]/75">
+                  <div className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white">
+                    Uploading files...
+                  </div>
+                </div>
+              )}
               <div className="overflow-x-auto">
                 <div className="min-w-[760px]">
-                  <div className="border-b border-[#1f2937] px-4 py-3 text-[12px] font-semibold text-[#9ca3af] grid grid-cols-12 bg-[#020617]/80">
+                  <div className="sticky top-0 z-10 border-b border-slate-800 px-4 py-2.5 text-[11px] font-semibold text-slate-300 grid grid-cols-12 bg-[#020617]/95 backdrop-blur">
                     <div className="col-span-5">Name</div>
                     <div className="col-span-2 text-center">Type</div>
                     <div className="col-span-2 text-right">Size</div>
                     <div className="col-span-2 text-right">Modified</div>
                     <div className="col-span-1 text-right">Actions</div>
                   </div>
-                  <div className="max-h-[24rem] sm:max-h-[28rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
+                  <div className="max-h-[20rem] sm:max-h-[24rem] overflow-y-auto text-[12px] text-[#e5e7eb]">
                     {loadingList && listEntries.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-[#6b7280]">
+                      <div className="px-4 py-10 text-center text-slate-500">
                         Loading…
                       </div>
                     ) : listEntries.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-[#6b7280] space-y-3">
-                        <p>No entries in this directory.</p>
+                      <div className="px-4 py-10 text-center text-slate-400 space-y-3">
+                        <p className="text-sm">No entries in this directory.</p>
                         {currentPath !== demoPaths.pathYearMonth && (
-                          <button
+                          <Button
                             type="button"
                             onClick={() =>
                               navigateToPath(demoPaths.pathYearMonth)
                             }
                             disabled={listBusy}
-                            className="rounded-2xl bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                            variant="secondary"
+                            size="md"
                           >
-                            Back to month folder
-                          </button>
+                            Return to month root
+                          </Button>
                         )}
                       </div>
                     ) : (
-                      listEntries.map((item) => {
+                      listEntries.map((item, index) => {
                         const isDir = item.type === "d";
                         const fullPath = buildEntryFullPath(
                           item.name,
@@ -807,7 +1221,11 @@ const ManageDemo: React.FC = () => {
                               }
                               openRemoteMedia(fullPath);
                             }}
-                            className={`px-4 py-2.5 grid grid-cols-12 border-t border-[#0f172a] hover:bg-white/[0.04] transition-colors cursor-pointer ${
+                            className={`px-4 py-2 grid grid-cols-12 border-t border-[#0f172a] hover:bg-white/[0.04] transition-colors cursor-pointer ${
+                              index % 2 === 0
+                                ? "bg-transparent"
+                                : "bg-white/[0.015]"
+                            } ${
                               listBusy ? "pointer-events-none opacity-80" : ""
                             }`}
                           >
@@ -847,33 +1265,54 @@ const ManageDemo: React.FC = () => {
                               {!isDir &&
                                 canUseFileActionButtons &&
                                 isEditableFileName(item.name) && (
-                                  <button
+                                  <Button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       void handleOpenEditor(fullPath);
                                     }}
-                                    className="rounded-md bg-[#4cceac]/10 p-1 text-[#4cceac] hover:bg-[#4cceac]/20"
+                                    variant="iconSuccess"
+                                    size="icon"
                                     title="Edit file"
                                   >
                                     <PencilSquareIcon className="w-3.5 h-3.5" />
-                                  </button>
+                                  </Button>
                                 )}
                               {canUseFileActionButtons && (
-                                <button
+                                <Button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleRenamePath(fullPath, item.name);
+                                  }}
+                                  disabled={renamingPath === fullPath}
+                                  variant="iconSuccess"
+                                  size="icon"
+                                  className="disabled:opacity-50"
+                                  title={
+                                    isDir ? "Rename directory" : "Rename file"
+                                  }
+                                >
+                                  <PencilIcon className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              {canUseFileActionButtons && (
+                                <Button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void handleDeletePath(fullPath, isDir);
                                   }}
                                   disabled={deletingPath === fullPath}
-                                  className="rounded-md bg-rose-500/10 p-1 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                                  variant="iconDanger"
+                                  size="icon"
+                                  className="disabled:opacity-50"
                                   title={
                                     isDir ? "Delete directory" : "Delete file"
                                   }
                                 >
                                   <TrashIcon className="w-3.5 h-3.5" />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </div>
@@ -885,36 +1324,39 @@ const ManageDemo: React.FC = () => {
               </div>
             </div>
             {editorPath && canUseFileActionButtons && (
-              <div className="rounded-3xl border border-[#1f2937] bg-[#020617] p-4 space-y-3 shadow-lg">
+              <div className="rounded-3xl border border-slate-800 bg-gradient-to-b from-[#030a1a] to-[#020617] p-3.5 space-y-2.5 shadow-[0_14px_34px_rgba(2,6,23,0.42)]">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs text-[#e5e7eb] font-mono truncate">
                     {editorPath}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         setEditorPath(null);
                         setEditorContent("");
                       }}
-                      className="rounded-xl bg-white/5 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#e5e7eb] hover:bg-white/10"
+                      variant="secondary"
+                      size="sm"
                     >
                       Close
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => void handleSaveEditor()}
                       disabled={savingFile}
-                      className="rounded-xl bg-[#4cceac]/20 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#4cceac] hover:bg-[#4cceac]/30 disabled:opacity-50"
+                      variant="primary"
+                      size="sm"
+                      className="disabled:opacity-50"
                     >
                       {savingFile ? "Saving..." : "Save"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <textarea
                   value={editorContent}
                   onChange={(e) => setEditorContent(e.target.value)}
-                  className="w-full min-h-[220px] bg-[#020617] border border-[#1f2937] rounded-2xl px-4 py-3 text-xs font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
+                  className="w-full min-h-[200px] bg-[#01050f] border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
                 />
               </div>
             )}
@@ -922,7 +1364,15 @@ const ManageDemo: React.FC = () => {
         </div>
 
         <aside className="xl:sticky xl:h-[calc(100vh-5rem)]">
-          <div className="h-[calc(100vh-5rem)] min-h-[22rem] xl:min-h-0 max-h-[32rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-[#0b1730]/60 p-3 sm:p-4 shadow-[0_20px_40px_rgba(2,6,23,0.4)] flex flex-col">
+          <div className="h-[calc(100vh-5rem)] min-h-[20rem] xl:min-h-0 max-h-[30rem] sm:max-h-[calc(100vh-15rem)] rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#0b1730]/80 to-[#081225]/90 p-2.5 sm:p-3 shadow-[0_16px_36px_rgba(2,6,23,0.42)] flex flex-col">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                Live preview
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-cyan-300/80">
+                {config.category}
+              </span>
+            </div>
             <div className="flex-1 min-h-0 flex justify-center">
               <div
                 className={`w-full h-full max-h-[calc(100vh-15rem)] bg-[#0f172a] ring-1 ring-white/10 ${

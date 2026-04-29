@@ -9,6 +9,7 @@ import {
   CloudArrowUpIcon,
 } from "@heroicons/react/24/outline";
 import DocumentPage from "./Document";
+import Button from '../components/Button';
 
 const Documentation: React.FC = () => {
   const sections = [
@@ -267,9 +268,9 @@ const Documentation: React.FC = () => {
                 Our technical team is available 24/7 for Creative Directors.
                 Reach out via the secure terminal.
               </p>
-              <button className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20">
+              <Button className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20">
                 Contact Support
-              </button>
+              </Button>
             </div>
           </div>
         </div>

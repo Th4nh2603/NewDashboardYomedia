@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import Button from "../components/Button";
 
 type DemoListItem = {
   id: string;
@@ -530,17 +531,19 @@ const Upload: React.FC = () => {
   }
 
   return (
-    <div className="w-full px-8 pt-10 space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold text-[#e0e0e0] tracking-tight">
+    <div className="w-full space-y-6 px-6 pb-8 pt-8 md:px-8">
+      <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-[#0b1220] to-[#111827] p-6 shadow-[0_20px_70px_rgba(2,6,23,0.55)]">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#4cceac]/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-indigo-500/20 blur-3xl" />
+        <h1 className="relative text-3xl font-bold tracking-tight text-slate-100">
           File Upload
         </h1>
-        <p className="text-sm text-[#a3a3a3] mt-1">
+        <p className="relative mt-2 text-sm text-slate-300/80">
           Upload folders to server storage at <code>uploads/file-center</code>.
         </p>
       </header>
 
-      <section className="space-y-4 rounded-3xl border border-white/10 bg-[#020617] p-6">
+      <section className="space-y-5 rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">
             Category filter
@@ -548,7 +551,7 @@ const Upload: React.FC = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-4 py-2.5 text-sm text-white outline-none focus:border-[#4cceac]/60"
+            className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-sm text-white shadow-inner shadow-black/20 outline-none transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20"
           >
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -595,9 +598,9 @@ const Upload: React.FC = () => {
                 aria-expanded={demoPickerOpen}
                 aria-controls="creative-demo-listbox"
                 aria-autocomplete="list"
-                className="w-full rounded-xl border border-white/10 bg-[#0b1220] py-2.5 pl-4 pr-10 text-sm text-white placeholder:text-[#64748b] outline-none focus:border-[#4cceac]/60"
+                className="w-full rounded-xl border border-white/10 bg-slate-900/80 py-2.5 pl-4 pr-10 text-sm text-white placeholder:text-[#64748b] shadow-inner shadow-black/20 outline-none transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20"
               />
-              <button
+              <Button
                 type="button"
                 tabIndex={-1}
                 aria-label={
@@ -605,7 +608,9 @@ const Upload: React.FC = () => {
                 }
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setDemoPickerOpen((o) => !o)}
-                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#94a3b8] hover:bg-white/10 hover:text-white"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#94a3b8] hover:text-white"
               >
                 <svg
                   className={`h-4 w-4 transition-transform ${demoPickerOpen ? "rotate-180" : ""}`}
@@ -619,13 +624,13 @@ const Upload: React.FC = () => {
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
+              </Button>
             </div>
             {demoPickerOpen && (
               <ul
                 id="creative-demo-listbox"
                 role="listbox"
-                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-[#0b1220] py-1 shadow-lg"
+                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-slate-900/95 py-1 shadow-2xl backdrop-blur"
               >
                 {demosListFiltered.length === 0 ? (
                   <li className="px-4 py-2.5 text-sm text-[#94a3b8]">
@@ -636,7 +641,7 @@ const Upload: React.FC = () => {
                 ) : (
                   demosListFiltered.map((item) => (
                     <li key={item.id} role="presentation">
-                      <button
+                      <Button
                         type="button"
                         role="option"
                         aria-selected={item.id === selectedDemoId}
@@ -660,7 +665,7 @@ const Upload: React.FC = () => {
                         ) : (
                           <span className="shrink-0 opacity-0">✔</span>
                         )}
-                      </button>
+                      </Button>
                     </li>
                   ))
                 )}
@@ -670,19 +675,26 @@ const Upload: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => void loadFiles()}
             disabled={loading}
-            className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="secondary"
+            size="md"
+            className="border border-white/10 text-sm normal-case tracking-normal hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {loading ? "Refreshing..." : "Refresh list"}
-          </button>
+          </Button>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-3xl border border-white/10 bg-[#020617] p-6">
-        <h2 className="text-lg font-semibold text-white">Upload Folder</h2>
+      <section className="space-y-4 rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="text-lg font-semibold text-white">Upload Folder</h2>
+          <span className="rounded-full border border-[#4cceac]/30 bg-[#4cceac]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#9ff3de]">
+            .fla / .psd only
+          </span>
+        </div>
         <p className="text-xs text-[#94a3b8]">
           Drag-and-drop a folder or multiple .fla/.psd files to SFTP under the
           demo path. Max 30MB per file, max 30MB total per upload; dropped
@@ -695,12 +707,12 @@ const Upload: React.FC = () => {
         )}
 
         <div
-          className={`rounded-2xl border border-dashed bg-[#0b1220] p-4 transition-colors ${
+          className={`rounded-2xl border border-dashed p-5 transition ${
             !hasSelectedDemo
-              ? "border-white/10 opacity-80"
+              ? "border-white/10 bg-slate-900/60 opacity-80"
               : isFolderDropActive
-                ? "border-[#4cceac]/70 bg-[#4cceac]/10 ring-2 ring-[#4cceac]/30"
-                : "border-white/10"
+                ? "border-[#4cceac]/70 bg-[#4cceac]/10 shadow-[0_0_0_4px_rgba(76,206,172,0.18)]"
+                : "border-white/10 bg-slate-900/70 hover:border-[#4cceac]/40"
           }`}
           onDragEnter={(e) => {
             if (!hasSelectedDemo) return;
@@ -727,7 +739,7 @@ const Upload: React.FC = () => {
           }}
           onDrop={(e) => void handleFolderDrop(e)}
         >
-          <p className="text-sm text-[#cbd5e1]">
+          <p className="text-sm leading-relaxed text-[#cbd5e1]">
             {hasSelectedDemo ? (
               <>
                 Kéo thả thư mục hoặc nhiều file{" "}
@@ -750,13 +762,13 @@ const Upload: React.FC = () => {
                 Files staged (path · size)
               </p>
               <ul
-                className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-white/5 bg-[#020617] p-2"
+                className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-white/5 bg-[#020617]/80 p-2"
                 aria-label="Selected files for upload"
               >
                 {selectedFolderItems.map((it, idx) => (
                   <li
                     key={`${it.relativePath}\0${it.file.size}\0${it.file.lastModified}\0${idx}`}
-                    className="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-white/[0.04]"
+                    className="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-xs transition hover:bg-white/[0.04]"
                   >
                     <span
                       className="min-w-0 break-all text-[#e2e8f0]"
@@ -774,30 +786,29 @@ const Upload: React.FC = () => {
           )}
         </div>
 
-        <div className="text-xs text-[#a3a3a3]">
-          Folder:{" "}
-          <span className="text-white">{selectedFolderName || "-"}</span> |
-          Files:{" "}
-          <span className="text-white">{selectedFolderItems.length}</span>
-          {selectedFolderItems.length > 0 && (
-            <>
-              {" "}
-              | Total:{" "}
-              <span
-                className={
-                  stagedTotalBytes > MAX_BATCH_TOTAL_BYTES
-                    ? "text-rose-400"
-                    : "text-white"
-                }
-              >
-                {formatFileSize(stagedTotalBytes)}
-              </span>{" "}
-              / {formatFileSize(MAX_BATCH_TOTAL_BYTES)}
-            </>
-          )}
+        <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-xs text-[#a3a3a3] sm:grid-cols-3">
+          <p>
+            Folder: <span className="text-white">{selectedFolderName || "-"}</span>
+          </p>
+          <p>
+            Files: <span className="text-white">{selectedFolderItems.length}</span>
+          </p>
+          <p>
+            Total:{" "}
+            <span
+              className={
+                stagedTotalBytes > MAX_BATCH_TOTAL_BYTES
+                  ? "text-rose-400"
+                  : "text-white"
+              }
+            >
+              {formatFileSize(stagedTotalBytes)}
+            </span>{" "}
+            / {formatFileSize(MAX_BATCH_TOTAL_BYTES)}
+          </p>
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={() => void handleUploadFolder()}
           disabled={
@@ -805,16 +816,26 @@ const Upload: React.FC = () => {
             selectedFolderItems.length === 0 ||
             !hasSelectedDemo
           }
-          className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+          variant="primary"
+          size="lg"
+          className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/20 hover:-translate-y-0.5 hover:from-indigo-400 hover:to-violet-400 disabled:opacity-60 disabled:hover:translate-y-0"
         >
           {uploadingFolder ? "Uploading folder..." : "Upload folder"}
-        </button>
+        </Button>
       </section>
 
-      {message && <p className="text-sm text-emerald-400">{message}</p>}
-      {error && <p className="text-sm text-rose-400">{error}</p>}
+      {message && (
+        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-2xl border border-rose-400/25 bg-rose-500/10 p-4 text-sm text-rose-300">
+          {error}
+        </div>
+      )}
 
-      <section className="rounded-3xl border border-white/10 bg-[#020617] p-6">
+      <section className="rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
         <h2 className="text-lg font-semibold text-white">Uploaded Files</h2>
         {loading ? (
           <p className="mt-3 text-sm text-[#94a3b8]">Loading files...</p>
@@ -825,7 +846,7 @@ const Upload: React.FC = () => {
             {files.map((file) => (
               <li
                 key={file}
-                className="rounded-xl border border-white/5 bg-[#0b1220] px-3 py-2 text-sm text-[#e5e7eb]"
+                className="rounded-xl border border-white/5 bg-slate-900/80 px-3 py-2 text-sm text-[#e5e7eb] transition hover:border-[#4cceac]/30 hover:bg-slate-900"
               >
                 {file}
               </li>

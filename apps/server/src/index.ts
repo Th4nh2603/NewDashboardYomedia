@@ -41,6 +41,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const accountsPath = path.join(__dirname, "data", "accounts.json");
 const creativeDemosPath = path.join(__dirname, "data", "creative-demos.json");
+const rolePermissionsPath = path.join(
+  __dirname,
+  "data",
+  "role-permissions.json",
+);
 
 type Account = {
   id: string;
@@ -52,7 +57,17 @@ type Account = {
   status?: string;
 };
 
+type RolePermissionConfig = Record<
+  string,
+  {
+    manageDemo?: {
+      canUseFileActionButtons?: boolean;
+    };
+  }
+>;
+
 let accountsCache: Account[] | null = null;
+let rolePermissionsCache: RolePermissionConfig | null = null;
 
 const BASE_ALLOWED_ROUTES = [
   "/",
@@ -246,6 +261,51 @@ function loadCreativeDemos() {
   return parsed.demos || [];
 }
 
+function normalizeRolePermissions(
+  input: RolePermissionConfig | null | undefined,
+): RolePermissionConfig {
+  const safeInput = input || {};
+  const normalizedDefault =
+    safeInput.default?.manageDemo?.canUseFileActionButtons === true;
+  const next: RolePermissionConfig = {
+    default: {
+      manageDemo: {
+        canUseFileActionButtons: normalizedDefault,
+      },
+    },
+  };
+
+  for (const [role, config] of Object.entries(safeInput)) {
+    if (!role || role === "default") continue;
+    next[normalizeText(role)] = {
+      manageDemo: {
+        canUseFileActionButtons:
+          config?.manageDemo?.canUseFileActionButtons === true,
+      },
+    };
+  }
+  return next;
+}
+
+function loadRolePermissions(): RolePermissionConfig {
+  if (!rolePermissionsCache) {
+    const raw = fs.readFileSync(rolePermissionsPath, "utf8");
+    const parsed = JSON.parse(raw) as RolePermissionConfig;
+    rolePermissionsCache = normalizeRolePermissions(parsed);
+  }
+  return rolePermissionsCache;
+}
+
+function saveRolePermissions(permissions: RolePermissionConfig) {
+  const normalized = normalizeRolePermissions(permissions);
+  rolePermissionsCache = normalized;
+  fs.writeFileSync(
+    rolePermissionsPath,
+    JSON.stringify(normalized, null, 2),
+    "utf8",
+  );
+}
+
 function ensureAdmin(req: express.Request, res: express.Response): boolean {
   const role = getUserRole(req);
   if (role !== "admin") {
@@ -424,6 +484,48 @@ app.get("/api/admin/accounts", async (req, res) => {
       .status(500)
       .json({ ok: false, error: "Unable to fetch users from Clerk" });
   }
+});
+
+app.get("/api/permissions", (_req, res) => {
+  return res.json({ ok: true, permissions: loadRolePermissions() });
+});
+
+app.get("/api/admin/permissions", (req, res) => {
+  if (!ensureAdmin(req, res)) return;
+  return res.json({ ok: true, permissions: loadRolePermissions() });
+});
+
+app.put("/api/admin/permissions/:role", (req, res) => {
+  if (!ensureAdmin(req, res)) return;
+  const role = normalizeText(String(req.params.role || ""));
+  if (!role) {
+    return res.status(400).json({ ok: false, error: "Missing role" });
+  }
+
+  const payload = req.body as {
+    manageDemo?: { canUseFileActionButtons?: unknown };
+  };
+  const canUseFileActionButtons =
+    payload?.manageDemo?.canUseFileActionButtons === true;
+
+  const currentPermissions = loadRolePermissions();
+  const nextPermissions: RolePermissionConfig = {
+    ...currentPermissions,
+    [role]: {
+      ...(currentPermissions[role] || {}),
+      manageDemo: {
+        ...currentPermissions[role]?.manageDemo,
+        canUseFileActionButtons,
+      },
+    },
+  };
+  saveRolePermissions(nextPermissions);
+  return res.json({
+    ok: true,
+    role,
+    permission: nextPermissions[role],
+    permissions: nextPermissions,
+  });
 });
 
 app.put("/api/admin/accounts/:id", async (req, res) => {

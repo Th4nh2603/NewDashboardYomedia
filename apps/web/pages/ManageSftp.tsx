@@ -1,5 +1,6 @@
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Button from '../components/Button';
 import {
   FolderIcon,
   MagnifyingGlassIcon,
@@ -98,7 +99,7 @@ const ManageSftp: React.FC = () => {
               ). Dưới 2 ký tự chỉ lọc tên ở cấp hiện tại.
             </p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => {
               void listQuery.refetch();
@@ -112,7 +113,7 @@ const ManageSftp: React.FC = () => {
               className={`h-4 w-4 ${loadingList ? "animate-spin" : ""}`}
             />
             Tải lại
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-3">
@@ -137,7 +138,7 @@ const ManageSftp: React.FC = () => {
                 spellCheck={false}
                 className="flex-1 rounded-xl border border-white/10 bg-[#0b1220] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-[#4cceac]/50"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   const nextPath = pathDraft.trim() || DEFAULT_SFTP_PATH;
@@ -148,12 +149,12 @@ const ManageSftp: React.FC = () => {
                 className="shrink-0 rounded-xl bg-[#4cceac]/20 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[#9ff3de] border border-[#4cceac]/30 hover:bg-[#4cceac]/30 disabled:opacity-50"
               >
                 List
-              </button>
+              </Button>
             </div>
           </div>
           {parentPath != null && (
             <div className="flex items-end">
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setSftpPath(parentPath);
@@ -163,7 +164,7 @@ const ManageSftp: React.FC = () => {
                 className="w-full lg:w-auto rounded-xl border border-white/10 bg-[#0b1220] px-4 py-2.5 text-xs font-semibold text-[#e5e7eb] hover:bg-white/5 disabled:opacity-50"
               >
                 Lên thư mục cha
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -277,14 +278,14 @@ const ManageSftp: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => openPath(m.fullPath)}
                           disabled={loadingList}
                           className="text-xs font-semibold text-[#7dd3fc] hover:underline disabled:opacity-50"
                         >
                           Mở thư mục
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -318,7 +319,7 @@ const ManageSftp: React.FC = () => {
                       className="hover:bg-white/[0.03]"
                     >
                       <td className="px-4 py-3">
-                        <button
+                        <Button
                           type="button"
                           disabled={!isDir || loadingList}
                           onClick={() => isDir && openDirectory(entry.name)}
@@ -336,7 +337,7 @@ const ManageSftp: React.FC = () => {
                           <span className="font-mono text-[13px] break-all">
                             {entry.name}
                           </span>
-                        </button>
+                        </Button>
                       </td>
                       <td className="px-4 py-3 text-[#a3a3a3]">
                         {isDir ? "Thư mục" : "File"}

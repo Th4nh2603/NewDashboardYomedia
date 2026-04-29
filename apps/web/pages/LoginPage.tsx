@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
+import Button from '../components/Button';
 import {
   Show,
   SignInButton,
@@ -68,21 +69,21 @@ const Login: React.FC = () => {
           <div className="space-y-4">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <button
+                <Button
                   type="button"
                   className="w-full bg-[#4cceac] hover:bg-[#3da58a] text-[#141b2d] font-bold py-4 rounded-2xl transition-all shadow-lg shadow-[#4cceac]/20 mt-2"
                 >
                   Sign In with Clerk
-                </button>
+                </Button>
               </SignInButton>
 
               <SignUpButton mode="modal">
-                <button
+                <Button
                   type="button"
                   className="w-full border border-[#4cceac]/50 text-[#4cceac] hover:bg-[#4cceac]/10 font-bold py-4 rounded-2xl transition-all"
                 >
                   Create account
-                </button>
+                </Button>
               </SignUpButton>
             </Show>
 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useError } from "../contexts/ErrorContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import Button from './Button';
 
 type ChatMessage = {
   id: string;
@@ -443,12 +444,12 @@ const ChatView = () => {
             Gemini 3 Pro
           </h2>
         </div>
-        <button
+        <Button
           onClick={() => setMessages([])}
           className="text-xs text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-slate-100 transition-colors"
         >
           Clear History
-        </button>
+        </Button>
       </div>
 
       <div
@@ -509,7 +510,7 @@ const ChatView = () => {
             placeholder="Type a message..."
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-4 pr-12 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
           />
-          <button
+          <Button
             type="submit"
             disabled={!input.trim() || isLoading}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-indigo-500/20"
@@ -527,7 +528,7 @@ const ChatView = () => {
                 d="M14 5l7 7m0 0l-7 7m7-7H3"
               />
             </svg>
-          </button>
+          </Button>
         </div>
       </form>
     </div>

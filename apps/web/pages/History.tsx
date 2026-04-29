@@ -1,6 +1,7 @@
 
 import React from 'react';
 import DataTable from '../components/DataTable';
+import Button from '../components/Button';
 
 const History = () => {
   // Marketing-focused mock data
@@ -74,9 +75,9 @@ const History = () => {
               placeholder="Search assets..." 
               className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
-            <button className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            <Button className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
               Filter
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -85,10 +86,10 @@ const History = () => {
         <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
           <span>Displaying 5 of 128 campaign items</span>
           <div className="flex gap-1">
-            <button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Prev</button>
-            <button className="px-3 py-1 rounded bg-indigo-600 text-white font-medium">1</button>
-            <button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">2</button>
-            <button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Next</button>
+            <Button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Prev</Button>
+            <Button className="px-3 py-1 rounded bg-indigo-600 text-white font-medium">1</Button>
+            <Button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">2</Button>
+            <Button className="px-3 py-1 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Next</Button>
           </div>
         </div>
       </div>

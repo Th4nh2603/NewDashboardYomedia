@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import Button from '../components/Button';
 import {
   EnvelopeIcon,
   PaperAirplaneIcon,
@@ -189,13 +190,13 @@ const AIGmail: React.FC = () => {
               />
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a3a3a3] group-focus-within:text-[#4cceac] transition-colors" />
             </div>
-            <button
+            <Button
               onClick={() => setIsComposeOpen(true)}
               className="bg-[#4cceac] text-[#141b2d] px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-lg shadow-[#4cceac]/20 hover:scale-105 transition-all"
             >
               <PencilSquareIcon className="w-4 h-4" />
               Compose
-            </button>
+            </Button>
           </div>
         </div>
         <div className="absolute -bottom-3 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
@@ -209,7 +210,7 @@ const AIGmail: React.FC = () => {
             { name: "Promotions", icon: SparklesIcon, color: "text-purple-400" },
             { name: "Updates", icon: ExclamationCircleIcon, color: "text-amber-400" },
           ].map((tab) => (
-            <button
+            <Button
               key={tab.name}
               onClick={() => setActiveTab(tab.name as any)}
               className={`flex items-center justify-between px-5 py-4 rounded-2xl transition-all border ${
@@ -233,7 +234,7 @@ const AIGmail: React.FC = () => {
                   3
                 </span>
               )}
-            </button>
+            </Button>
           ))}
 
           <div className="mt-auto p-6 bg-[#141b2d] rounded-3xl border border-white/5 relative overflow-hidden">
@@ -310,7 +311,7 @@ const AIGmail: React.FC = () => {
                       <span className="text-[10px] font-bold text-[#3d465d] uppercase tracking-widest">
                         {email.time}
                       </span>
-                      <button onClick={(e) => toggleStar(e, email.id)}>
+                      <Button onClick={(e) => toggleStar(e, email.id)}>
                         <StarIcon
                           className={`w-4 h-4 transition-all hover:scale-125 ${
                             email.isStarred
@@ -318,7 +319,7 @@ const AIGmail: React.FC = () => {
                               : "text-[#3d465d]"
                           }`}
                         />
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -347,12 +348,12 @@ const AIGmail: React.FC = () => {
               className="w-[450px] bg-[#141b2d] rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                <button
+                <Button
                   onClick={() => setSelectedEmail(null)}
                   className="text-[#a3a3a3] hover:text-white transition-colors"
                 >
                   <XMarkIcon className="w-6 h-6" />
-                </button>
+                </Button>
                 <div className="flex items-center gap-3">
                   <ArchiveBoxIcon
                     onClick={() => archiveEmail(selectedEmail.id)}
@@ -412,13 +413,13 @@ const AIGmail: React.FC = () => {
                     <div className="flex flex-wrap gap-2 mb-6">
                       {["Professional", "Casual", "Interested", "Decline"].map(
                         (tone) => (
-                          <button
+                          <Button
                             key={tone}
                             onClick={() => generateAIReply(tone)}
                             className="bg-[#141b2d] border border-white/5 text-[9px] font-black text-[#a3a3a3] px-3 py-1.5 rounded-full hover:border-[#4cceac]/50 hover:text-white transition-all uppercase tracking-widest"
                           >
                             {tone}
-                          </button>
+                          </Button>
                         ),
                       )}
                     </div>
@@ -437,7 +438,7 @@ const AIGmail: React.FC = () => {
                           AI Model: Gemini 3.1 Pro
                         </span>
                       </div>
-                      <button
+                      <Button
                         onClick={sendReply}
                         disabled={!replyText || isGeneratingReply}
                         className="bg-[#4cceac] text-[#141b2d] p-2.5 rounded-xl hover:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-lg shadow-[#4cceac]/20"
@@ -456,7 +457,7 @@ const AIGmail: React.FC = () => {
                         ) : (
                           <PaperAirplaneIcon className="w-5 h-5" />
                         )}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -486,12 +487,12 @@ const AIGmail: React.FC = () => {
                 <h3 className="text-lg font-black text-white uppercase tracking-widest italic">
                   New Message
                 </h3>
-                <button
+                <Button
                   onClick={() => setIsComposeOpen(false)}
                   className="text-[#a3a3a3] hover:text-white"
                 >
                   <XMarkIcon className="w-6 h-6" />
-                </button>
+                </Button>
               </div>
               <div className="p-8 space-y-6">
                 <div className="space-y-4">
@@ -522,14 +523,14 @@ const AIGmail: React.FC = () => {
                 />
                 <div className="flex items-center justify-between pt-6 border-t border-white/5">
                   <div className="flex items-center gap-3">
-                    <button className="p-2 text-[#a3a3a3] hover:text-white transition-colors">
+                    <Button className="p-2 text-[#a3a3a3] hover:text-white transition-colors">
                       <PaperClipIcon className="w-5 h-5" />
-                    </button>
-                    <button className="p-2 text-[#a3a3a3] hover:text-white transition-colors">
+                    </Button>
+                    <Button className="p-2 text-[#a3a3a3] hover:text-white transition-colors">
                       <SparklesIcon className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
-                  <button
+                  <Button
                     onClick={() => {
                       setIsComposeOpen(false);
                       showNotification("Message sent successfully");
@@ -538,7 +539,7 @@ const AIGmail: React.FC = () => {
                   >
                     <PaperAirplaneIcon className="w-4 h-4" />
                     Send Message
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>

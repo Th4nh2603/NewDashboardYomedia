@@ -1,0 +1,32 @@
+{
+  "default": {
+    "manageDemo": {
+      "canUseFileActionButtons": false
+    }
+  },
+  "admin": {
+    "manageDemo": {
+      "canUseFileActionButtons": true
+    }
+  },
+  "adsop": {
+    "manageDemo": {
+      "canUseFileActionButtons": false
+    }
+  },
+  "adsopmanager": {
+    "manageDemo": {
+      "canUseFileActionButtons": false
+    }
+  },
+  "media": {
+    "manageDemo": {
+      "canUseFileActionButtons": false
+    }
+  },
+  "design": {
+    "manageDemo": {
+      "canUseFileActionButtons": false
+    }
+  }
+}

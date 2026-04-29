@@ -14,6 +14,7 @@ import {
   getYomediaDemoPreviewUrl,
   openYomediaDemoPreview,
 } from "../components/OpenDemo";
+import Button from "../components/Button";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
 
@@ -415,7 +416,7 @@ function ShowcaseIphonePreviewWithEmbed({
           <div className="absolute inset-0 z-0">
             <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_14px_32px_rgba(0,0,0,0.4)]">
               {renderDisplayPreview({ thumbSurface: true })}
-              <button
+              <Button
                 type="button"
                 aria-label="Mở xem lớn"
                 className="absolute inset-0 z-[16] cursor-pointer bg-transparent"
@@ -611,7 +612,7 @@ const CreativeShowcase: React.FC = () => {
 
               <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/5 bg-[#141b2d] p-1 shadow-xl sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 xl:mx-0 xl:flex-wrap xl:gap-2 xl:overflow-visible xl:p-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
                 {SHOWCASE_FILTERS.map((f) => (
-                  <button
+                  <Button
                     key={f}
                     onClick={() => setFilter(f)}
                     className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:rounded-xl xl:px-4 xl:py-1.5 xl:text-[10px] ${
@@ -621,7 +622,7 @@ const CreativeShowcase: React.FC = () => {
                     }`}
                   >
                     {f}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -668,7 +669,7 @@ const CreativeShowcase: React.FC = () => {
 
                     <div className="p-4 sm:p-5 lg:p-6 xl:p-6">
                       <h3 className="mb-3 sm:mb-4 xl:mb-4">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => {
                             void handleOpenDemo(item);
@@ -677,7 +678,7 @@ const CreativeShowcase: React.FC = () => {
                           className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors group-hover:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg xl:text-lg"
                         >
                           {item.title}
-                        </button>
+                        </Button>
                       </h3>
 
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -734,7 +735,7 @@ const CreativeShowcase: React.FC = () => {
 
                       {!isRestrictedDownloadRole && (
                         <div className="mt-4">
-                          <button
+                          <Button
                             type="button"
                             onClick={() => {
                               void handleDownload(item);
@@ -746,7 +747,7 @@ const CreativeShowcase: React.FC = () => {
                             {downloadingId === item.id
                               ? "Downloading..."
                               : "Download"}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -759,18 +760,18 @@ const CreativeShowcase: React.FC = () => {
 
             {filteredData.length > 0 && totalPages > 1 && (
               <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-8 xl:mt-8">
-                <button
+                <Button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Prev
-                </button>
+                </Button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                   (page) => (
-                    <button
+                    <Button
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
@@ -781,11 +782,11 @@ const CreativeShowcase: React.FC = () => {
                       }`}
                     >
                       {page}
-                    </button>
+                    </Button>
                   ),
                 )}
 
-                <button
+                <Button
                   type="button"
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -794,7 +795,7 @@ const CreativeShowcase: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             )}
           </>

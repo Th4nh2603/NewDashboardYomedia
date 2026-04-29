@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { PhotoIcon, SparklesIcon, ArrowDownTrayIcon, KeyIcon } from '@heroicons/react/24/outline';
 import { useError } from '../contexts/ErrorContext';
+import Button from '../components/Button';
 
 const ImageGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -110,12 +111,12 @@ const ImageGenerator: React.FC = () => {
           <p className="text-[#a3a3a3] mb-8 leading-relaxed">
             To use Gemini 3 Image Generation, you must select a paid Google Cloud project API key.
           </p>
-          <button
+          <Button
             onClick={handleOpenKeySelector}
             className="w-full bg-[#4cceac] hover:bg-[#3da58a] text-[#141b2d] font-bold py-4 rounded-xl transition-all shadow-lg shadow-[#4cceac]/20"
           >
             Select API Key
-          </button>
+          </Button>
           <p className="mt-4 text-xs text-[#a3a3a3]">
             Learn more about <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="text-[#4cceac] underline">Gemini API billing</a>.
           </p>
@@ -143,7 +144,7 @@ const ImageGenerator: React.FC = () => {
               placeholder="Describe the image you want to create..."
               className="w-full h-40 bg-[#141b2d] border border-[#3d465d] rounded-2xl p-4 text-[#e0e0e0] focus:border-[#4cceac]/50 outline-none transition-all resize-none placeholder-[#3d465d]"
             />
-            <button
+            <Button
               onClick={handleGenerate}
               disabled={isGenerating || !prompt.trim()}
               className="w-full mt-6 bg-[#4cceac] disabled:bg-[#3d465d] disabled:cursor-not-allowed hover:bg-[#3da58a] text-[#141b2d] font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#4cceac]/10"
@@ -164,7 +165,7 @@ const ImageGenerator: React.FC = () => {
                   Generate Image
                 </>
               )}
-            </button>
+            </Button>
           </div>
 
           <div className="bg-[#1f2a40]/50 p-6 rounded-2xl border border-[#3d465d]/50">
@@ -208,12 +209,12 @@ const ImageGenerator: React.FC = () => {
                 whileHover={{ opacity: 1 }}
                 className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 transition-opacity"
               >
-                <button
+                <Button
                   onClick={handleDownload}
                   className="bg-white/10 hover:bg-white/20 text-white p-4 rounded-full backdrop-blur-md border border-white/20 transition-all"
                 >
                   <ArrowDownTrayIcon className="w-8 h-8" />
-                </button>
+                </Button>
               </motion.div>
             )}
 
@@ -242,12 +243,12 @@ const ImageGenerator: React.FC = () => {
               <span className="text-xs text-[#a3a3a3] font-medium uppercase tracking-widest">
                 1024 x 1024 px
               </span>
-              <button 
+              <Button 
                 onClick={() => setGeneratedImage(null)}
                 className="text-xs text-[#a3a3a3] hover:text-red-400 font-bold uppercase tracking-widest transition-colors"
               >
                 Clear
-              </button>
+              </Button>
             </div>
           )}
         </div>

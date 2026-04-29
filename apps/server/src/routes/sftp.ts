@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import express, { Router, Request, Response } from "express";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
 import { getUserRole } from "../lib/auth/role.js";
 import { writeFile } from "fs/promises";
@@ -14,7 +14,9 @@ import {
   sftpPathExists,
   writeSftpFile,
   deleteSftpPath,
+  createSftpDirectory,
   uploadSftpBuffer,
+  renameSftpPath,
   downloadSftpDirectoryAsZip,
 } from "../lib/sftp/index.js";
 import {
@@ -245,6 +247,54 @@ sftpRouter.get(
 );
 
 sftpRouter.post(
+  "/write-binary",
+  express.raw({ type: "application/octet-stream", limit: "500mb" }),
+  asyncHandler(async (req: Request, res: Response) => {
+    requireAdminRole(req);
+    const targetPath = typeof req.query.path === "string" ? req.query.path : "";
+    if (!targetPath) {
+      throw new HttpError(400, "Missing 'path' query parameter", {
+        code: "BAD_REQUEST",
+      });
+    }
+
+    const rawBody = req.body;
+    if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
+      throw new HttpError(400, "Missing binary body", {
+        code: "BAD_REQUEST",
+      });
+    }
+
+    let buffer = Buffer.from(rawBody);
+    const base = path.basename(targetPath);
+    let videoMeta:
+      | {
+          originalBytes: number;
+          compressedBytes: number;
+          videoCompressed: boolean;
+        }
+      | undefined;
+
+    if (base && isCompressibleVideoFilename(base)) {
+      const compressed = await maybeCompressVideoUpload(buffer, base);
+      buffer = Buffer.from(compressed.buffer);
+      videoMeta = {
+        originalBytes: compressed.originalBytes,
+        compressedBytes: compressed.compressedBytes,
+        videoCompressed: compressed.videoCompressed,
+      };
+    }
+
+    await uploadSftpBuffer(targetPath, buffer);
+    res.json({
+      ok: true,
+      path: targetPath,
+      ...(videoMeta ? { video: videoMeta } : {}),
+    });
+  }),
+);
+
+sftpRouter.post(
   "/write",
   asyncHandler(async (req: Request, res: Response) => {
     requireAdminRole(req);
@@ -272,7 +322,7 @@ sftpRouter.post(
         | undefined;
       if (base && isCompressibleVideoFilename(base)) {
         const compressed = await maybeCompressVideoUpload(buffer, base);
-        buffer = compressed.buffer;
+        buffer = Buffer.from(compressed.buffer);
         videoMeta = {
           originalBytes: compressed.originalBytes,
           compressedBytes: compressed.compressedBytes,
@@ -289,6 +339,36 @@ sftpRouter.post(
     }
     await writeSftpFile(body.path, body.content ?? "");
     res.json({ ok: true, path: body.path });
+  }),
+);
+
+sftpRouter.post(
+  "/rename",
+  asyncHandler(async (req: Request, res: Response) => {
+    requireAdminRole(req);
+    const body = req.body as { oldPath?: string; newPath?: string };
+    if (!body?.oldPath || !body?.newPath) {
+      throw new HttpError(400, "Missing 'oldPath' or 'newPath' field in body", {
+        code: "BAD_REQUEST",
+      });
+    }
+    const result = await renameSftpPath(body.oldPath, body.newPath);
+    res.json(result);
+  }),
+);
+
+sftpRouter.post(
+  "/mkdir",
+  asyncHandler(async (req: Request, res: Response) => {
+    requireAdminRole(req);
+    const body = req.body as { path?: string };
+    if (!body?.path) {
+      throw new HttpError(400, "Missing 'path' field in body", {
+        code: "BAD_REQUEST",
+      });
+    }
+    const result = await createSftpDirectory(body.path);
+    res.json(result);
   }),
 );
 

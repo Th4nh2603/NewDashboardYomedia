@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { useError } from '../contexts/ErrorContext';
+import Button from './Button';
 
 const VisionView = () => {
   const [prompt, setPrompt] = useState('');
@@ -71,7 +72,7 @@ const VisionView = () => {
               <label className="block text-sm font-medium text-slate-400 mb-2">Aspect Ratio</label>
               <div className="grid grid-cols-3 gap-2">
                 {['1:1', '4:3', '16:9'].map(ratio => (
-                  <button
+                  <Button
                     key={ratio}
                     onClick={() => setAspectRatio(ratio)}
                     className={`py-2 rounded-lg text-sm transition-all ${
@@ -81,12 +82,12 @@ const VisionView = () => {
                     }`}
                   >
                     {ratio}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
-            <button
+            <Button
               onClick={handleGenerate}
               disabled={!prompt.trim() || isGenerating}
               className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale transition-all rounded-xl font-bold flex items-center justify-center gap-2"
@@ -105,7 +106,7 @@ const VisionView = () => {
                   Create Image
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
 

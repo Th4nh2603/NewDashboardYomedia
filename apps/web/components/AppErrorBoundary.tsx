@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import Button from './Button';
 
 type Props = { children: ReactNode };
 
@@ -35,14 +36,14 @@ export class AppErrorBoundary extends Component<Props, State> {
               {this.state.error.message}
             </pre>
             <div className="flex gap-3 flex-wrap">
-              <button
+              <Button
                 type="button"
                 onClick={this.handleReload}
                 className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500"
               >
                 Reload
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
@@ -51,7 +52,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                 className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Home
-              </button>
+              </Button>
             </div>
           </div>
         </div>

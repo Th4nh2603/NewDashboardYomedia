@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { isBackendRequestError } from '../lib/apiError';
+import Button from '../components/Button';
 
 export type ErrorSeverity = 'error' | 'warning' | 'info';
 
@@ -114,9 +115,9 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 n.severity === 'warning' ? 'text-amber-600 dark:text-amber-400' :
                 'text-indigo-600 dark:text-indigo-400'
               }`}>{n.title}</span>}
-              <button onClick={() => dismiss(n.id)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <Button onClick={() => dismiss(n.id)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
+              </Button>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-200">{n.message}</p>
           </div>

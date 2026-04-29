@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import Button from '../components/Button';
 
 const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
 
@@ -231,14 +232,14 @@ const TestData: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => void load()}
             disabled={loading}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/90 bg-white/5 hover:bg-white/10 disabled:opacity-40"
           >
             Tải lại
-          </button>
+          </Button>
         </div>
         <div className="absolute -bottom-4 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
       </header>
@@ -305,14 +306,14 @@ const TestData: React.FC = () => {
                     }}
                   />
                 </label>
-                <button
+                <Button
                   type="button"
                   disabled={!videoFile || compressing}
                   onClick={() => void runVideoCompressTest()}
                   className="shrink-0 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#4cceac] text-[#141b2d] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {compressing ? "Đang nén…" : "Upload & nén thử"}
-                </button>
+                </Button>
               </div>
               {videoFile && (
                 <p className="text-[11px] text-[#94a3b8]">
@@ -366,7 +367,7 @@ const TestData: React.FC = () => {
                 </li>
               </ul>
               {canEdit && (
-                <button
+                <Button
                   type="button"
                   onClick={() => void downloadCompressedVideo()}
                   disabled={downloadingVideo}
@@ -374,7 +375,7 @@ const TestData: React.FC = () => {
                 >
                   <ArrowDownTrayIcon className="w-4 h-4 shrink-0" />
                   {downloadingVideo ? "Đang tải…" : "Tải video vừa nén"}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -386,14 +387,14 @@ const TestData: React.FC = () => {
           <span className="text-[10px] font-black uppercase tracking-widest text-[#a3a3a3]">
             JSON
           </span>
-          <button
+          <Button
             type="button"
             onClick={() => void handleSave()}
             disabled={!canEdit || saving || loading}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#4cceac] text-[#141b2d] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Đang lưu…" : "Lưu"}
-          </button>
+          </Button>
         </div>
         {loading ? (
           <div className="px-6 py-16 text-sm text-[#a3a3a3] text-center">

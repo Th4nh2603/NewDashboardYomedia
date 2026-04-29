@@ -1,6 +1,7 @@
 import React from "react";
 import { loadActiveCreativeDemos } from "../data/creativeDemos";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import Button from './Button';
 
 export type OpenYomediaDemoPreviewParams = {
   /** Đường dẫn tương đối (vd `2026/03/.../480x270`) hoặc full có prefix `/script/demo`. */
@@ -285,14 +286,14 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   ]);
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handleOpenDemo}
       disabled={disabled || !(bannerPath ?? remotePath).trim()}
       className={className}
     >
       {label}
-    </button>
+    </Button>
   );
 };
 

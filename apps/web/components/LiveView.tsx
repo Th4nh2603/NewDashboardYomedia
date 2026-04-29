@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { useError } from '../contexts/ErrorContext';
+import Button from './Button';
 
 function decode(base64: string) {
   const binaryString = atob(base64);
@@ -183,7 +184,7 @@ const LiveView = () => {
           <p className="text-slate-400">Low-latency human-like conversation with Gemini 2.5 Flash.</p>
         </div>
 
-        <button
+        <Button
           onClick={isActive ? stopConversation : startConversation}
           disabled={isConnecting}
           className={`px-12 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl ${
@@ -193,7 +194,7 @@ const LiveView = () => {
           }`}
         >
           {isConnecting ? 'Establishing Connection...' : isActive ? 'End Conversation' : 'Start Talking'}
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 bg-slate-950/50 border-t border-slate-800">
