@@ -18,11 +18,15 @@ import {
   uploadSftpBuffer,
   renameSftpPath,
   downloadSftpDirectoryAsZip,
+  configForManageSftpScope,
+  mapRemotePathForManageScope,
+  type ManageSftpScope,
 } from "../lib/sftp/index.js";
 import {
   isCompressibleVideoFilename,
   maybeCompressVideoUpload,
 } from "../lib/media/videoCompress.js";
+import { isManageDemoMediaSftpAllowed } from "../lib/auth/manageDemoMediaSftp.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +41,32 @@ function flattenDirPaths(node: SftpDirTreeNode): string[] {
 }
 
 export const sftpRouter = Router();
+
+/** `scope=media` uses SFTP_*_MEDIA; omit or other ⇒ demo SFTP_* / defaults. POST bodies may include `scope`. */
+function parseManageSftpScope(req: Request): ManageSftpScope {
+  const fromQuery =
+    typeof req.query.scope === "string"
+      ? req.query.scope.trim().toLowerCase()
+      : "";
+  const bodyRaw = req.body as { scope?: string } | undefined;
+  const fromBody =
+    typeof bodyRaw?.scope === "string"
+      ? bodyRaw.scope.trim().toLowerCase()
+      : "";
+  const raw = fromBody || fromQuery;
+  return raw === "media" ? "media" : "demo";
+}
+
+function assertMediaManageSftpAllowed(req: Request, scope: ManageSftpScope) {
+  if (scope !== "media") return;
+  if (!isManageDemoMediaSftpAllowed(req)) {
+    throw new HttpError(
+      403,
+      "Forbidden: media SFTP requires admin role and canSwitchSftpHost permission.",
+      { code: "FORBIDDEN_MEDIA_SFTP" },
+    );
+  }
+}
 
 function requireAdminRole(req: Request): void {
   const role = getUserRole(req);
@@ -69,8 +99,11 @@ sftpRouter.post(
 
 sftpRouter.get(
   "/connect",
-  asyncHandler(async (_req: Request, res: Response) => {
-    const result = await testSftpConnection({});
+  asyncHandler(async (req: Request, res: Response) => {
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const result = await testSftpConnection(cfg);
     res.json(result);
   }),
 );
@@ -79,7 +112,11 @@ sftpRouter.get(
   "/list",
   asyncHandler(async (req: Request, res: Response) => {
     const pathParam = (req.query.path as string) ?? "/";
-    const entries = await listSftpDirectory(pathParam);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remotePath = mapRemotePathForManageScope(pathParam, scope);
+    const entries = await listSftpDirectory(remotePath, cfg);
     res.json({ ok: true, path: pathParam, entries });
   }),
 );
@@ -207,9 +244,13 @@ sftpRouter.get(
       return;
     }
 
-    const matches = await searchSftpDirectoryTree(rootPath, q, {
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const remoteRoot = mapRemotePathForManageScope(rootPath, scope);
+    const matches = await searchSftpDirectoryTree(remoteRoot, q, {
       maxDepth,
       limit,
+      config: configForManageSftpScope(scope),
     });
     res.json({ ok: true, path: rootPath, query: q.trim(), matches });
   }),
@@ -224,7 +265,11 @@ sftpRouter.get(
         code: "BAD_REQUEST",
       });
     }
-    const content = await readSftpFile(filePath);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remotePath = mapRemotePathForManageScope(filePath, scope);
+    const content = await readSftpFile(remotePath, cfg);
     res.json({ ok: true, path: filePath, content });
   }),
 );
@@ -266,6 +311,10 @@ sftpRouter.post(
     }
 
     let buffer = Buffer.from(rawBody);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remoteTargetPath = mapRemotePathForManageScope(targetPath, scope);
     const base = path.basename(targetPath);
     let videoMeta:
       | {
@@ -285,7 +334,7 @@ sftpRouter.post(
       };
     }
 
-    await uploadSftpBuffer(targetPath, buffer);
+    await uploadSftpBuffer(remoteTargetPath, buffer, cfg);
     res.json({
       ok: true,
       path: targetPath,
@@ -302,12 +351,17 @@ sftpRouter.post(
       path?: string;
       content?: string;
       encoding?: "utf8" | "base64";
+      scope?: string;
     };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {
         code: "BAD_REQUEST",
       });
     }
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remoteWritePath = mapRemotePathForManageScope(body.path, scope);
     if (body.encoding === "base64") {
       const raw = String(body.content ?? "");
       const normalized = raw.includes(",") ? raw.split(",")[1] : raw;
@@ -329,7 +383,7 @@ sftpRouter.post(
           videoCompressed: compressed.videoCompressed,
         };
       }
-      await uploadSftpBuffer(body.path, buffer);
+      await uploadSftpBuffer(remoteWritePath, buffer, cfg);
       res.json({
         ok: true,
         path: body.path,
@@ -337,7 +391,7 @@ sftpRouter.post(
       });
       return;
     }
-    await writeSftpFile(body.path, body.content ?? "");
+    await writeSftpFile(remoteWritePath, body.content ?? "", cfg);
     res.json({ ok: true, path: body.path });
   }),
 );
@@ -346,14 +400,27 @@ sftpRouter.post(
   "/rename",
   asyncHandler(async (req: Request, res: Response) => {
     requireAdminRole(req);
-    const body = req.body as { oldPath?: string; newPath?: string };
+    const body = req.body as {
+      oldPath?: string;
+      newPath?: string;
+      scope?: string;
+    };
     if (!body?.oldPath || !body?.newPath) {
       throw new HttpError(400, "Missing 'oldPath' or 'newPath' field in body", {
         code: "BAD_REQUEST",
       });
     }
-    const result = await renameSftpPath(body.oldPath, body.newPath);
-    res.json(result);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remoteOld = mapRemotePathForManageScope(body.oldPath, scope);
+    const remoteNew = mapRemotePathForManageScope(body.newPath, scope);
+    const result = await renameSftpPath(remoteOld, remoteNew, cfg);
+    res.json({
+      ...result,
+      oldPath: body.oldPath,
+      newPath: body.newPath,
+    });
   }),
 );
 
@@ -361,14 +428,18 @@ sftpRouter.post(
   "/mkdir",
   asyncHandler(async (req: Request, res: Response) => {
     requireAdminRole(req);
-    const body = req.body as { path?: string };
+    const body = req.body as { path?: string; scope?: string };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {
         code: "BAD_REQUEST",
       });
     }
-    const result = await createSftpDirectory(body.path);
-    res.json(result);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remotePath = mapRemotePathForManageScope(body.path, scope);
+    const result = await createSftpDirectory(remotePath, cfg);
+    res.json({ ...result, path: body.path });
   }),
 );
 
@@ -376,14 +447,18 @@ sftpRouter.post(
   "/delete",
   asyncHandler(async (req: Request, res: Response) => {
     requireAdminRole(req);
-    const body = req.body as { path?: string };
+    const body = req.body as { path?: string; scope?: string };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {
         code: "BAD_REQUEST",
       });
     }
-    const result = await deleteSftpPath(body.path);
-    res.json(result);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remotePath = mapRemotePathForManageScope(body.path, scope);
+    const result = await deleteSftpPath(remotePath, cfg);
+    res.json({ ...result, path: body.path });
   }),
 );
 
@@ -397,7 +472,14 @@ sftpRouter.get(
       });
     }
 
-    const { zipBuffer, zipName } = await downloadSftpDirectoryAsZip(dirPath);
+    const scope = parseManageSftpScope(req);
+    assertMediaManageSftpAllowed(req, scope);
+    const cfg = configForManageSftpScope(scope);
+    const remoteDir = mapRemotePathForManageScope(dirPath, scope);
+    const { zipBuffer, zipName } = await downloadSftpDirectoryAsZip(
+      remoteDir,
+      cfg,
+    );
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
     res.send(zipBuffer);

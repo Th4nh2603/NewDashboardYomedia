@@ -1,10 +1,14 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+
+dotenv.config();
+dotenv.config({ path: ".env.local", override: true });
 import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClerkClient } from "@clerk/backend";
+import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
@@ -62,6 +66,11 @@ type RolePermissionConfig = Record<
   {
     manageDemo?: {
       canUseFileActionButtons?: boolean;
+      /** Admin only: switch Manage Demo between demo / media SFTP host. */
+      canSwitchSftpHost?: boolean;
+    };
+    routeAccess?: {
+      allowedRoutes?: string[];
     };
   }
 >;
@@ -84,6 +93,17 @@ const BASE_ALLOWED_ROUTES = [
   "/history",
   "/ai-gmail",
 ];
+const ADMIN_EXTRA_ROUTES = ["/manage-sftp", "/admin/users"];
+const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
+const NON_GUEST_EXTRA_ROUTES = ["/test-data"];
+const ALL_ALLOWED_ROUTES = Array.from(
+  new Set([
+    ...BASE_ALLOWED_ROUTES,
+    ...NON_GUEST_EXTRA_ROUTES,
+    ...DESIGN_EXTRA_ROUTES,
+    ...ADMIN_EXTRA_ROUTES,
+  ]),
+);
 
 function normalizeText(value: string | undefined): string {
   return String(value || "")
@@ -91,7 +111,27 @@ function normalizeText(value: string | undefined): string {
     .toLowerCase();
 }
 
-function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
+/** Renamed slug: `adsopmanager` → `manager` (backward compat). */
+function migrateLegacyRoleKey(roleRaw: string | undefined): string {
+  const r = normalizeText(roleRaw);
+  if (!r) return "guest";
+  return r === "adsopmanager" ? "manager" : r;
+}
+
+function migrateRolePermissionSlugKeys(
+  input: RolePermissionConfig,
+): RolePermissionConfig {
+  const p = input as Record<string, (typeof input)[string]>;
+  if (p.adsopmanager === undefined) return input;
+  const next: Record<string, (typeof input)[string]> = { ...p };
+  delete next.adsopmanager;
+  if (next.manager === undefined) {
+    next.manager = p.adsopmanager;
+  }
+  return next as RolePermissionConfig;
+}
+
+function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): string[] {
   const role = normalizeText(roleRaw);
   const routes = new Set(BASE_ALLOWED_ROUTES);
 
@@ -108,6 +148,43 @@ function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
   }
 
   return Array.from(routes);
+}
+
+function normalizeAllowedRoutes(
+  value: unknown,
+  fallback: string[],
+): string[] {
+  const fallbackSet = new Set(
+    fallback.filter((route) => ALL_ALLOWED_ROUTES.includes(route)),
+  );
+  if (!Array.isArray(value)) {
+    return Array.from(fallbackSet);
+  }
+
+  const next = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const route = item.trim();
+    if (!route || !ALL_ALLOWED_ROUTES.includes(route)) continue;
+    next.add(route);
+  }
+  if (next.size === 0) {
+    return Array.from(fallbackSet);
+  }
+  return Array.from(next);
+}
+
+function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
+  const role = normalizeText(roleRaw);
+  const permissions = loadRolePermissions();
+  const configuredRoutes = permissions[role]?.routeAccess?.allowedRoutes;
+  if (Array.isArray(configuredRoutes) && configuredRoutes.length > 0) {
+    return normalizeAllowedRoutes(
+      configuredRoutes,
+      getDefaultAllowedRoutesByRole(role),
+    );
+  }
+  return getDefaultAllowedRoutesByRole(role);
 }
 
 function buildUserPayload(account: Account) {
@@ -141,8 +218,7 @@ function buildGuestPayload(email: string, name?: string) {
 function roleTitleFromRole(roleRaw: string): string {
   const role = normalizeText(roleRaw);
   if (role === "admin") return "Administrator";
-  if (role === "adsopmanager") return "AdsOp Manager";
-  if (role === "adsop") return "AdsOp";
+  if (role === "manager") return "Manager";
   if (role === "design") return "Design";
   if (role === "guest") return "Guest";
   return "User";
@@ -156,7 +232,7 @@ function nullableText(value: unknown): string | null {
 
 function normalizeRoleOrGuest(value: unknown): string {
   const role = nullableText(value);
-  return role ? role.toLowerCase() : "guest";
+  return migrateLegacyRoleKey(role || undefined);
 }
 
 function mapClerkUserToAdminAccount(clerkUser: any, localAccount?: Account) {
@@ -271,16 +347,34 @@ function normalizeRolePermissions(
     default: {
       manageDemo: {
         canUseFileActionButtons: normalizedDefault,
+        canSwitchSftpHost: false,
+      },
+      routeAccess: {
+        allowedRoutes: normalizeAllowedRoutes(
+          safeInput.default?.routeAccess?.allowedRoutes,
+          getDefaultAllowedRoutesByRole("guest"),
+        ),
       },
     },
   };
 
   for (const [role, config] of Object.entries(safeInput)) {
     if (!role || role === "default") continue;
-    next[normalizeText(role)] = {
+    const r = normalizeText(role);
+    next[r] = {
       manageDemo: {
         canUseFileActionButtons:
           config?.manageDemo?.canUseFileActionButtons === true,
+        canSwitchSftpHost:
+          r === "admin"
+            ? config?.manageDemo?.canSwitchSftpHost === true
+            : false,
+      },
+      routeAccess: {
+        allowedRoutes: normalizeAllowedRoutes(
+          config?.routeAccess?.allowedRoutes,
+          getDefaultAllowedRoutesByRole(role),
+        ),
       },
     };
   }
@@ -291,7 +385,9 @@ function loadRolePermissions(): RolePermissionConfig {
   if (!rolePermissionsCache) {
     const raw = fs.readFileSync(rolePermissionsPath, "utf8");
     const parsed = JSON.parse(raw) as RolePermissionConfig;
-    rolePermissionsCache = normalizeRolePermissions(parsed);
+    rolePermissionsCache = normalizeRolePermissions(
+      migrateRolePermissionSlugKeys(parsed),
+    );
   }
   return rolePermissionsCache;
 }
@@ -448,7 +544,7 @@ app.get("/api/account-profile", (req, res) => {
 app.get("/api/admin/accounts", async (req, res) => {
   if (!ensureAdmin(req, res)) return;
   try {
-    const secretKey = process.env.CLERK_SECRET_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY?.trim();
     if (!secretKey) {
       return res
         .status(500)
@@ -480,19 +576,36 @@ app.get("/api/admin/accounts", async (req, res) => {
     });
   } catch (error) {
     console.error("Failed to fetch admin accounts from Clerk", error);
-    return res
-      .status(500)
-      .json({ ok: false, error: "Unable to fetch users from Clerk" });
+    const clerkMsg =
+      isClerkAPIResponseError(error) && error.errors[0]?.message
+        ? String(error.errors[0].message)
+        : error instanceof Error
+          ? error.message
+          : "";
+    return res.status(500).json({
+      ok: false,
+      error: clerkMsg
+        ? `Unable to fetch users from Clerk (${clerkMsg})`
+        : "Unable to fetch users from Clerk",
+    });
   }
 });
 
 app.get("/api/permissions", (_req, res) => {
-  return res.json({ ok: true, permissions: loadRolePermissions() });
+  return res.json({
+    ok: true,
+    permissions: loadRolePermissions(),
+    availableRoutes: ALL_ALLOWED_ROUTES,
+  });
 });
 
 app.get("/api/admin/permissions", (req, res) => {
   if (!ensureAdmin(req, res)) return;
-  return res.json({ ok: true, permissions: loadRolePermissions() });
+  return res.json({
+    ok: true,
+    permissions: loadRolePermissions(),
+    availableRoutes: ALL_ALLOWED_ROUTES,
+  });
 });
 
 app.put("/api/admin/permissions/:role", (req, res) => {
@@ -503,10 +616,20 @@ app.put("/api/admin/permissions/:role", (req, res) => {
   }
 
   const payload = req.body as {
-    manageDemo?: { canUseFileActionButtons?: unknown };
+    manageDemo?: {
+      canUseFileActionButtons?: unknown;
+      canSwitchSftpHost?: unknown;
+    };
+    routeAccess?: { allowedRoutes?: unknown };
   };
   const canUseFileActionButtons =
     payload?.manageDemo?.canUseFileActionButtons === true;
+  const canSwitchSftpHost =
+    role === "admin" && payload?.manageDemo?.canSwitchSftpHost === true;
+  const allowedRoutes = normalizeAllowedRoutes(
+    payload?.routeAccess?.allowedRoutes,
+    getDefaultAllowedRoutesByRole(role),
+  );
 
   const currentPermissions = loadRolePermissions();
   const nextPermissions: RolePermissionConfig = {
@@ -516,6 +639,11 @@ app.put("/api/admin/permissions/:role", (req, res) => {
       manageDemo: {
         ...currentPermissions[role]?.manageDemo,
         canUseFileActionButtons,
+        canSwitchSftpHost,
+      },
+      routeAccess: {
+        ...currentPermissions[role]?.routeAccess,
+        allowedRoutes,
       },
     },
   };
@@ -556,7 +684,7 @@ app.put("/api/admin/accounts/:id", async (req, res) => {
     return res.status(400).json({ ok: false, error: "No valid update fields" });
   }
   try {
-    const secretKey = process.env.CLERK_SECRET_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY?.trim();
     if (!secretKey) {
       return res
         .status(500)

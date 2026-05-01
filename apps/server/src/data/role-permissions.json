@@ -1,32 +1,129 @@
 {
   "default": {
     "manageDemo": {
-      "canUseFileActionButtons": false
+      "canUseFileActionButtons": false,
+      "canSwitchSftpHost": false
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/chat",
+        "/vision",
+        "/image-generator",
+        "/creative-showcase",
+        "/document",
+        "/documentation",
+        "/manage-demo",
+        "/bar",
+        "/cinema",
+        "/live",
+        "/history",
+        "/ai-gmail"
+      ]
     }
   },
   "admin": {
     "manageDemo": {
-      "canUseFileActionButtons": true
+      "canUseFileActionButtons": true,
+      "canSwitchSftpHost": true
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/chat",
+        "/vision",
+        "/image-generator",
+        "/creative-showcase",
+        "/document",
+        "/documentation",
+        "/manage-demo",
+        "/bar",
+        "/cinema",
+        "/live",
+        "/history",
+        "/ai-gmail",
+        "/test-data",
+        "/build-demo",
+        "/upload",
+        "/manage-sftp",
+        "/admin/users"
+      ]
     }
   },
-  "adsop": {
+  "manager": {
     "manageDemo": {
-      "canUseFileActionButtons": false
-    }
-  },
-  "adsopmanager": {
-    "manageDemo": {
-      "canUseFileActionButtons": false
+      "canUseFileActionButtons": false,
+      "canSwitchSftpHost": false
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/creative-showcase",
+        "/document",
+        "/documentation",
+        "/manage-demo"
+      ]
     }
   },
   "media": {
     "manageDemo": {
-      "canUseFileActionButtons": false
+      "canUseFileActionButtons": false,
+      "canSwitchSftpHost": false
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/chat",
+        "/vision",
+        "/image-generator",
+        "/creative-showcase",
+        "/document",
+        "/documentation",
+        "/manage-demo",
+        "/bar",
+        "/cinema",
+        "/live",
+        "/history",
+        "/ai-gmail",
+        "/test-data"
+      ]
     }
   },
   "design": {
     "manageDemo": {
-      "canUseFileActionButtons": false
+      "canUseFileActionButtons": false,
+      "canSwitchSftpHost": false
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/chat",
+        "/vision",
+        "/image-generator",
+        "/creative-showcase",
+        "/document",
+        "/documentation",
+        "/manage-demo",
+        "/bar",
+        "/cinema",
+        "/live",
+        "/history",
+        "/ai-gmail",
+        "/build-demo",
+        "/upload"
+      ]
+    }
+  },
+  "guest": {
+    "manageDemo": {
+      "canUseFileActionButtons": false,
+      "canSwitchSftpHost": false
+    },
+    "routeAccess": {
+      "allowedRoutes": [
+        "/",
+        "/creative-showcase"
+      ]
     }
   }
 }

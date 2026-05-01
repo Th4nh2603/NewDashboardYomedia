@@ -6,15 +6,11 @@
   },
   "admin": {
     "manageDemo": {
-      "canUseFileActionButtons": true
+      "canUseFileActionButtons": true,
+      "canSwitchSftpHost": true
     }
   },
-  "adsop": {
-    "manageDemo": {
-      "canUseFileActionButtons": false
-    }
-  },
-  "adsopmanager": {
+  "manager": {
     "manageDemo": {
       "canUseFileActionButtons": false
     }

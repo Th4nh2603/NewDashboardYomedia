@@ -17,6 +17,7 @@ import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
 import Button from "../components/Button";
+import JSZip from "jszip";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -212,6 +213,11 @@ interface DemoTitleOption {
   size: string | string[];
 }
 
+interface OfflineGeneratedFile {
+  name: string;
+  blob: Blob;
+}
+
 /** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
 function readAllDirEntries(
   reader: FileSystemDirectoryReader,
@@ -395,6 +401,11 @@ const BuildDemo: React.FC = () => {
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendingToSftp, setSendingToSftp] = useState(false);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [offlineGeneratedFiles, setOfflineGeneratedFiles] = useState<
+    OfflineGeneratedFile[]
+  >([]);
+  const [preparingOfflineFiles, setPreparingOfflineFiles] = useState(false);
+  const [downloadingOfflineZip, setDownloadingOfflineZip] = useState(false);
   const [demoTitleOptions, setDemoTitleOptions] = useState<DemoTitleOption[]>(
     [],
   );
@@ -973,9 +984,91 @@ const BuildDemo: React.FC = () => {
     return lines.join("\n");
   };
 
+  const normalizeRelativePath = (item: UploadedFile) =>
+    (item.relativePath || item.file.name).replace(/\\+/g, "/").replace(/^\/+/, "");
+
+  const buildOfflineGeneratedFiles = async (
+    textFiles: UploadedFile[],
+    videoFiles: UploadedFile[],
+    remoteBase: string,
+  ): Promise<OfflineGeneratedFile[]> => {
+    const generated: OfflineGeneratedFile[] = [];
+    let indexHtmlUsed = false;
+
+    for (const item of textFiles) {
+      const rawContent = await item.file.text();
+      const convertedContent = replaceImagesToBase64(rawContent);
+      const ext = item.file.name.split(".").pop()?.toLowerCase();
+      const isHtml = ext === "html" || ext === "htm";
+      const relativePath = normalizeRelativePath(item);
+      const relativeSegments = relativePath.split("/").filter(Boolean);
+      const remoteFileName =
+        relativeSegments[relativeSegments.length - 1] || item.file.name;
+      const remoteDir = relativeSegments.slice(0, -1).join("/");
+      const finalName = isHtml && !indexHtmlUsed ? "index.html" : remoteFileName;
+      if (isHtml && !indexHtmlUsed) indexHtmlUsed = true;
+      const downloadPath =
+        `${remoteBase}/${remoteDir ? `${remoteDir}/` : ""}${finalName}`.replace(
+          /\/{2,}/g,
+          "/",
+        );
+      const safeName = downloadPath
+        .replace(/^\/+/, "")
+        .replace(/[<>:"|?*]/g, "_");
+      generated.push({
+        name: safeName,
+        blob: new Blob([convertedContent], {
+          type: "text/plain;charset=utf-8",
+        }),
+      });
+    }
+
+    for (const item of videoFiles) {
+      const downloadPath =
+        `${remoteBase}/${normalizeRelativePath(item)}`.replace(/\/{2,}/g, "/");
+      const safeName = downloadPath
+        .replace(/^\/+/, "")
+        .replace(/[<>:"|?*]/g, "_");
+      generated.push({ name: safeName, blob: item.file });
+    }
+
+    return generated;
+  };
+
+  const downloadOfflineGeneratedFiles = async () => {
+    if (offlineGeneratedFiles.length === 0) return;
+    setDownloadingOfflineZip(true);
+    try {
+      const zip = new JSZip();
+      offlineGeneratedFiles.forEach((entry) => {
+        zip.file(entry.name, entry.blob);
+      });
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const url = URL.createObjectURL(zipBlob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `offline-demo-${stamp}.zip`;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setSendError(
+        err instanceof Error
+          ? `Cannot create offline zip: ${err.message}`
+          : "Cannot create offline zip.",
+      );
+    } finally {
+      setDownloadingOfflineZip(false);
+    }
+  };
+
   const handleReplaceBase64AndUploadSftp = async () => {
     setSendError(null);
     setSendSuccess(null);
+    setOfflineGeneratedFiles([]);
 
     const targetPath = sourceUrl.trim();
     if (!targetPath) {
@@ -1022,6 +1115,28 @@ const BuildDemo: React.FC = () => {
     }
 
     const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
+    const prepareOfflineFallback = async (reason: string) => {
+      setPreparingOfflineFiles(true);
+      try {
+        const generated = await buildOfflineGeneratedFiles(
+          textFiles,
+          videoFiles,
+          remoteBase,
+        );
+        setOfflineGeneratedFiles(generated);
+        setSendError(
+          `${reason}\nOffline mode ready: you can download ${generated.length} converted file(s) below.`,
+        );
+      } catch (err) {
+        setSendError(
+          `${reason}\nOffline mode failed: ${
+            err instanceof Error ? err.message : "cannot prepare local files"
+          }`,
+        );
+      } finally {
+        setPreparingOfflineFiles(false);
+      }
+    };
 
     try {
       const checkData = await fetchJsonOrThrow<{
@@ -1033,7 +1148,7 @@ const BuildDemo: React.FC = () => {
         { headers: sftpRoleHeaders },
       );
       if (!checkData?.ok) {
-        setSendError(
+        await prepareOfflineFallback(
           checkData?.error ||
             "Cannot verify remote path on SFTP. Check server connection.",
         );
@@ -1052,7 +1167,9 @@ const BuildDemo: React.FC = () => {
         return;
       }
     } catch {
-      setSendError("Cannot verify remote path on SFTP (network error).");
+      await prepareOfflineFallback(
+        "Cannot verify remote path on SFTP (network error).",
+      );
       return;
     }
 
@@ -1064,11 +1181,6 @@ const BuildDemo: React.FC = () => {
       const sftpErrors: string[] = [];
       const videoCompressionLogs: string[] = [];
       let uploadedCount = 0;
-      const normalizeRelativePath = (item: UploadedFile) =>
-        (item.relativePath || item.file.name)
-          .replace(/\\+/g, "/")
-          .replace(/^\/+/, "");
-
       for (const item of textFiles) {
         try {
           const rawContent = await item.file.text();
@@ -1199,7 +1311,7 @@ const BuildDemo: React.FC = () => {
       }
 
       if (uploadedCount === 0) {
-        setSendError(
+        await prepareOfflineFallback(
           sftpErrors.length > 0
             ? sftpErrors.join("\n")
             : "Upload to SFTP failed.",
@@ -1218,6 +1330,7 @@ const BuildDemo: React.FC = () => {
           setSendSuccess(
             `Uploaded ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 replacement + video upload).${compressionNote}`,
           );
+          setOfflineGeneratedFiles([]);
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await openYomediaDemoPreview({
@@ -1226,7 +1339,7 @@ const BuildDemo: React.FC = () => {
         });
       }
     } catch (err) {
-      setSendError(
+      await prepareOfflineFallback(
         err instanceof Error ? err.message : "Upload to SFTP failed.",
       );
     } finally {
@@ -1759,6 +1872,7 @@ const BuildDemo: React.FC = () => {
                 setDirectoryExists(false);
                 setCheckingDirectory(false);
                 setSendSuccess(null);
+                setOfflineGeneratedFiles([]);
               }}
               disabled={files.length === 0 && !sourceUrl}
               className="px-8 py-4 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-2xl border border-white/10 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
@@ -1772,6 +1886,28 @@ const BuildDemo: React.FC = () => {
           {sendSuccess && (
             <p className="mt-2 text-sm text-emerald-400 font-medium">
               {sendSuccess}
+            </p>
+          )}
+          {offlineGeneratedFiles.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={downloadOfflineGeneratedFiles}
+                disabled={downloadingOfflineZip}
+                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-300/30 text-amber-200 text-[11px] font-black uppercase tracking-widest"
+              >
+                {downloadingOfflineZip
+                  ? "Creating ZIP..."
+                  : `Download Offline ZIP (${offlineGeneratedFiles.length})`}
+              </Button>
+              <span className="text-[11px] text-amber-200/90">
+                Files are converted with base64 and bundled in one zip.
+              </span>
+            </div>
+          )}
+          {preparingOfflineFiles && (
+            <p className="mt-2 text-xs text-amber-200/90">
+              Preparing offline package...
             </p>
           )}
         </div>

@@ -460,7 +460,7 @@ const CreativeShowcase: React.FC = () => {
   const THREE_COL_ITEMS_PER_PAGE = 3;
   const { user } = useAuth();
   const role = (user?.role || "").toLowerCase();
-  const isRestrictedDownloadRole = role === "adsop" || role === "media";
+  const isRestrictedDownloadRole = role === "media";
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

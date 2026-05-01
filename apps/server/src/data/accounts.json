@@ -1,12 +1,12 @@
 {
   "accounts": [
     {
-      "id": "u_001",
-      "name": "Nguyen Tran Minh Thanh",
+      "id": "user_3CRxo0KMiQIRgy1CrJ54NNEbUaq",
+      "name": "Thanh Nguyen Tran Minh",
       "email": "thanh.ntm@pinetech.vn",
       "phone": "0902392603",
-      "role": "admin",
-      "roleTitle": "Administrator",
+      "role": "design",
+      "roleTitle": "Design",
       "status": "active"
     },
     {

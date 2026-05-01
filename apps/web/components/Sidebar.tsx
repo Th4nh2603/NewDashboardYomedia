@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 import {
   HomeIcon,
   UsersIcon,
-  UserPlusIcon,
   ShieldCheckIcon,
   DocumentTextIcon,
   QuestionMarkCircleIcon,
@@ -15,6 +14,7 @@ import {
   ServerStackIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
+  WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -58,6 +58,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const normalizedRole = String(displayUser?.role || "")
     .trim()
     .toLowerCase();
+  const allowedRouteSet = new Set(
+    Array.isArray(displayUser?.allowedRoutes) ? displayUser.allowedRoutes : [],
+  );
+  const hasAllowedRouteConfig = allowedRouteSet.size > 0;
   const sections = [
     {
       title: null,
@@ -78,6 +82,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       ],
     },
     {
+      title: "Tools",
+      items: [
+        {
+          name: "Build Demo",
+          path: "/build-demo",
+          icon: WrenchScrewdriverIcon,
+        },
+      ],
+    },
+    {
       title: "Data Management",
       items: [
         { name: "Manage Demo", path: "/manage-demo", icon: UsersIcon },
@@ -86,7 +100,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           path: "/manage-sftp",
           icon: ServerStackIcon,
         },
-        { name: "Build Demo", path: "/build-demo", icon: UserPlusIcon },
         { name: "Upload", path: "/upload", icon: ArrowUpTrayIcon },
         {
           name: "Test data",
@@ -103,7 +116,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     {
       title: "Administration",
       items:
-        normalizedRole === "admin"
+        normalizedRole === "admin" &&
+        (!hasAllowedRouteConfig || allowedRouteSet.has("/admin/users"))
           ? [
               {
                 name: "User & Permissions",
@@ -114,7 +128,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           : [],
     },
   ];
-  const visibleSections = sections.filter((section) => section.items.length > 0);
+  const visibleSections = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => !hasAllowedRouteConfig || allowedRouteSet.has(item.path),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <motion.nav

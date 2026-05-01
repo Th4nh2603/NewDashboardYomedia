@@ -8,6 +8,92 @@ export interface SftpConfig {
   password?: string;
 }
 
+/** Demo host (SFTP_*) vs second media/CDN host (SFTP_*_MEDIA). */
+export type ManageSftpScope = "demo" | "media";
+
+/**
+ * Media host: logical paths stay `/script/demo/...` in the UI; on SFTP they map to
+ * `{MEDIA_ROOT}/...` by **replacing** `/script/demo` (not `media/script/demo/...`).
+ * `SFTP_MEDIA_MANAGE_PATH_PREFIX` sets `MEDIA_ROOT` (default `media`); empty disables
+ * replacement and passes the path through normalized.
+ */
+export function mapRemotePathForManageScope(
+  rawPath: string,
+  scope: ManageSftpScope,
+): string {
+  const normalize = (s: string) =>
+    (s || "").trim().replace(/\\+/g, "/").replace(/\/{2,}/g, "/");
+
+  if (scope === "demo") {
+    return normalize(rawPath);
+  }
+
+  const prefixRaw = process.env.SFTP_MEDIA_MANAGE_PATH_PREFIX;
+  const MEDIA_ROOT =
+    prefixRaw === undefined
+      ? "media"
+      : String(prefixRaw).trim().replace(/^\/+|\/+$/g, "");
+
+  if (!MEDIA_ROOT) {
+    return normalize(rawPath);
+  }
+
+  let p = normalize(rawPath);
+  const trimmedSlash = p.replace(/\/+$/, "");
+  const isScriptDemoOnly =
+    /^\/script\/demo$/i.test(trimmedSlash) ||
+    trimmedSlash.toLowerCase() === "script/demo";
+
+  if (p === "" || p === "/" || isScriptDemoOnly) {
+    return MEDIA_ROOT;
+  }
+
+  const afterScriptDemoSlash = /^\/script\/demo\/(.+)$/is.exec(p);
+  if (afterScriptDemoSlash) {
+    const rest = afterScriptDemoSlash[1].replace(/\/+$/, "");
+    return `${MEDIA_ROOT}/${rest}`.replace(/\/{2,}/g, "/");
+  }
+
+  const afterScriptDemoRel = /^script\/demo\/(.+)$/is.exec(p);
+  if (afterScriptDemoRel) {
+    const rest = afterScriptDemoRel[1].replace(/\/+$/, "");
+    return `${MEDIA_ROOT}/${rest}`.replace(/\/{2,}/g, "/");
+  }
+
+  if (p === MEDIA_ROOT || p.startsWith(`${MEDIA_ROOT}/`)) {
+    return p.replace(/\/{2,}/g, "/");
+  }
+
+  if (p.startsWith("/")) {
+    return `${MEDIA_ROOT}${p}`.replace(/\/{2,}/g, "/");
+  }
+
+  return `${MEDIA_ROOT}/${p}`.replace(/\/{2,}/g, "/");
+}
+
+/** Empty ⇒ existing demo defaults per operation; `media` ⇒ env SFTP_*_MEDIA only. */
+export function configForManageSftpScope(scope: ManageSftpScope): SftpConfig {
+  if (scope === "demo") return {};
+  const host = process.env.SFTP_HOST_MEDIA;
+  const portRaw = process.env.SFTP_PORT_MEDIA;
+  const username = process.env.SFTP_USER_MEDIA;
+  const password = process.env.SFTP_PASSWORD_MEDIA;
+  if (!host || !username || !password) {
+    throw new Error(
+      "Missing SFTP MEDIA credentials. Set SFTP_HOST_MEDIA, SFTP_PORT_MEDIA, SFTP_USER_MEDIA, SFTP_PASSWORD_MEDIA in server .env.",
+    );
+  }
+  let port = 2122;
+  if (portRaw !== undefined && String(portRaw).trim() !== "") {
+    const n = Number(portRaw);
+    if (!Number.isFinite(n)) {
+      throw new Error("SFTP_PORT_MEDIA must be a number.");
+    }
+    port = n;
+  }
+  return { host, port, username, password };
+}
+
 export async function testSftpConnection(config: SftpConfig) {
   const client = new SftpClient();
 
@@ -664,7 +750,7 @@ export async function createSftpDirectory(
       };
     }
 
-    if (existsType && existsType !== "d") {
+    if (existsType === "-" || existsType === "l") {
       throw new Error(`A non-directory entry already exists: ${normalizedPath}`);
     }
 

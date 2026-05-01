@@ -197,7 +197,7 @@ const DocumentPage: React.FC = () => {
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               /build-demo
             </code>{" "}
-            có thể bị ẩn với adsop/adsopmanager), nhưng route vẫn tồn tại trong app.
+            có thể bị ẩn với role <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">manager</code>), nhưng route vẫn tồn tại trong app.
           </li>
         </ul>
       </section>

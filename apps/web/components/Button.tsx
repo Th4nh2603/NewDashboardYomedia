@@ -5,6 +5,7 @@ type ButtonVariant =
   | "secondary"
   | "ghost"
   | "success"
+  | "violet"
   | "danger"
   | "iconSuccess"
   | "iconDanger";
@@ -23,6 +24,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   ghost: "bg-transparent text-[#e5e7eb] hover:bg-white/10 disabled:opacity-40",
   success:
     "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-40",
+  violet:
+    "bg-violet-500/20 text-violet-300 hover:bg-violet-500/35 disabled:opacity-40",
   danger:
     "bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 disabled:opacity-40",
   iconSuccess: "bg-[#4cceac]/10 text-[#4cceac] hover:bg-[#4cceac]/20",

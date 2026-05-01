@@ -13,6 +13,7 @@ import {
   PencilSquareIcon,
   TrashIcon,
   FolderPlusIcon,
+  ArrowsRightLeftIcon,
 } from "@heroicons/react/24/outline";
 import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
 import {
@@ -24,6 +25,20 @@ import { fetchJsonOrThrow } from "../lib/apiError";
 import Button from "../components/Button";
 
 const BASE_REMOTE_PATH = "/script/demo";
+/** UI path when connected to media SFTP (mirrors server `mapRemotePathForManageScope`). */
+const MEDIA_UI_DISPLAY_ROOT = "/media";
+const MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY = "manageDemoSftpScope";
+
+function logicalManagePathToDisplayPath(
+  logicalPath: string,
+  target: "demo" | "media",
+): string {
+  if (target !== "media") return logicalPath;
+  return logicalPath.replace(
+    /^\/script\/demo(?=\/|$)/i,
+    MEDIA_UI_DISPLAY_ROOT,
+  );
+}
 const VIDEO_TARGET_MAX_BYTES = 4 * 1024 * 1024;
 const VIDEO_COMPRESSIBLE_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
 type RolePermissionConfig = Record<
@@ -31,6 +46,7 @@ type RolePermissionConfig = Record<
   {
     manageDemo?: {
       canUseFileActionButtons?: boolean;
+      canSwitchSftpHost?: boolean;
     };
   }
 >;
@@ -39,12 +55,20 @@ const ManageDemo: React.FC = () => {
   const { user } = useAuth();
   const normalizedRole = (user?.role || "").toLowerCase();
   const [permissions, setPermissions] = React.useState<RolePermissionConfig>({
-    default: { manageDemo: { canUseFileActionButtons: false } },
+    default: {
+      manageDemo: {
+        canUseFileActionButtons: false,
+        canSwitchSftpHost: false,
+      },
+    },
   });
   const canUseFileActionButtons =
     permissions[normalizedRole]?.manageDemo?.canUseFileActionButtons ??
     permissions.default?.manageDemo?.canUseFileActionButtons ??
     false;
+  const canShowSftpHostSwitch =
+    normalizedRole === "admin" &&
+    (permissions[normalizedRole]?.manageDemo?.canSwitchSftpHost ?? false);
   const canDropUpload = normalizedRole === "admin";
   const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
     const id = String(i + 1).padStart(2, "0");
@@ -104,6 +128,48 @@ const ManageDemo: React.FC = () => {
   const [uploadingDropFiles, setUploadingDropFiles] = React.useState(false);
   const [uploadSummary, setUploadSummary] = React.useState<string | null>(null);
   const [reloadTick, setReloadTick] = React.useState(0);
+  type ManageSftpTarget = "demo" | "media";
+  const [manageSftpTarget, setManageSftpTarget] =
+    React.useState<ManageSftpTarget>(() => {
+      try {
+        const raw = sessionStorage.getItem(MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY);
+        return raw === "media" ? "media" : "demo";
+      } catch {
+        return "demo";
+      }
+    });
+
+  React.useEffect(() => {
+    try {
+      sessionStorage.setItem(MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY, manageSftpTarget);
+    } catch {
+      // ignore quota / private mode
+    }
+  }, [manageSftpTarget]);
+
+  React.useEffect(() => {
+    if (!canShowSftpHostSwitch && manageSftpTarget === "media") {
+      setManageSftpTarget("demo");
+    }
+  }, [canShowSftpHostSwitch, manageSftpTarget]);
+
+  const sftpScopeQuerySuffix =
+    manageSftpTarget === "media"
+      ? `&scope=${encodeURIComponent("media")}`
+      : "";
+  const sftpScopeJsonFields =
+    manageSftpTarget === "media" ? ({ scope: "media" as const } as const) : {};
+
+  const roleHeader = React.useMemo(
+    () =>
+      normalizedRole
+        ? ({
+            "x-user-role": normalizedRole,
+          } as const)
+        : undefined,
+    [normalizedRole],
+  );
+
   const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
   const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
   const [config, setConfig] = React.useState({
@@ -162,7 +228,14 @@ const ManageDemo: React.FC = () => {
         }
       } catch {
         if (!cancelled) {
-          setPermissions({ default: { manageDemo: { canUseFileActionButtons: false } } });
+          setPermissions({
+            default: {
+              manageDemo: {
+                canUseFileActionButtons: false,
+                canSwitchSftpHost: false,
+              },
+            },
+          });
         }
       }
     })();
@@ -297,8 +370,19 @@ const ManageDemo: React.FC = () => {
     };
   }, [currentPath, config.formatValue, config.category]);
 
-  const pathForDisplay = currentPath.replace(
-    /(\/script\/demo\/)\d{4}(\/)/,
+  const displayRemotePath = React.useCallback(
+    (logicalPath: string) =>
+      logicalManagePathToDisplayPath(logicalPath, manageSftpTarget),
+    [manageSftpTarget],
+  );
+
+  const currentPathForDisplay = React.useMemo(
+    () => displayRemotePath(currentPath),
+    [currentPath, displayRemotePath],
+  );
+
+  const pathForDisplay = currentPathForDisplay.replace(
+    /(\/(?:media|script\/demo)\/)\d{4}(\/)/,
     "$1…$2",
   );
 
@@ -324,6 +408,16 @@ const ManageDemo: React.FC = () => {
     if (lastSlash <= 0) return "/";
     return trimmed.slice(0, lastSlash) || "/";
   }, []);
+
+  /** Parent for SFTP browsing only: stop at year folder (/script/demo/YYYY), do not allow /script/demo. */
+  const getSftpBrowsingParentPath = React.useCallback(
+    (path: string) => {
+      const parent = getParentPath(path);
+      if (!parent || parent === BASE_REMOTE_PATH) return null;
+      return parent;
+    },
+    [getParentPath],
+  );
 
   const navigateToPath = React.useCallback(
     (nextPath: string) => {
@@ -399,7 +493,12 @@ const ManageDemo: React.FC = () => {
         ok?: boolean;
         entries?: SftpEntry[];
         error?: string;
-      }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`);
+      }>(
+        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}${sftpScopeQuerySuffix}`,
+        {
+          headers: { ...(roleHeader ?? {}) },
+        },
+      );
       if (!data.ok) {
         throw new Error(data.error || `Unable to list ${path}`);
       }
@@ -429,7 +528,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPath, reloadTick]);
+  }, [currentPath, reloadTick, manageSftpTarget, sftpScopeQuerySuffix, roleHeader]);
 
   React.useEffect(() => {
     const dirs = listEntries.filter((entry) => entry.type === "d");
@@ -450,7 +549,12 @@ const ManageDemo: React.FC = () => {
             const data = await fetchJsonOrThrow<{
               ok?: boolean;
               entries?: SftpEntry[];
-            }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}`);
+            }>(
+              `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}${sftpScopeQuerySuffix}`,
+              {
+                headers: { ...(roleHeader ?? {}) },
+              },
+            );
             if (!data?.ok || !Array.isArray(data?.entries)) {
               return [fullPath, false] as const;
             }
@@ -476,18 +580,9 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [listEntries, currentPath, buildEntryFullPath]);
+  }, [listEntries, currentPath, buildEntryFullPath, sftpScopeQuerySuffix, roleHeader]);
 
   const listBusy = loadingList || isNavigating;
-  const roleHeader = React.useMemo(
-    () =>
-      normalizedRole
-        ? ({
-            "x-user-role": normalizedRole,
-          } as const)
-        : undefined,
-    [normalizedRole],
-  );
 
   const isEditableFileName = React.useCallback((name: string) => {
     const lower = name.toLowerCase();
@@ -501,7 +596,12 @@ const ManageDemo: React.FC = () => {
         ok?: boolean;
         content?: string;
         error?: string;
-      }>(`${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}`);
+      }>(
+        `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}${sftpScopeQuerySuffix}`,
+        {
+          headers: { ...(roleHeader ?? {}) },
+        },
+      );
       if (!data?.ok) {
         setListError(data?.error || "Unable to read file content");
         return;
@@ -514,7 +614,7 @@ const ManageDemo: React.FC = () => {
         err instanceof Error ? err.message : "Unknown network error",
       );
     }
-  }, []);
+  }, [sftpScopeQuerySuffix, roleHeader]);
 
   const handleSaveEditor = React.useCallback(async () => {
     if (!editorPath || !canUseFileActionButtons) return;
@@ -532,6 +632,7 @@ const ManageDemo: React.FC = () => {
           body: JSON.stringify({
             path: editorPath,
             content: editorContent,
+            ...sftpScopeJsonFields,
           }),
         },
       );
@@ -548,13 +649,19 @@ const ManageDemo: React.FC = () => {
     } finally {
       setSavingFile(false);
     }
-  }, [editorPath, editorContent, canUseFileActionButtons, roleHeader]);
+  }, [
+    editorPath,
+    editorContent,
+    canUseFileActionButtons,
+    roleHeader,
+    sftpScopeJsonFields,
+  ]);
 
   const handleDeletePath = React.useCallback(
     async (fullPath: string, isDir: boolean) => {
       if (!canUseFileActionButtons || deletingPath) return;
       const confirmed = window.confirm(
-        `${isDir ? "Delete directory" : "Delete file"} on SFTP?\n${fullPath}`,
+        `${isDir ? "Delete directory" : "Delete file"} on SFTP?\n${displayRemotePath(fullPath)}`,
       );
       if (!confirmed) return;
       setDeletingPath(fullPath);
@@ -568,7 +675,7 @@ const ManageDemo: React.FC = () => {
               "Content-Type": "application/json",
               ...(roleHeader ?? {}),
             },
-            body: JSON.stringify({ path: fullPath }),
+            body: JSON.stringify({ path: fullPath, ...sftpScopeJsonFields }),
           },
         );
         if (!data?.ok) {
@@ -595,6 +702,8 @@ const ManageDemo: React.FC = () => {
       roleHeader,
       buildEntryFullPath,
       currentPath,
+      sftpScopeJsonFields,
+      displayRemotePath,
     ],
   );
 
@@ -631,6 +740,7 @@ const ManageDemo: React.FC = () => {
             body: JSON.stringify({
               oldPath: fullPath,
               newPath: targetPath,
+              ...sftpScopeJsonFields,
             }),
           },
         );
@@ -654,6 +764,7 @@ const ManageDemo: React.FC = () => {
       getParentPath,
       buildEntryFullPath,
       roleHeader,
+      sftpScopeJsonFields,
     ],
   );
 
@@ -690,7 +801,10 @@ const ManageDemo: React.FC = () => {
           "Content-Type": "application/json",
           ...(roleHeader ?? {}),
         },
-        body: JSON.stringify({ path: targetPath }),
+        body: JSON.stringify({
+          path: targetPath,
+          ...sftpScopeJsonFields,
+        }),
       });
 
       if (!data?.ok) {
@@ -764,7 +878,7 @@ const ManageDemo: React.FC = () => {
                   videoCompressed?: boolean;
                 };
               }>(
-                `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(targetPath)}`,
+                `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(targetPath)}${sftpScopeQuerySuffix}`,
                 {
                   method: "POST",
                   headers: {
@@ -797,6 +911,7 @@ const ManageDemo: React.FC = () => {
                     path: targetPath,
                     content: base64,
                     encoding: "base64",
+                    ...sftpScopeJsonFields,
                   }),
                 });
               })();
@@ -862,6 +977,8 @@ const ManageDemo: React.FC = () => {
       isCompressibleVideoFileName,
       formatSizeInMb,
       roleHeader,
+      sftpScopeQuerySuffix,
+      sftpScopeJsonFields,
     ],
   );
 
@@ -918,8 +1035,8 @@ const ManageDemo: React.FC = () => {
       <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1730] via-[#0b1730]/95 to-[#102449] p-4 sm:p-5 shadow-[0_18px_36px_rgba(2,6,23,0.42)]">
         <div className="pointer-events-none absolute -right-16 -top-14 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-indigo-400/10 blur-3xl" />
-        <div className="relative z-10 flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-1.5">
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-5">
+          <div className="min-w-0 space-y-1.5 sm:max-w-xl">
             <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-300/80">
               SFTP demo manager
             </p>
@@ -931,14 +1048,46 @@ const ManageDemo: React.FC = () => {
               with stronger visual clarity.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
-              Current month
-            </p>
-            <p className="text-base font-semibold text-white">
-              {getItemLabelById(manageYearOptions, config.quality)}/
-              {demoPaths.month}
-            </p>
+          <div className="w-full sm:w-auto sm:shrink-0">
+            <div
+              className={`grid gap-2.5 sm:gap-3 ${canShowSftpHostSwitch ? "grid-cols-2 sm:min-w-[19rem]" : "grid-cols-1 sm:min-w-[10.5rem]"}`}
+            >
+              <div
+                className={`flex min-w-0 flex-col justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${canShowSftpHostSwitch ? "min-h-[5.25rem]" : ""}`}
+              >
+                <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.2em] text-slate-400">
+                  Current month
+                </p>
+                <p className="text-lg font-semibold tabular-nums tracking-tight text-white">
+                  {getItemLabelById(manageYearOptions, config.quality)}
+                  <span className="text-white/35">/</span>
+                  {demoPaths.month}
+                </p>
+              </div>
+              {canShowSftpHostSwitch && (
+                <div className="flex min-h-[5.25rem] min-w-0 flex-col justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.2em] text-slate-400">
+                    SFTP · chuyển host
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={loadingList || isNavigating}
+                    onClick={() =>
+                      setManageSftpTarget((t) =>
+                        t === "demo" ? "media" : "demo",
+                      )
+                    }
+                    title="Admin: đổi giữa demo (SFTP_*) và media (SFTP_*_MEDIA)"
+                    className="w-full justify-center gap-1.5 py-2 text-[11px] font-semibold normal-case tracking-normal"
+                  >
+                    <ArrowsRightLeftIcon className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                    {manageSftpTarget === "demo" ? "Demo host" : "Media host"}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1082,9 +1231,9 @@ const ManageDemo: React.FC = () => {
                     type="button"
                     onClick={() => void handleCreateFolder()}
                     disabled={creatingFolder || listBusy}
-                    variant="secondary"
+                    variant="violet"
                     size="md"
-                    className="inline-flex items-center gap-1.5"
+                    className="inline-flex items-center gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-violet-400/30"
                   >
                     <FolderPlusIcon className="h-4 w-4" />
                     {creatingFolder ? "Creating..." : "Create folder"}
@@ -1093,10 +1242,10 @@ const ManageDemo: React.FC = () => {
                 <Button
                   type="button"
                   onClick={() => {
-                    const parent = getParentPath(currentPath);
+                    const parent = getSftpBrowsingParentPath(currentPath);
                     if (parent) navigateToPath(parent);
                   }}
-                  disabled={!getParentPath(currentPath) || listBusy}
+                  disabled={!getSftpBrowsingParentPath(currentPath) || listBusy}
                   variant="secondary"
                   size="md"
                 >
@@ -1143,7 +1292,7 @@ const ManageDemo: React.FC = () => {
                       Drop files here to upload
                     </p>
                     <p className="mt-1 text-[11px] text-cyan-100/80 font-mono break-all">
-                      {currentPath}
+                      {currentPathForDisplay}
                     </p>
                   </div>
                 </div>
@@ -1327,7 +1476,7 @@ const ManageDemo: React.FC = () => {
               <div className="rounded-3xl border border-slate-800 bg-gradient-to-b from-[#030a1a] to-[#020617] p-3.5 space-y-2.5 shadow-[0_14px_34px_rgba(2,6,23,0.42)]">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-xs text-[#e5e7eb] font-mono truncate">
-                    {editorPath}
+                    {displayRemotePath(editorPath)}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button

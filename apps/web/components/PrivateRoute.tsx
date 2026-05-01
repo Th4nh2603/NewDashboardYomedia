@@ -8,7 +8,7 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated, authReady } = useAuth();
+  const { user, isAuthenticated, authReady } = useAuth();
   const { isSignedIn, isLoaded } = useClerkAuth();
   const location = useLocation();
   const publicPaths = new Set(["/creative-showcase"]);
@@ -23,6 +23,15 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
   if (!isAuthenticated && !isSignedIn) {
     return <Navigate to="/login" replace />;
+  }
+
+  const normalizedPath = location.pathname || "/";
+  const allowedRoutes = Array.isArray(user?.allowedRoutes)
+    ? user.allowedRoutes
+    : [];
+  const hasAllowedRouteConfig = allowedRoutes.length > 0;
+  if (hasAllowedRouteConfig && !allowedRoutes.includes(normalizedPath)) {
+    return <Navigate to={allowedRoutes[0] || "/"} replace />;
   }
 
   return <>{children}</>;

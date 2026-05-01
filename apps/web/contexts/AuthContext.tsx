@@ -26,7 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const { isSignedIn, signOut, getToken } = useClerkAuth();
+  const { isSignedIn, signOut, getToken, isLoaded: clerkAuthLoaded } =
+    useClerkAuth();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
   const getServerBaseUrl = () =>
@@ -36,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     let cancelled = false;
 
     const hydrateAuthState = async () => {
-      if (!isClerkLoaded) return;
+      if (!isClerkLoaded || !clerkAuthLoaded) return;
       let nextUser: User | null = null;
 
       try {
@@ -187,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [isClerkLoaded, isSignedIn, clerkUser, getToken]);
+  }, [isClerkLoaded, clerkAuthLoaded, isSignedIn, clerkUser, getToken]);
 
   const login = (userData: User, options?: { remember?: boolean }) => {
     setUser(userData);
