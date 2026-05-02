@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { ErrorProvider } from "./contexts/ErrorContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./components/DashboardLayout";
 import PrivateRoute from "./components/PrivateRoute";
@@ -22,6 +23,7 @@ import ManageSftp from "./pages/ManageSftp";
 import Upload from "./pages/Upload";
 import Bar from "./pages/Bar";
 import AIGmail from "./pages/AIGmail";
+import SmtpMail from "./pages/SmtpMail";
 import Documentation from "./pages/Documentation";
 import TestData from "./pages/TestData";
 import AdminUsers from "./pages/AdminUsers";
@@ -29,6 +31,7 @@ import AdminUsers from "./pages/AdminUsers";
 const App: React.FC = () => {
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <AuthProvider>
         <ErrorProvider>
           <AppErrorBoundary>
@@ -96,6 +99,14 @@ const App: React.FC = () => {
                           <Route path="/history" element={<History />} />
                           <Route path="/ai-gmail" element={<AIGmail />} />
                           <Route
+                            path="/smtp-mail"
+                            element={
+                              <RoleRoute deny={["guest"]}>
+                                <SmtpMail />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
                             path="/admin/users"
                             element={
                               <RoleRoute allow={["admin"]}>
@@ -113,6 +124,7 @@ const App: React.FC = () => {
           </AppErrorBoundary>
         </ErrorProvider>
       </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 };

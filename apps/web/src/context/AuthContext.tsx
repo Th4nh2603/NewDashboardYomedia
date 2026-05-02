@@ -7,9 +7,9 @@ import React, {
 } from "react";
 import { jwtDecode } from "jwt-decode";
 
-// 1. Định nghĩa cấu trúc dữ liệu User từ Google
+// 1. Google JWT user shape (legacy path)
 interface GoogleUser {
-  sub: string; // ID duy nhất của user
+  sub: string; // Stable user id
   name: string;
   email: string;
   picture: string;
@@ -17,7 +17,7 @@ interface GoogleUser {
   exp: number;
 }
 
-// 2. Định nghĩa các giá trị mà Context sẽ cung cấp
+// 2. Context surface
 interface AuthContextType {
   user: GoogleUser | null;
   login: (credentialResponse: any) => void;
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// 3. Hook tùy chỉnh với kiểm tra lỗi Null
+// 3. Consumer hook with guard
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {

@@ -1,10 +1,10 @@
 import { dark } from "@clerk/themes";
 
 export const clerkAppearance = {
-  baseTheme: dark, // Chuyển nền tảng sang Dark Mode
+  baseTheme: dark, // Clerk base: dark theme
   variables: {
-    colorPrimary: "#3b82f6", // Màu xanh của nút Continue
-    colorBackground: "#1f2937", // Màu nền card (gray-800)
+    colorPrimary: "#3b82f6", // Primary / Continue button
+    colorBackground: "#1f2937", // Card background (gray-800)
     colorText: "#ffffff",
     borderRadius: "0.75rem",
   },
@@ -16,7 +16,7 @@ export const clerkAppearance = {
       "bg-transparent border-gray-600 hover:bg-gray-700 text-white",
     formFieldInput:
       "bg-gray-900 border-gray-600 text-white focus:ring-blue-500",
-    footer: "hidden", // Ẩn phần footer "Secured by Clerk" nếu muốn tinh gọn
+    footer: "hidden", // Hide Clerk footer chrome if desired
     formButtonPrimary: "bg-blue-600 hover:bg-blue-700 transition-all",
   },
 };

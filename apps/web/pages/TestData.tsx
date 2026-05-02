@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from '../components/Button';
 
 const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
@@ -21,7 +22,7 @@ function formatFileSize(bytes: number): string {
 
 const TestData: React.FC = () => {
   const { user } = useAuth();
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const baseUrl = serverApiOrigin();
   const role = (user?.role || "").toLowerCase();
   const canEdit = role === "admin" || role === "design";
 
@@ -97,7 +98,7 @@ const TestData: React.FC = () => {
       if (!data.ok) {
         throw new Error(data.error || "Save failed");
       }
-      setMessage("Đã lưu creative-demos.json.");
+      setMessage("creative-demos.json saved.");
       void load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -114,7 +115,7 @@ const TestData: React.FC = () => {
     const clientBytes = videoFile.size;
     if (clientBytes > MAX_VIDEO_BYTES) {
       setVideoError(
-        `File vượt quá ${formatFileSize(MAX_VIDEO_BYTES)} (giới hạn API).`,
+        `File exceeds ${formatFileSize(MAX_VIDEO_BYTES)} (API limit).`,
       );
       setCompressing(false);
       return;
@@ -122,7 +123,7 @@ const TestData: React.FC = () => {
     const ext = videoFile.name.split(".").pop()?.toLowerCase() ?? "";
     const allowed = new Set(["mp4", "webm", "mov", "m4v"]);
     if (!allowed.has(ext)) {
-      setVideoError("Chỉ thử nén: .mp4, .webm, .mov, .m4v");
+      setVideoError("Compression test only: .mp4, .webm, .mov, .m4v");
       setCompressing(false);
       return;
     }
@@ -130,7 +131,7 @@ const TestData: React.FC = () => {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result ?? ""));
-        reader.onerror = () => reject(new Error("Không đọc được file."));
+        reader.onerror = () => reject(new Error("Could not read file."));
         reader.readAsDataURL(videoFile);
       });
       const base =
@@ -158,7 +159,7 @@ const TestData: React.FC = () => {
         }),
       });
       if (!data.ok) {
-        throw new Error(data.error || "Upload thất bại");
+        throw new Error(data.error || "Upload failed");
       }
       const v = data.video;
       setVideoResult({
@@ -173,7 +174,7 @@ const TestData: React.FC = () => {
         videoCompressed: v?.videoCompressed === true,
       });
     } catch (err) {
-      setVideoError(err instanceof Error ? err.message : "Lỗi không xác định");
+      setVideoError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setCompressing(false);
     }
@@ -204,7 +205,7 @@ const TestData: React.FC = () => {
       URL.revokeObjectURL(objectUrl);
     } catch (err) {
       setVideoError(
-        err instanceof Error ? err.message : "Không tải được file từ server.",
+        err instanceof Error ? err.message : "Could not download file from server.",
       );
     } finally {
       setDownloadingVideo(false);
@@ -224,11 +225,11 @@ const TestData: React.FC = () => {
                 Test data (creative-demos.json)
               </h1>
               <p className="text-[#a3a3a3] text-xs font-medium mt-1 max-w-xl">
-                Chỉnh sửa nội dung file{" "}
+                Edit the{" "}
                 <span className="text-white/90">
                   apps/server/src/data/creative-demos.json
-                </span>
-                . Chỉ tài khoản admin hoặc design được phép lưu.
+                </span>{" "}
+                file. Only admin or design roles can save.
               </p>
             </div>
           </div>
@@ -238,7 +239,7 @@ const TestData: React.FC = () => {
             disabled={loading}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/90 bg-white/5 hover:bg-white/10 disabled:opacity-40"
           >
-            Tải lại
+            Reload
           </Button>
         </div>
         <div className="absolute -bottom-4 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
@@ -257,8 +258,8 @@ const TestData: React.FC = () => {
 
       {!canEdit && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
-          Bạn chỉ có thể xem nội dung. Để lưu thay đổi cần quyền admin hoặc
-          design.
+          You have read-only access. Saving changes requires admin or design
+          permissions.
         </div>
       )}
 
@@ -269,20 +270,22 @@ const TestData: React.FC = () => {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-black text-white uppercase tracking-tight italic">
-              Thử nén video (server)
+              Video compression test (server)
             </h2>
             <p className="text-[11px] text-[#a3a3a3] mt-0.5">
-              Gửi file lên{" "}
+              Upload via{" "}
               <code className="text-white/70 text-[10px]">
                 POST /api/file-upload
-              </code>{" "}
-              — server chạy ffmpeg rồi lưu vào{" "}
+              </code>
+              {" "}
+              — the server runs ffmpeg and stores output under{" "}
               <code className="text-white/70 text-[10px]">
                 uploads/file-center
               </code>
-              . Tên file có tiền tố{" "}
+              . Filenames use the{" "}
               <code className="text-white/70 text-[10px]">compress-test-…</code>
-              .
+              {" "}
+              prefix.
             </p>
           </div>
         </div>
@@ -292,7 +295,7 @@ const TestData: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <label className="flex-1 min-w-0">
                   <span className="block text-[10px] font-black uppercase tracking-widest text-[#a3a3a3] mb-2">
-                    Chọn video
+                    Choose video
                   </span>
                   <input
                     type="file"
@@ -312,18 +315,19 @@ const TestData: React.FC = () => {
                   onClick={() => void runVideoCompressTest()}
                   className="shrink-0 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#4cceac] text-[#141b2d] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {compressing ? "Đang nén…" : "Upload & nén thử"}
+                  {compressing ? "Compressing…" : "Upload & compress (test)"}
                 </Button>
               </div>
               {videoFile && (
                 <p className="text-[11px] text-[#94a3b8]">
-                  Trên máy: {formatFileSize(videoFile.size)} — {videoFile.name}
+                  Local file: {formatFileSize(videoFile.size)} — {videoFile.name}
                 </p>
               )}
             </>
           ) : (
             <p className="text-xs text-[#a3a3a3]">
-              Cần quyền admin hoặc design để gọi API upload và xem kết quả nén.
+              Admin or design role required to call the upload API and see
+              compression results.
             </p>
           )}
           {videoError && (
@@ -335,23 +339,23 @@ const TestData: React.FC = () => {
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-50 space-y-2">
               <p className="font-semibold text-emerald-100">
                 {videoResult.videoCompressed
-                  ? "Đã nén và lưu file."
-                  : "Giữ nguyên (đã nén sẵn, lỗi ffmpeg, hoặc không nhỏ hơn ngưỡng)."}
+                  ? "Compressed and saved."
+                  : "Unchanged (already small, ffmpeg error, or below shrink threshold)."}
               </p>
               <ul className="font-mono text-[11px] space-y-1 text-emerald-100/90">
                 <li>
-                  Đã lưu:{" "}
+                  Saved as:{" "}
                   <span className="text-white">{videoResult.savedName}</span>
                 </li>
                 <li>
-                  Client (file gốc): {formatFileSize(videoResult.clientBytes)}
+                  Client (original): {formatFileSize(videoResult.clientBytes)}
                 </li>
                 <li>
                   Server (sau decode):{" "}
                   {formatFileSize(videoResult.originalBytes)}
                 </li>
                 <li>
-                  Sau xử lý: {formatFileSize(videoResult.compressedBytes)}
+                  After processing: {formatFileSize(videoResult.compressedBytes)}
                   {videoResult.originalBytes > 0 && (
                     <span className="text-emerald-200/80 ml-2">
                       (
@@ -361,7 +365,7 @@ const TestData: React.FC = () => {
                             videoResult.originalBytes) *
                         100
                       ).toFixed(1)}
-                      % so với bản server decode)
+                      % vs server-decoded size)
                     </span>
                   )}
                 </li>
@@ -374,7 +378,7 @@ const TestData: React.FC = () => {
                   className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ArrowDownTrayIcon className="w-4 h-4 shrink-0" />
-                  {downloadingVideo ? "Đang tải…" : "Tải video vừa nén"}
+                  {downloadingVideo ? "Downloading…" : "Download compressed video"}
                 </Button>
               )}
             </div>
@@ -393,12 +397,12 @@ const TestData: React.FC = () => {
             disabled={!canEdit || saving || loading}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#4cceac] text-[#141b2d] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Đang lưu…" : "Lưu"}
+            {saving ? "Saving…" : "Save"}
           </Button>
         </div>
         {loading ? (
           <div className="px-6 py-16 text-sm text-[#a3a3a3] text-center">
-            Đang tải…
+            Loading…
           </div>
         ) : (
           <textarea
@@ -407,7 +411,7 @@ const TestData: React.FC = () => {
             readOnly={!canEdit}
             spellCheck={false}
             className="w-full min-h-[420px] bg-[#0d111a] text-white/90 text-sm font-mono leading-relaxed px-5 py-4 outline-none border-0 resize-y disabled:opacity-80"
-            aria-label="Nội dung creative-demos.json"
+            aria-label="creative-demos.json content"
           />
         )}
       </div>

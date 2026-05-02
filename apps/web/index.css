@@ -14,7 +14,17 @@
   }
 
   body {
-    @apply transition-colors duration-300 antialiased bg-[#141b2d] text-[#e0e0e0];
+    @apply transition-colors duration-300 antialiased;
+  }
+
+  html.dark body {
+    background-color: #141b2d;
+    color: #e0e0e0;
+  }
+
+  html.light body {
+    background-color: #f1f5f9;
+    color: #0f172a;
   }
 }
 
@@ -75,4 +85,58 @@ nav::-webkit-scrollbar-thumb:hover {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(76, 206, 172, 0.2);
+}
+
+html.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+}
+
+html.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(76, 206, 172, 0.35);
+}
+
+/* Ambient dashboard backdrop (used by DashboardLayout) */
+.dashboard-ambient {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dashboard-ambient::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(76, 206, 172, 0.18), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(99, 102, 241, 0.14), transparent 45%),
+    radial-gradient(ellipse 50% 35% at 70% 85%, rgba(236, 72, 153, 0.08), transparent 40%);
+}
+
+html.light .dashboard-ambient::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 8% 0%, rgba(76, 206, 172, 0.22), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 95% 15%, rgba(99, 102, 241, 0.12), transparent 50%),
+    radial-gradient(ellipse 45% 30% at 75% 90%, rgba(14, 165, 233, 0.08), transparent 45%);
+}
+
+.dashboard-ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, black 15%, transparent 70%);
+}
+
+html.light .dashboard-ambient-grid {
+  background-image: linear-gradient(
+      rgba(15, 23, 42, 0.06) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, black 20%, transparent 72%);
 }

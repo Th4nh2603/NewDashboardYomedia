@@ -10,13 +10,16 @@ import {
   ArrowPathIcon,
   ClipboardDocumentIcon,
   FolderOpenIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import demoConfig from "../data/demoConfig.json";
 import brandColors from "../data/brandColors.json";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
+import NoticePopup from "../components/NoticePopup";
 import JSZip from "jszip";
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
@@ -37,7 +40,7 @@ const BG_VIDEOS_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAQMAAABrVFYkAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAACZJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAACIOkBWAAFeWY6hAAAAAElFTkSuQmCC";
 
 /**
- * Ảnh đã có bản data URL cố định (s_on, s_off, nút, nền video) — không ghi đè bằng base64 từ file upload.
+ * Images that ship with fixed data URLs (s_on, s_off, buttons, video bg) — not replaced by uploaded base64.
  */
 const BUNDLED_DEMO_ASSET_IMAGE_BASENAMES = new Set(
   [
@@ -54,7 +57,7 @@ function isBundledDemoAssetImageName(name: string): boolean {
   return BUNDLED_DEMO_ASSET_IMAGE_BASENAMES.has(leaf);
 }
 
-/** Thay manifest ảnh chuẩn bằng data URL cố định (nháy đơn / nháy kép, %20 hoặc space). */
+/** Replace canonical manifest images with fixed data URLs (single/double quotes, %20 or space). */
 function replaceBundledDemoStaticImages(content: string): string {
   let c = content;
   const sq = [
@@ -112,7 +115,7 @@ function replaceBundledDemoStaticImages(content: string): string {
   ] as const) {
     c = c.replaceAll(from, to);
   }
-  // Fallback cho object literal nhiều dòng (id và src không cùng 1 dòng).
+  // Fallback for multi-line object literals (id and src not on same line).
   c = c.replace(
     /(id\s*:\s*["']s_on["'][\s\S]*?src\s*:\s*["'])images\/s_on(?:%20| )copy\.png(["'])/g,
     `$1${S_ON_DATA_URL}$2`,
@@ -190,7 +193,7 @@ interface ErrorState {
   actionLabel?: string;
 }
 
-/** Tên file + base64 lưu chung một state cho ảnh */
+/** Filename + base64 stored together in state for images */
 interface ImageBase64Entry {
   name: string;
   base64: string;
@@ -203,7 +206,7 @@ interface UploadedFile {
   preview: string;
   status: "uploading" | "success" | "error";
   timestamp: number;
-  /** Ảnh: lưu kèm tên file và base64 chung state */
+  /** Images: store filename + base64 together in state */
   imageBase64?: ImageBase64Entry;
 }
 
@@ -218,7 +221,7 @@ interface OfflineGeneratedFile {
   blob: Blob;
 }
 
-/** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
+/** Read every DirectoryReader batch (Chrome yields up to ~100 entries per batch). */
 function readAllDirEntries(
   reader: FileSystemDirectoryReader,
 ): Promise<FileSystemEntry[]> {
@@ -241,12 +244,12 @@ function readAllDirEntries(
   });
 }
 
-/** Đường dẫn tương đối khi kéo-thả folder — không gán vào File (webkitRelativePath chỉ đọc). */
+/** Relative path when drag-dropping folders — cannot set on File (webkitRelativePath is read-only). */
 const dropRelativePathByFile = new WeakMap<File, string>();
 
 /**
- * Thu thập mọi file trong cây thư mục (kéo-thả folder).
- * Lưu relative path trong WeakMap để dedupe đúng khi trùng tên ở subfolder.
+ * Collect every file in a dropped folder tree.
+ * Relative paths live in a WeakMap so dedupe stays correct when names repeat in subfolders.
  */
 function readEntry(
   entry: FileSystemEntry,
@@ -279,7 +282,7 @@ function readEntry(
 }
 
 /**
- * Khi kéo thả folder từ Explorer, dataTransfer.files đôi khi có File giả (0 byte, không đuôi).
+ * When dragging a folder from Explorer, dataTransfer.files may include a placeholder File (0 bytes, no extension).
  */
 function isDroppedFolderPlaceholder(file: File): boolean {
   if (file.size !== 0) return false;
@@ -397,6 +400,7 @@ const BuildDemo: React.FC = () => {
   const [checkingDirectory, setCheckingDirectory] = useState(false);
   const [replacementName, setReplacementName] = useState("");
   const [error, setError] = useState<ErrorState | null>(null);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendingToSftp, setSendingToSftp] = useState(false);
@@ -406,6 +410,7 @@ const BuildDemo: React.FC = () => {
   >([]);
   const [preparingOfflineFiles, setPreparingOfflineFiles] = useState(false);
   const [downloadingOfflineZip, setDownloadingOfflineZip] = useState(false);
+  const [openingDemoVideo, setOpeningDemoVideo] = useState(false);
   const [demoTitleOptions, setDemoTitleOptions] = useState<DemoTitleOption[]>(
     [],
   );
@@ -417,7 +422,7 @@ const BuildDemo: React.FC = () => {
     health: "Optimal",
   });
   const productCateOptions = getProductCateOptionsByBrand(config.model);
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const baseUrl = serverApiOrigin();
   const sftpRoleHeaders = normalizedRole
     ? { "x-user-role": normalizedRole }
     : undefined;
@@ -452,7 +457,7 @@ const BuildDemo: React.FC = () => {
   const effectiveUploadNameToken = replacementName.trim()
     ? normalizePathToken(replacementName.trim())
     : autoUploadNameToken;
-  /** Tên segment path cuối phải > 5 ký tự (tối thiểu 6). */
+  /** Final path segment must be > 5 characters (minimum 6). */
   const uploadNameValid = effectiveUploadNameToken.length > 5;
   const showUploadNameInput =
     directoryExists ||
@@ -675,7 +680,7 @@ const BuildDemo: React.FC = () => {
     setIsDragging(false);
   }, []);
 
-  // Nén ảnh trên client xuống ~70% chất lượng rồi trả về base64
+  // Client-side image compression (~70% quality), returns base64
   const compressImageToDataUrl = (file: File, quality = 0.7): Promise<string> =>
     new Promise((resolve, reject) => {
       const img = new Image();
@@ -693,7 +698,7 @@ const BuildDemo: React.FC = () => {
         }
         ctx.drawImage(img, 0, 0);
 
-        // Re-encode mọi định dạng (kể cả PNG) sang WebP với quality ~70%
+        // Re-encode all formats (including PNG) to WebP at ~70% quality
         const mime = "image/webp";
         try {
           const dataUrl = canvas.toDataURL(mime, quality);
@@ -817,10 +822,7 @@ const BuildDemo: React.FC = () => {
     }
 
     const allSkipped = [...validationErrors, ...processingErrors];
-    const guidelinesAction = () =>
-      alert(
-        "Supported formats:\n- Images: PNG, JPG, JPEG, WEBP, GIF, SVG (<= 10MB)\n- Videos: MP4, WEBM, MOV (<= 500MB)\n- HTML: .html, .htm\n- JS: .js, .mjs",
-      );
+    const guidelinesAction = () => setGuidelinesOpen(true);
 
     if (allSkipped.length > 0) {
       if (fileArray.length > 0) {
@@ -854,8 +856,8 @@ const BuildDemo: React.FC = () => {
       ignoreNextDropzoneClick.current = false;
     }, 400);
 
-    // Phải đọc items/files ĐỒNG BỘ trước mọi await: sau await, DataTransfer có thể không còn hợp lệ
-    // → chỉ xử lý được mục đầu (folder + html + js cùng lúc sẽ thiếu file).
+    // Snapshot items/files synchronously before any await: after await, DataTransfer may be invalid,
+    // so only the first item would be handled (drops with folder + html + js lose files otherwise).
     const fileListFallback = Array.from(e.dataTransfer.files ?? []).filter(
       (f) => !isDroppedFolderPlaceholder(f),
     );
@@ -900,7 +902,7 @@ const BuildDemo: React.FC = () => {
       }
     }
 
-    // Gộp thêm FileList (một số bản Windows/Chrome đưa html/js vào đây song song với items).
+    // Merge in FileList too (some Windows/Chrome builds add html/js here alongside items).
     const merged = mergeDroppedFiles([...allFiles, ...fileListFallback]);
     if (merged.length === 0) return;
 
@@ -975,8 +977,8 @@ const BuildDemo: React.FC = () => {
         const leadingWs = line.match(/^\s*/)?.[0] ?? "";
         lines[i] =
           `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
-        // Chèn xong 1 manifest entry cho ảnh này thì dừng quét phần còn lại trong file
-        // (tránh chèn trùng nếu img.name xuất hiện nhiều lần).
+        // Stop scanning this file once one manifest entry is inserted for this image
+        // (avoid duplicates if img.name appears more than once).
         break;
       }
     }
@@ -1065,6 +1067,30 @@ const BuildDemo: React.FC = () => {
     }
   };
 
+  const handleOpenBuildDemoVideo = useCallback(async () => {
+    const path = sourceUrl.trim();
+    if (!path) {
+      setSendError(
+        "Missing Remote Source URL — enter the demo path on SFTP (e.g. 2026/03/brand/.../384x683) to open preview.",
+      );
+      return;
+    }
+    setSendError(null);
+    setOpeningDemoVideo(true);
+    try {
+      await openYomediaDemoPreview({
+        remotePath: path,
+        serverApiUrl: baseUrl,
+      });
+    } catch (err) {
+      setSendError(
+        err instanceof Error ? err.message : "Could not open demo video preview.",
+      );
+    } finally {
+      setOpeningDemoVideo(false);
+    }
+  }, [sourceUrl, baseUrl]);
+
   const handleReplaceBase64AndUploadSftp = async () => {
     setSendError(null);
     setSendSuccess(null);
@@ -1109,7 +1135,7 @@ const BuildDemo: React.FC = () => {
       : getUploadedNameToken();
     if (!nameToken || nameToken.length <= 5) {
       setSendError(
-        "Tên thư mục demo (segment path cuối) phải trên 5 ký tự — nhập tên mới ở ô bên dưới hoặc đổi tên file HTML/JS.",
+        "Demo folder name (final path segment) must be longer than 5 characters — enter a new name below or rename the HTML/JS file.",
       );
       return;
     }
@@ -1175,8 +1201,8 @@ const BuildDemo: React.FC = () => {
 
     setSendingToSftp(true);
     try {
-      // Nếu người dùng upload nhiều HTML (.html/.htm), chỉ đổi file đầu tiên thành index.html
-      // để tránh ghi đè.
+      // If multiple HTML uploads (.html/.htm), only rename the first to index.html
+      // to avoid overwriting others.
       let indexHtmlUploaded = false;
       const sftpErrors: string[] = [];
       const videoCompressionLogs: string[] = [];
@@ -1349,7 +1375,7 @@ const BuildDemo: React.FC = () => {
 
   return (
     <div className="max-w-full mx-auto space-y-8">
-      <header className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#1f2a40]/85 via-[#141b2d]/95 to-[#0f172a] p-6 md:p-8 shadow-[0_16px_50px_rgba(15,23,42,0.45)]">
+      <header className="relative overflow-hidden rounded-[2rem] border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6 md:p-8 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#1f2a40]/85 dark:via-[#141b2d]/95 dark:to-[#0f172a] dark:shadow-[0_16px_50px_rgba(15,23,42,0.45)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-16 -right-16 h-52 w-52 rounded-full bg-[#4cceac]/20 blur-3xl" />
           <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-violet-500/20 blur-3xl" />
@@ -1357,47 +1383,47 @@ const BuildDemo: React.FC = () => {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-1 h-6 bg-[#4cceac] rounded-full" />
-            <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
               Build Demo
             </h1>
           </div>
-          <p className="text-[#a3a3a3] font-medium tracking-widest uppercase text-[9px] ml-4">
+          <p className="ml-4 font-medium uppercase tracking-widest text-[9px] text-slate-500 dark:text-[#a3a3a3]">
             Neural Asset Ingestion & Creative Pipeline
           </p>
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+            <div className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-[#9ca3af]">
                 GPU Usage
               </p>
               <p className="mt-1 text-lg font-black text-[#4cceac]">
                 {Math.round(metrics.gpu)}%
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+            <div className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-[#9ca3af]">
                 RAM
               </p>
-              <p className="mt-1 text-lg font-black text-cyan-300">
+              <p className="mt-1 text-lg font-black text-cyan-600 dark:text-cyan-300">
                 {metrics.ram.toFixed(1)} GB
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+            <div className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-[#9ca3af]">
                 Latency
               </p>
-              <p className="mt-1 text-lg font-black text-violet-300">
+              <p className="mt-1 text-lg font-black text-violet-600 dark:text-violet-300">
                 {Math.round(metrics.latency)} ms
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#9ca3af]">
+            <div className="rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-[#9ca3af]">
                 Health
               </p>
               <p
                 className={`mt-1 text-lg font-black ${
                   metrics.health === "Warning"
-                    ? "text-amber-300"
-                    : "text-emerald-300"
+                    ? "text-amber-600 dark:text-amber-300"
+                    : "text-emerald-600 dark:text-emerald-300"
                 }`}
               >
                 {metrics.health}
@@ -1405,7 +1431,7 @@ const BuildDemo: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
+        <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/50 via-slate-300 to-transparent dark:via-[#3d465d]" />
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
@@ -1442,7 +1468,7 @@ const BuildDemo: React.FC = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-xs font-black text-white uppercase tracking-widest mb-1">
+                    <h4 className="mb-1 text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                       {error.type === "partial"
                         ? "Partial ingest"
                         : `${error.type} Error Detected`}
@@ -1450,8 +1476,8 @@ const BuildDemo: React.FC = () => {
                     <p
                       className={
                         error.type === "partial"
-                          ? "text-xs text-amber-100/80 font-medium leading-relaxed whitespace-pre-wrap"
-                          : "text-xs text-rose-200/70 font-medium leading-relaxed whitespace-pre-wrap"
+                          ? "text-xs font-medium leading-relaxed text-amber-900/85 whitespace-pre-wrap dark:text-amber-100/80"
+                          : "text-xs font-medium leading-relaxed text-rose-900/85 whitespace-pre-wrap dark:text-rose-200/70"
                       }
                     >
                       {error.message}
@@ -1492,13 +1518,13 @@ const BuildDemo: React.FC = () => {
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            className={`relative h-[340px] rounded-[2.2rem] border border-dashed transition-all duration-500 flex flex-col items-center justify-center p-8 text-center cursor-pointer overflow-hidden group shadow-[0_22px_65px_rgba(2,6,23,0.45)] ${
+            className={`relative flex h-[340px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[2.2rem] border border-dashed p-8 text-center transition-all duration-500 group shadow-md dark:shadow-[0_22px_65px_rgba(2,6,23,0.45)] ${
               isDragging
-                ? "border-[#4cceac] bg-[#4cceac]/5 scale-[1.01] shadow-[0_0_50px_rgba(76,206,172,0.1)]"
-                : "border-white/10 bg-gradient-to-br from-[#1f2a40]/55 via-[#141b2d]/70 to-[#0f172a]/90 hover:border-[#4cceac]/40 hover:bg-[#1f2a40]/40"
+                ? "scale-[1.01] border-[#4cceac] bg-[#4cceac]/10 shadow-[0_0_50px_rgba(76,206,172,0.12)] dark:bg-[#4cceac]/5 dark:shadow-[0_0_50px_rgba(76,206,172,0.1)]"
+                : "border-slate-300/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 hover:border-[#4cceac]/50 hover:bg-slate-50 dark:border-white/10 dark:bg-gradient-to-br dark:from-[#1f2a40]/55 dark:via-[#141b2d]/70 dark:to-[#0f172a]/90 dark:hover:border-[#4cceac]/40 dark:hover:bg-[#1f2a40]/40"
             }`}
           >
-            {/* Không phủ full + pointer-events: drop thả nhiều file lên <input> thì Chrome/Edge chỉ gán 1 file */}
+            {/* Avoid full-cover + pointer-events: multi-file drops on <input> only keep one file in Chrome/Edge */}
             <input
               ref={fileInputRef}
               type="file"
@@ -1541,11 +1567,11 @@ const BuildDemo: React.FC = () => {
                 y: isDragging ? -15 : 0,
                 scale: isDragging ? 1.1 : 1,
               }}
-              className={`w-20 h-20 rounded-[1.3rem] flex items-center justify-center mb-5 relative ${
+              className={`relative mb-5 flex h-20 w-20 items-center justify-center rounded-[1.3rem] shadow-lg transition-all duration-500 dark:shadow-2xl ${
                 isDragging
                   ? "bg-[#4cceac] text-[#141b2d]"
-                  : "bg-[#141b2d] text-[#4cceac]"
-              } transition-all duration-500 shadow-2xl`}
+                  : "bg-slate-800 text-[#4cceac] dark:bg-[#141b2d]"
+              }`}
             >
               <CloudArrowUpIcon className="w-10 h-10" />
               {!isDragging && (
@@ -1553,17 +1579,18 @@ const BuildDemo: React.FC = () => {
               )}
             </motion.div>
 
-            <h3 className="text-xl font-black text-white mb-2 tracking-tight uppercase italic">
+            <h3 className="mb-2 text-xl font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
               {isDragging ? "Release to Ingest" : "Drop Assets Here"}
             </h3>
-            <p className="text-[#a3a3a3] max-w-sm mx-auto text-[11px] font-medium leading-relaxed tracking-wide">
-              INTELLIGENT UPLOAD SYSTEM v2.0
-              <br />
-              <span className="opacity-60">
-                Kéo thả file hoặc cả thư mục (ảnh + HTML/JS)
+            <p className="mx-auto max-w-sm text-[11px] font-medium leading-relaxed tracking-wide text-slate-700 dark:text-[#a3a3a3]">
+              <span className="font-semibold text-slate-800 dark:font-medium dark:text-inherit">
+                INTELLIGENT UPLOAD SYSTEM v2.0
               </span>
               <br />
-              <span className="opacity-60">
+              <span className="mt-1 block text-slate-600 dark:text-inherit dark:opacity-60">
+                Drag and drop files or a whole folder (images + HTML/JS)
+              </span>
+              <span className="mt-1 block text-slate-500 dark:text-inherit dark:opacity-60">
                 PNG • JPG • WEBP • GIF • SVG • HTML • JS • MAX 10MB
               </span>
             </p>
@@ -1574,10 +1601,10 @@ const BuildDemo: React.FC = () => {
               <Button
                 type="button"
                 onClick={() => folderInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#4cceac]/35 bg-[#141b2d]/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#4cceac] hover:border-[#4cceac]/60 hover:bg-[#4cceac]/10 transition-colors"
+                className="inline-flex items-center gap-2 rounded-2xl border border-teal-600/35 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-teal-800 shadow-sm transition-colors hover:border-[#4cceac]/60 hover:bg-teal-50 dark:border-[#4cceac]/35 dark:bg-[#141b2d]/80 dark:text-[#4cceac] dark:shadow-none dark:hover:bg-[#4cceac]/10"
               >
                 <FolderOpenIcon className="h-4 w-4" />
-                Chọn thư mục
+                Choose folder
               </Button>
             </div>
 
@@ -1589,19 +1616,19 @@ const BuildDemo: React.FC = () => {
             </div>
           </motion.div>
           <div className="mt-8 space-y-3">
-            <div className="flex items-center gap-2 ml-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+            <div className="ml-1 flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-white/20" />
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                 Remote Source URL (Optional)
               </label>
             </div>
-            <div className="relative group">
+            <div className="group relative">
               <input
                 type="text"
                 value={sourceUrl}
                 readOnly
                 placeholder="2026/03/romano/Laundry/winter/384x683"
-                className="w-full bg-[#141b2d] border border-white/5 rounded-2xl py-5 px-6 text-sm font-medium text-white outline-none focus:border-[#4cceac]/50 transition-all placeholder-white/10 shadow-xl"
+                className="w-full rounded-2xl border border-slate-200 bg-white py-5 px-6 text-sm font-medium text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl dark:placeholder-white/10"
               />
             </div>
           </div>
@@ -1611,10 +1638,10 @@ const BuildDemo: React.FC = () => {
                 <div
                   className={`w-1.5 h-1.5 rounded-full ${directoryExists ? "bg-amber-400" : "bg-[#4cceac]"}`}
                 />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                   {directoryExists
                     ? "Directory Exists — Replacement Name"
-                    : "Đặt tên thư mục demo (bắt buộc)"}
+                    : "Name the demo folder (required)"}
                 </label>
               </div>
               <div className="relative group">
@@ -1623,24 +1650,24 @@ const BuildDemo: React.FC = () => {
                   value={replacementName}
                   onChange={(e) => setReplacementName(e.target.value)}
                   minLength={6}
-                  placeholder="Tối thiểu 6 ký tự (ví dụ: banner-spring-2026)"
-                  className={`w-full bg-[#141b2d] border rounded-2xl py-4 px-5 text-sm font-medium text-white outline-none transition-all placeholder-white/20 shadow-xl ${
+                  placeholder="At least 6 characters (e.g. banner-spring-2026)"
+                  className={`w-full rounded-2xl border bg-white py-4 px-5 text-sm font-medium text-slate-900 outline-none shadow-sm transition-all placeholder:text-slate-400 focus:border-[#4cceac]/60 dark:bg-[#141b2d] dark:text-white dark:shadow-xl dark:placeholder-white/20 ${
                     directoryExists
-                      ? "border-amber-400/30 focus:border-amber-300"
-                      : "border-[#4cceac]/30 focus:border-[#4cceac]/60"
+                      ? "border-amber-400/50 focus:border-amber-500 dark:border-amber-400/30 dark:focus:border-amber-300"
+                      : "border-slate-200 dark:border-[#4cceac]/30"
                   }`}
                 />
               </div>
               <p
-                className={`text-[11px] ${directoryExists ? "text-amber-300/80" : "text-[#4cceac]/80"}`}
+                className={`text-[11px] ${directoryExists ? "text-amber-800 dark:text-amber-300/80" : "text-teal-800 dark:text-[#4cceac]/80"}`}
               >
                 {directoryExists
-                  ? "Đường dẫn đã tồn tại trên SFTP — nhập tên mới (trên 5 ký tự) để tránh ghi đè."
-                  : "Tên lấy từ file HTML/JS hiện ≤ 5 ký tự — nhập tên thư mục demo tối thiểu 6 ký tự."}
+                  ? "Path already exists on SFTP — enter a new name (longer than 5 characters) to avoid overwriting."
+                  : "Name from HTML/JS is ≤ 5 characters — enter a demo folder name of at least 6 characters."}
                 {checkingDirectory ? " Checking..." : ""}
                 {!uploadNameValid && replacementName.trim().length > 0 ? (
-                  <span className="block mt-1 text-rose-300/90">
-                    Còn thiếu: cần trên 5 ký tự (đã nhập{" "}
+                  <span className="mt-1 block text-rose-700 dark:text-rose-300/90">
+                    Still short: needs more than 5 characters (currently{" "}
                     {normalizePathToken(replacementName.trim()).length}).
                   </span>
                 ) : null}
@@ -1648,13 +1675,13 @@ const BuildDemo: React.FC = () => {
             </div>
           )}
           {/* Configuration Section */}
-          <div className="mt-8 rounded-[1.6rem] border border-white/10 bg-gradient-to-b from-[#141b2d]/85 to-[#0f172a]/95 p-4 md:p-5 shadow-[0_16px_45px_rgba(2,6,23,0.38)]">
+          <div className="mt-8 rounded-[1.6rem] border border-slate-200/90 bg-white p-4 shadow-md md:p-5 dark:border-white/10 dark:bg-gradient-to-b dark:from-[#141b2d]/85 dark:to-[#0f172a]/95 dark:shadow-[0_16px_45px_rgba(2,6,23,0.38)]">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">
                   Demo Metadata
                 </h3>
-                <p className="mt-0.5 text-[11px] text-[#94a3b8]">
+                <p className="mt-0.5 text-[11px] text-slate-600 dark:text-[#94a3b8]">
                   Configure destination and match the correct creative profile.
                 </p>
               </div>
@@ -1666,7 +1693,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Creative Demo
                   </label>
                 </div>
@@ -1674,7 +1701,7 @@ const BuildDemo: React.FC = () => {
                   <select
                     value={selectedDemoTitle}
                     onChange={(e) => setSelectedDemoTitle(e.target.value)}
-                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
                   >
                     <option value="">
                       {filteredDemoTitleOptions.length > 0
@@ -1693,7 +1720,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Brand
                   </label>
                 </div>
@@ -1714,10 +1741,10 @@ const BuildDemo: React.FC = () => {
                           : (nextProductCates[0]?.id ?? ""),
                       });
                     }}
-                    className={`w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl ${
+                    className={`w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:shadow-xl ${
                       config.model
                         ? getBrandColorClass(config.model)
-                        : "text-white"
+                        : "text-slate-900 dark:text-white"
                     }`}
                   >
                     <option value="" disabled>
@@ -1742,7 +1769,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Product Category
                   </label>
                 </div>
@@ -1752,7 +1779,7 @@ const BuildDemo: React.FC = () => {
                     onChange={(e) =>
                       setConfig({ ...config, productCate: e.target.value })
                     }
-                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
                   >
                     {productCateOptions.map((item: any) => (
                       <option key={item.id} value={item.id}>
@@ -1766,7 +1793,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Season
                   </label>
                 </div>
@@ -1777,7 +1804,7 @@ const BuildDemo: React.FC = () => {
                       setConfig({ ...config, season: e.target.value })
                     }
                     disabled
-                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-[#4cceac]/50 transition-all appearance-none cursor-pointer shadow-xl"
+                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-100 py-3 px-4 text-xs font-bold text-slate-700 outline-none transition-all dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
                   >
                     {seasons.map((item) => (
                       <option key={item} value={item}>
@@ -1791,7 +1818,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Year
                   </label>
                 </div>
@@ -1799,7 +1826,7 @@ const BuildDemo: React.FC = () => {
                   <select
                     value={config.quality}
                     disabled
-                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none cursor-default shadow-xl"
+                    className="w-full cursor-default appearance-none rounded-xl border border-slate-200 bg-slate-100 py-3 px-4 text-xs font-bold text-slate-700 outline-none dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
                   >
                     {years.map((item: any) => (
                       <option key={item.id} value={item.id}>
@@ -1816,7 +1843,7 @@ const BuildDemo: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Month
                   </label>
                 </div>
@@ -1824,7 +1851,7 @@ const BuildDemo: React.FC = () => {
                   <select
                     value={config.mode}
                     disabled
-                    className="w-full bg-[#141b2d] border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none cursor-default shadow-xl"
+                    className="w-full cursor-default appearance-none rounded-xl border border-slate-200 bg-slate-100 py-3 px-4 text-xs font-bold text-slate-700 outline-none dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
                   >
                     {months.map((item: any) => (
                       <option key={item.id} value={item.id}>
@@ -1840,7 +1867,7 @@ const BuildDemo: React.FC = () => {
             </div>
           </div>
           {/* Action Buttons */}
-          <div className="mt-8 rounded-[2rem] border border-white/10 bg-[#0f172a]/80 p-4 md:p-5 flex flex-wrap gap-4 items-center shadow-[0_18px_50px_rgba(2,6,23,0.45)]">
+          <div className="mt-8 flex flex-wrap items-center gap-4 rounded-[2rem] border border-slate-200/90 bg-slate-50/90 p-4 shadow-md md:p-5 dark:border-white/10 dark:bg-[#0f172a]/80 dark:shadow-[0_18px_50px_rgba(2,6,23,0.45)]">
             <Button
               type="button"
               onClick={handleReplaceBase64AndUploadSftp}
@@ -1852,11 +1879,21 @@ const BuildDemo: React.FC = () => {
                 files.length === 0 ||
                 sendingToSftp ||
                 checkingDirectory ||
+                openingDemoVideo ||
                 (showUploadNameInput && !replacementName.trim())
               }
               className="px-8 py-4 min-w-[120px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
             >
               {sendingToSftp ? "Uploading..." : "Convert and Upload"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleOpenBuildDemoVideo()}
+              disabled={!sourceUrl.trim() || openingDemoVideo || sendingToSftp}
+              className="px-8 py-4 min-w-[120px] rounded-2xl bg-gradient-to-r from-emerald-600 to-[#4cceac] hover:from-emerald-500 hover:to-teal-300 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-[#0b1220] font-black border border-white/10 shadow-[0_8px_24px_rgba(76,206,172,0.35)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
+            >
+              <VideoCameraIcon className="w-4 h-4 shrink-0" />
+              {openingDemoVideo ? "Opening..." : "Build demo video"}
             </Button>
             <Button
               type="button"
@@ -1875,16 +1912,18 @@ const BuildDemo: React.FC = () => {
                 setOfflineGeneratedFiles([]);
               }}
               disabled={files.length === 0 && !sourceUrl}
-              className="px-8 py-4 min-w-[120px] bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white font-black rounded-2xl border border-white/10 transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center"
+              className="flex min-w-[120px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-8 py-4 text-[10px] font-black uppercase italic tracking-widest text-slate-800 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none dark:hover:bg-white/10"
             >
               Reset
             </Button>
           </div>
           {sendError && (
-            <p className="mt-2 text-sm text-red-400 font-medium">{sendError}</p>
+            <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">
+              {sendError}
+            </p>
           )}
           {sendSuccess && (
-            <p className="mt-2 text-sm text-emerald-400 font-medium">
+            <p className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
               {sendSuccess}
             </p>
           )}
@@ -1894,54 +1933,54 @@ const BuildDemo: React.FC = () => {
                 type="button"
                 onClick={downloadOfflineGeneratedFiles}
                 disabled={downloadingOfflineZip}
-                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-300/30 text-amber-200 text-[11px] font-black uppercase tracking-widest"
+                className="rounded-xl border border-amber-400/40 bg-amber-100 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-amber-900 hover:bg-amber-200/80 dark:border-amber-300/30 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
               >
                 {downloadingOfflineZip
                   ? "Creating ZIP..."
                   : `Download Offline ZIP (${offlineGeneratedFiles.length})`}
               </Button>
-              <span className="text-[11px] text-amber-200/90">
+              <span className="text-[11px] text-amber-800 dark:text-amber-200/90">
                 Files are converted with base64 and bundled in one zip.
               </span>
             </div>
           )}
           {preparingOfflineFiles && (
-            <p className="mt-2 text-xs text-amber-200/90">
+            <p className="mt-2 text-xs text-amber-800 dark:text-amber-200/90">
               Preparing offline package...
             </p>
           )}
         </div>
 
         {/* Preview Sidebar */}
-        <div className="bg-gradient-to-b from-[#141b2d]/95 to-[#0b1220] rounded-[3rem] border border-white/10 p-8 shadow-[0_24px_70px_rgba(2,6,23,0.55)] flex flex-col h-[700px] relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#4cceac]/20 to-transparent" />
+        <div className="relative flex h-[700px] flex-col overflow-hidden rounded-[3rem] border border-slate-200/90 bg-gradient-to-b from-white via-slate-50 to-slate-100 p-8 shadow-lg dark:border-white/10 dark:from-[#141b2d]/95 dark:to-[#0b1220] dark:shadow-[0_24px_70px_rgba(2,6,23,0.55)]">
+          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[#4cceac]/35 to-transparent dark:via-[#4cceac]/20" />
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="mb-8 flex items-center justify-between">
             <div className="flex flex-col">
-              <h2 className="text-xl font-black text-white tracking-tighter uppercase italic">
+              <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
                 Asset Review
               </h2>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-[9px] font-bold text-[#a3a3a3] uppercase tracking-[0.2em]">
+              <div className="mt-1 flex items-center gap-3">
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-[#a3a3a3]">
                   Staging Environment
                 </span>
-                <div className="flex items-center gap-2 bg-white/5 rounded-full px-2 py-0.5 border border-white/5">
+                <div className="flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-2 py-0.5 shadow-inner dark:border-white/5 dark:bg-white/5">
                   <Button
                     onClick={() => setFilterType("all")}
-                    className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all ${filterType === "all" ? "bg-[#4cceac] text-[#141b2d]" : "text-[#a3a3a3] hover:text-white"}`}
+                    className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest transition-all ${filterType === "all" ? "bg-[#4cceac] text-[#141b2d]" : "text-slate-500 hover:text-slate-900 dark:text-[#a3a3a3] dark:hover:text-white"}`}
                   >
                     All
                   </Button>
                   <Button
                     onClick={() => setFilterType("recent")}
-                    className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all ${filterType === "recent" ? "bg-[#4cceac] text-[#141b2d]" : "text-[#a3a3a3] hover:text-white"}`}
+                    className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest transition-all ${filterType === "recent" ? "bg-[#4cceac] text-[#141b2d]" : "text-slate-500 hover:text-slate-900 dark:text-[#a3a3a3] dark:hover:text-white"}`}
                   >
                     Recent
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="bg-[#4cceac]/10 text-[#4cceac] text-[10px] font-black px-4 py-1.5 rounded-full border border-[#4cceac]/20 uppercase tracking-widest">
+            <div className="rounded-full border border-[#4cceac]/30 bg-[#4cceac]/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-teal-800 dark:border-[#4cceac]/20 dark:text-[#4cceac]">
               {files.length} Units
             </div>
           </div>
@@ -1952,10 +1991,12 @@ const BuildDemo: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="h-full flex flex-col items-center justify-center text-center text-[#3d465d]"
+                  className="flex h-full flex-col items-center justify-center text-center text-slate-500 dark:text-[#3d465d]"
                 >
-                  <PhotoIcon className="w-16 h-16 mb-4 opacity-20" />
-                  <p className="text-sm font-medium">No assets uploaded yet</p>
+                  <PhotoIcon className="mb-4 h-16 w-16 text-slate-400 opacity-50 dark:text-inherit dark:opacity-20" />
+                  <p className="text-sm font-medium text-slate-600 dark:text-inherit">
+                    No assets uploaded yet
+                  </p>
                 </motion.div>
               ) : (
                 files
@@ -1970,7 +2011,7 @@ const BuildDemo: React.FC = () => {
                       initial={{ opacity: 0, x: 20, scale: 0.95 }}
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, x: -20, scale: 0.95 }}
-                      className="group relative bg-[#141b2d] rounded-2xl p-3 border border-[#3d465d] flex items-center gap-4 hover:border-[#4cceac]/30 transition-all"
+                      className="group relative flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-[#4cceac]/45 dark:bg-[#141b2d] dark:border-[#3d465d] dark:hover:border-[#4cceac]/30"
                     >
                       <div
                         onClick={() => {
@@ -1998,7 +2039,7 @@ const BuildDemo: React.FC = () => {
                             reader.readAsText(file.file);
                           }
                         }}
-                        className="w-16 h-16 rounded-2xl overflow-hidden bg-[#1f2a40] shrink-0 border border-white/10 cursor-zoom-in hover:scale-110 transition-all duration-500 shadow-lg flex items-center justify-center"
+                        className="flex h-16 w-16 shrink-0 cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-md transition-all duration-500 hover:scale-110 dark:border-white/10 dark:bg-[#1f2a40]"
                       >
                         {file.preview && file.file.type.startsWith("image/") ? (
                           <img
@@ -2020,12 +2061,12 @@ const BuildDemo: React.FC = () => {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-white truncate pr-6 tracking-tight">
+                        <p className="truncate pr-6 text-xs font-bold tracking-tight text-slate-900 dark:text-white">
                           {file.file.name}
                         </p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <div className="w-1 h-1 rounded-full bg-[#4cceac]" />
-                          <p className="text-[9px] text-[#a3a3a3] font-black uppercase tracking-widest">
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div className="h-1 w-1 rounded-full bg-[#4cceac]" />
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-[#a3a3a3]">
                             {(file.file.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
@@ -2073,7 +2114,7 @@ const BuildDemo: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedImage(null)}
-            className="fixed inset-0 z-[100] bg-[#141b2d]/90 backdrop-blur-xl flex items-center justify-center p-10 cursor-zoom-out"
+            className="fixed inset-0 z-[100] flex cursor-zoom-out items-center justify-center bg-slate-900/55 p-10 backdrop-blur-xl dark:bg-[#141b2d]/90"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -2085,11 +2126,11 @@ const BuildDemo: React.FC = () => {
               <img
                 src={selectedImage}
                 alt="Review"
-                className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl border border-white/10 object-contain"
+                className="max-h-[80vh] max-w-full rounded-3xl border border-slate-200 object-contain shadow-2xl dark:border-white/10"
               />
               <Button
                 onClick={() => setSelectedImage(null)}
-                className="absolute -top-12 right-0 text-[#e0e0e0] hover:text-[#4cceac] transition-colors flex items-center gap-2 font-bold uppercase tracking-widest text-xs"
+                className="absolute -top-12 right-0 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:text-[#4cceac] dark:text-[#e0e0e0]"
               >
                 <XMarkIcon className="w-6 h-6" />
                 Close Review
@@ -2108,15 +2149,15 @@ const BuildDemo: React.FC = () => {
             exit={{ opacity: 0, y: 10 }}
             className="fixed inset-x-0 bottom-0 z-[90] px-8 pb-8"
           >
-            <div className="max-w-5xl mx-auto rounded-3xl bg-[#020617] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.75)] p-6 space-y-3">
+            <div className="mx-auto max-w-5xl space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#020617] dark:shadow-[0_20px_60px_rgba(0,0,0,0.75)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#a3a3a3]">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
                     {selectedTextFile.mode === "edit"
                       ? "Edit file"
                       : "View file"}
                   </span>
-                  <span className="text-xs text-[#e5e7eb] truncate max-w-[360px]">
+                  <span className="max-w-[360px] truncate text-xs text-slate-800 dark:text-[#e5e7eb]">
                     {selectedTextFile.name}
                   </span>
                 </div>
@@ -2130,14 +2171,14 @@ const BuildDemo: React.FC = () => {
                           selectedTextFile.mode === "edit" ? "view" : "edit",
                       })
                     }
-                    className="px-3 py-1.5 rounded-xl bg-white/5 text-[10px] text-[#e5e7eb] uppercase tracking-widest hover:bg-white/10"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] uppercase tracking-widest text-slate-800 hover:bg-slate-100 dark:border-transparent dark:bg-white/5 dark:text-[#e5e7eb] dark:hover:bg-white/10"
                   >
                     {selectedTextFile.mode === "edit" ? "View only" : "Edit"}
                   </Button>
                   <Button
                     type="button"
                     onClick={() => setSelectedTextFile(null)}
-                    className="px-3 py-1.5 rounded-xl bg-white/5 text-[10px] text-[#e5e7eb] uppercase tracking-widest hover:bg-white/10"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] uppercase tracking-widest text-slate-800 hover:bg-slate-100 dark:border-transparent dark:bg-white/5 dark:text-[#e5e7eb] dark:hover:bg-white/10"
                   >
                     Close
                   </Button>
@@ -2154,12 +2195,60 @@ const BuildDemo: React.FC = () => {
                     : undefined
                 }
                 readOnly={selectedTextFile.mode === "view"}
-                className="w-full min-h-[220px] bg-[#020617] border border-[#1f2937] rounded-2xl px-4 py-3 text-xs font-mono text-[#e5e7eb] resize-vertical outline-none focus:border-[#4cceac]/60"
+                className="min-h-[220px] w-full resize-vertical rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-800 outline-none focus:border-[#4cceac]/60 dark:border-[#1f2937] dark:bg-[#020617] dark:text-[#e5e7eb]"
               />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <NoticePopup
+        open={guidelinesOpen}
+        onClose={() => setGuidelinesOpen(false)}
+        title="Supported formats"
+        variant="info"
+      >
+        <ul className="space-y-3">
+          <li className="flex gap-3 text-left">
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#4cceac] shadow-[0_0_10px_rgba(76,206,172,0.5)]"
+              aria-hidden
+            />
+            <span>
+              <span className="font-bold text-white">Images:</span> PNG, JPG,
+              JPEG, WEBP, GIF, SVG — max 10MB
+            </span>
+          </li>
+          <li className="flex gap-3 text-left">
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#4cceac] shadow-[0_0_10px_rgba(76,206,172,0.5)]"
+              aria-hidden
+            />
+            <span>
+              <span className="font-bold text-white">Video:</span> MP4, WEBM,
+              MOV — max 500MB
+            </span>
+          </li>
+          <li className="flex gap-3 text-left">
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#4cceac] shadow-[0_0_10px_rgba(76,206,172,0.5)]"
+              aria-hidden
+            />
+            <span>
+              <span className="font-bold text-white">HTML:</span> .html, .htm
+            </span>
+          </li>
+          <li className="flex gap-3 text-left">
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#4cceac] shadow-[0_0_10px_rgba(76,206,172,0.5)]"
+              aria-hidden
+            />
+            <span>
+              <span className="font-bold text-white">JS:</span> .js, .mjs
+            </span>
+          </li>
+        </ul>
+      </NoticePopup>
     </div>
   );
 };

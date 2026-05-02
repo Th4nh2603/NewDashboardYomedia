@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/react";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 
 interface User {
   name: string;
@@ -30,8 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     useClerkAuth();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
-  const getServerBaseUrl = () =>
-    (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
+  const getServerBaseUrl = () => serverApiOrigin();
 
   useEffect(() => {
     let cancelled = false;

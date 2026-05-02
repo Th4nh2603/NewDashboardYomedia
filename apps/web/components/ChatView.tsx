@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useError } from "../contexts/ErrorContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from './Button';
 
 type ChatMessage = {
@@ -10,7 +11,7 @@ type ChatMessage = {
   content: string;
 };
 
-/** Đường dẫn tương đối demo (vd `2026/03/.../384x683`) — giống input Open Demo. */
+/** Relative demo path (e.g. `2026/03/.../384x683`) — same as Open Demo input. */
 function tryExtractDemoRemotePath(raw: string): string | null {
   const normalized = raw
     .trim()
@@ -204,8 +205,10 @@ function renderColoredContent(content: string) {
         }
 
         if (line.startsWith("SFTP:")) {
-          const isOk = line.includes("ĐÃ TỒN TẠI");
-          const isMissing = line.includes("CHƯA TỒN TẠI");
+          const isOk =
+            line.includes("EXISTS.") || line.includes("ĐÃ TỒN TẠI");
+          const isMissing =
+            line.includes("NOT FOUND.") || line.includes("CHƯA TỒN TẠI");
           const badgeClass = isOk
             ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/20"
             : isMissing
@@ -225,7 +228,10 @@ function renderColoredContent(content: string) {
           );
         }
 
-        if (line.toLowerCase().includes("banner có thể setup")) {
+        if (
+          line.toLowerCase().includes("banner can be set up") ||
+          line.toLowerCase().includes("banner có thể setup")
+        ) {
           return (
             <div key={idx} className="inline-flex items-center gap-2">
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border border-indigo-500/20">
@@ -238,7 +244,11 @@ function renderColoredContent(content: string) {
           );
         }
 
-        if (line.toLowerCase().includes("không kiểm tra được sftp")) {
+        if (
+          line.toLowerCase().includes("could not verify sftp") ||
+          line.toLowerCase().includes("network/server error") ||
+          line.toLowerCase().includes("không kiểm tra được sftp")
+        ) {
           return (
             <div
               key={idx}
@@ -286,13 +296,12 @@ const ChatView = () => {
 
     setMessages((prev) => [...prev, userMsg]);
 
-    // Nếu input là URL có chứa tham số b=...index.html thì decode và trả lại phần giữa b= và index.html cho user,
-    // và không gửi request này lên AI.
+    // URL with b=...index.html → extract path for user, skip AI request.
     try {
       const decoded = decodeURIComponent(trimmedInput);
       const match = decoded.match(/b=([^&]*?)index\.html/);
       if (match && match[1]) {
-        const extractedRaw = match[1]; // ví dụ: 2026/03/romano/384x683/
+        const extractedRaw = match[1]; // e.g. 2026/03/romano/384x683/
         const displayDir = extractedRaw
           .replace(/index\.html$/i, "")
           .replace(/^\/+/, "")
@@ -300,8 +309,7 @@ const ChatView = () => {
 
         const sftpDir = `/${displayDir}/`.replace(/\/{2,}/g, "/");
 
-        const baseUrl =
-          import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+        const baseUrl = serverApiOrigin();
 
         let exists: boolean | null = null;
         let message: string | null = null;
@@ -328,10 +336,10 @@ const ChatView = () => {
 
         const content =
           exists === null
-            ? `Directory: ${displayDir}\nKhông kiểm tra được SFTP (network/server error).`
+            ? `Directory: ${displayDir}\nCould not verify SFTP (network/server error).`
             : exists
-              ? `Directory: ${displayDir}\nSFTP: ĐÃ TỒN TẠI.\n${message || ""}`.trim()
-              : `Directory: ${displayDir}\nSFTP: CHƯA TỒN TẠI.`;
+              ? `Directory: ${displayDir}\nSFTP: EXISTS.\n${message || ""}`.trim()
+              : `Directory: ${displayDir}\nSFTP: NOT FOUND.`;
 
         const extractedMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -350,16 +358,15 @@ const ChatView = () => {
     if (demoPath) {
       setInput("");
       setIsLoading(true);
-      const serverApiUrl =
-        import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+      const serverApiUrl = serverApiOrigin();
       try {
         const url = await getYomediaDemoPreviewUrl({
           remotePath: demoPath,
           serverApiUrl,
         });
         const content = url
-          ? `Link preview demo :\n\n${url}`
-          : "Không tạo được link preview demo. Kiểm tra lại đường dẫn.";
+          ? `Demo preview link:\n\n${url}`
+          : "Could not build demo preview link. Check the path.";
         setMessages((prev) => [
           ...prev,
           {
@@ -376,7 +383,7 @@ const ChatView = () => {
             id: (Date.now() + 1).toString(),
             role: "model",
             content:
-              "Không tạo được link preview demo. Thử lại hoặc kiểm tra kết nối server.",
+              "Could not build demo preview link. Retry or check the server connection.",
           },
         ]);
       } finally {
@@ -389,8 +396,7 @@ const ChatView = () => {
     setIsLoading(true);
 
     try {
-      const baseUrl =
-        import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+      const baseUrl = serverApiOrigin();
 
       const data = await fetchJsonOrThrow<
         | { ok: true; answer?: string }

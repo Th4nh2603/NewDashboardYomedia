@@ -963,9 +963,9 @@ export async function sftpPathExists(
         | "l";
       hasIndexHtml = indexExistsType === "-";
       if (hasIndexHtml) {
-        message = "Banner có thể setup";
+        message = "Banner can be set up";
       } else {
-        message = "Directory tồn tại nhưng không có file index.html";
+        message = "Directory exists but index.html is missing";
       }
     }
 

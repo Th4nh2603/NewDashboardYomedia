@@ -1,4 +1,5 @@
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 
 export type CreativeDemoItem = {
   id: string;
@@ -22,10 +23,6 @@ type CreativeDemoResponse = {
 };
 
 let cache: CreativeDemoItem[] | null = null;
-
-function getServerBaseUrl(): string {
-  return import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
-}
 
 function normalizeFla(item: Record<string, unknown>): boolean {
   if (typeof item.fla === "boolean") return item.fla;
@@ -65,7 +62,7 @@ export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
   let data: CreativeDemoResponse | null = null;
   try {
     data = await fetchJsonOrThrow<CreativeDemoResponse>(
-      `${getServerBaseUrl()}/api/creative-demos`,
+      `${serverApiOrigin()}/api/creative-demos`,
     );
   } catch {
     // fallback below

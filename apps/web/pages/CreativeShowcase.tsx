@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -17,12 +17,13 @@ import {
 import Button from "../components/Button";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 
-/** Tỉ lệ ô preview: mobile + laptop (lg) gọn; từ xl trở lên khôi phục tỉ lệ phone đầy đủ như bản cũ. */
+/** Preview cell aspect ratio: tighter on mobile + laptop (lg); full phone ratio again from xl up. */
 const SHOWCASE_PREVIEW_ASPECT_CLASS =
   "aspect-[375/700] lg:aspect-[375/472] xl:aspect-[375/700]";
 
-/** Display trên lưới: laptop thấp hơn; màn lớn (xl+) lại tỉ lệ 375/700 như trước. */
+/** Display on grid tile: shorter on laptop; xl+ restores 375/700 ratio. */
 const SHOWCASE_DISPLAY_GRID_ASPECT_CLASS =
   "aspect-[375/340] lg:aspect-[375/265] xl:aspect-[375/700]";
 
@@ -30,11 +31,11 @@ const SHOWCASE_DEVICE_OUTER_CLASS =
   "relative mx-auto flex w-full max-w-[296px] flex-col items-center py-3 sm:py-4 sm:max-w-[340px] lg:max-w-[328px] lg:py-2 " +
   "xl:max-w-[367px] xl:py-4";
 
-/** Bề ngang tham chiếu (như preview phone) — chỉ dùng để tính chiều cao cho Display khi vẫn rộng full ô thẻ. */
+/** Reference width (phone preview) — only used to size Display height when the card spans full tile width. */
 const SHOWCASE_DEVICE_HEIGHT_REF_WIDTH_CLASS =
   "mx-auto w-full max-w-[296px] sm:max-w-[340px] lg:max-w-[328px] xl:max-w-[367px]";
 
-/** Overlay Display: bước sm→lg cho laptop; xl+ một khối ~2/3 viewport như code cũ. */
+/** Display lightbox sizing: stepped sm→lg for laptop; xl+ ~2/3 viewport like legacy. */
 const DISPLAY_HOVER_OVERLAY_BOX_CLASS =
   "relative box-border overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl sm:rounded-2xl " +
   "h-[min(58vh,calc(100vh-1.25rem))] w-[min(94vw,calc(100vw-1rem))] " +
@@ -121,6 +122,89 @@ function matchesShowcaseFilter(
   if (filter === "FirstView")
     return foldTitleForKeywordMatch(item.title).includes("firstview");
   return item.category === filter;
+}
+
+type ShowcasePermissionMap = Record<
+  string,
+  { creativeShowcase?: { canDownload?: boolean } } | undefined
+>;
+
+/** Aligns with server + `creativeShowcaseDownload.ts` when optional keys are omitted. */
+function resolveCreativeShowcaseDownload(
+  permissions: ShowcasePermissionMap,
+  roleRaw: string,
+): boolean {
+  const r = roleRaw.trim().toLowerCase();
+  if (!r) return false;
+  const forRole = permissions[r]?.creativeShowcase?.canDownload;
+  if (forRole === true) return true;
+  if (forRole === false) return false;
+  const defaultRaw = permissions.default?.creativeShowcase?.canDownload;
+  if (defaultRaw === true) return true;
+  if (defaultRaw === false) return false;
+  return r !== "media";
+}
+
+type ShowcasePermissionsPayload = Partial<{
+  ok: boolean;
+  permissions?: ShowcasePermissionMap;
+}>;
+
+const LOADING_DEMO_LABEL = "Loading demo…";
+
+function CategoryBadge({
+  category,
+  size = "default",
+  className = "",
+}: {
+  category: string;
+  size?: "default" | "large";
+  className?: string;
+}) {
+  const sizeClass =
+    size === "large"
+      ? "px-2.5 py-0.5 text-[8px] sm:px-3 sm:py-1 sm:text-[9px]"
+      : "px-2.5 py-0.5 text-[7px] sm:px-3 sm:py-1 sm:text-[8px]";
+  return (
+    <span
+      className={`inline-flex rounded-full border border-white/[0.12] bg-[#141b2d]/92 font-black uppercase tracking-widest text-[#4cceac] shadow-[0_2px_14px_rgba(0,0,0,0.4)] backdrop-blur-md ${sizeClass} ${className}`}
+    >
+      {category}
+    </span>
+  );
+}
+
+function ShowcaseGridSkeleton({ columns3 }: { columns3: boolean }) {
+  return (
+    <div
+      className={`grid gap-4 sm:gap-5 lg:gap-6 xl:gap-6 ${
+        columns3
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+      }`}
+    >
+      {[0, 1, 2].map((k) => (
+        <div
+          key={`sk-${k}`}
+          className="overflow-hidden rounded-[2rem] border border-white/5 bg-[#141b2d]/90 shadow-xl"
+        >
+          <div className="aspect-[375/472] animate-pulse bg-gradient-to-b from-white/[0.06] to-white/[0.02] sm:aspect-[375/340]" />
+          <div className="space-y-3 p-4 sm:p-5">
+            <div className="h-5 w-[72%] animate-pulse rounded-lg bg-white/[0.08]" />
+            <div className="grid grid-cols-2 gap-2.5">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-[3.25rem] animate-pulse rounded-xl bg-white/[0.04]"
+                />
+              ))}
+            </div>
+            <div className="h-10 animate-pulse rounded-2xl bg-white/[0.06]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function StatusBarCellularIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -251,7 +335,7 @@ function Iphone16ProMaxShowcaseFrame({
                 {urlResolving ? (
                   <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/35">
                     <span className="text-[9px] font-black uppercase tracking-widest text-white/90">
-                      Loading demo…
+                      {LOADING_DEMO_LABEL}
                     </span>
                   </div>
                 ) : null}
@@ -369,7 +453,7 @@ function ShowcaseIphonePreviewWithEmbed({
         {urlResolving ? (
           <div className="absolute inset-0 z-[14] flex items-center justify-center bg-black/35">
             <span className="text-[9px] font-black uppercase tracking-widest text-white/90">
-              Loading demo...
+              {LOADING_DEMO_LABEL}
             </span>
           </div>
         ) : null}
@@ -380,7 +464,7 @@ function ShowcaseIphonePreviewWithEmbed({
       displayLightboxOpen && typeof document !== "undefined"
         ? createPortal(
             <div
-              className="fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:p-4 lg:p-6 xl:p-4"
+              className="fixed inset-0 z-[500] flex items-center justify-center bg-black/[0.58] p-3 backdrop-blur-sm sm:p-4 lg:p-6 xl:p-4"
               onClick={closeDisplayLightbox}
               role="presentation"
             >
@@ -393,9 +477,7 @@ function ShowcaseIphonePreviewWithEmbed({
                   {renderDisplayPreview({ thumbSurface: false })}
                 </div>
                 <div className="pointer-events-none absolute left-3 top-3 z-30 sm:left-4 sm:top-4">
-                  <span className="rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[9px]">
-                    {item.category}
-                  </span>
+                  <CategoryBadge category={item.category} size="large" />
                 </div>
               </div>
             </div>,
@@ -418,7 +500,7 @@ function ShowcaseIphonePreviewWithEmbed({
               {renderDisplayPreview({ thumbSurface: true })}
               <Button
                 type="button"
-                aria-label="Mở xem lớn"
+                aria-label="Open large view"
                 className="absolute inset-0 z-[16] cursor-pointer bg-transparent"
                 onClick={(e) => {
                   e.preventDefault();
@@ -428,9 +510,7 @@ function ShowcaseIphonePreviewWithEmbed({
               />
             </div>
             <div className="pointer-events-none absolute left-2 top-2 z-30 sm:left-3 sm:top-3">
-              <span className="rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[8px]">
-                {item.category}
-              </span>
+              <CategoryBadge category={item.category} />
             </div>
           </div>
         </div>
@@ -447,20 +527,22 @@ function ShowcaseIphonePreviewWithEmbed({
     >
       <div className="pointer-events-none absolute inset-0 z-[25] bg-gradient-to-t from-[#141b2d]/85 via-transparent to-transparent opacity-40" />
       <div className="absolute left-2 right-2 top-2 z-30 flex justify-start pointer-events-none sm:left-3 sm:right-3 sm:top-3">
-        <span className="pointer-events-auto rounded-full border border-white/10 bg-[#141b2d]/90 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-widest text-[#4cceac] shadow-lg backdrop-blur-md sm:px-3 sm:py-1 sm:text-[8px]">
-          {item.category}
-        </span>
+        <CategoryBadge category={item.category} className="pointer-events-auto" />
       </div>
     </Iphone16ProMaxShowcaseFrame>
   );
 }
 
+const SHOWCASE_ITEMS_PER_PAGE_DEFAULT = 4;
+const SHOWCASE_ITEMS_PER_PAGE_THREE_COL = 3;
+
 const CreativeShowcase: React.FC = () => {
-  const DEFAULT_ITEMS_PER_PAGE = 4;
-  const THREE_COL_ITEMS_PER_PAGE = 3;
   const { user } = useAuth();
   const role = (user?.role || "").toLowerCase();
-  const isRestrictedDownloadRole = role === "media";
+  const [rolePermissions, setRolePermissions] = useState<ShowcasePermissionMap>(
+    {},
+  );
+  const [rolePermissionsLoaded, setRolePermissionsLoaded] = useState(false);
   const [items, setItems] = useState<DemoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -476,55 +558,89 @@ const CreativeShowcase: React.FC = () => {
     filter === "Masthead" ||
     filter === "FirstView";
   const itemsPerPage = usesThreeColumnPage
-    ? THREE_COL_ITEMS_PER_PAGE
-    : DEFAULT_ITEMS_PER_PAGE;
+    ? SHOWCASE_ITEMS_PER_PAGE_THREE_COL
+    : SHOWCASE_ITEMS_PER_PAGE_DEFAULT;
 
-  const baseUrl =
-    (import.meta.env as any).VITE_SERVER_URL || "http://localhost:3001";
+  const baseUrl = serverApiOrigin();
 
-  const handleDownload = async (item: DemoItem) => {
-    if (!item.source || downloadingId) return;
-    setDownloadingId(item.id);
-    try {
-      const res = await fetch(
-        `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(item.source)}`,
-      );
-      if (!res.ok) {
-        throw await backendErrorFromResponse(res);
+  const canDownloadCreativeDemos = useMemo(() => {
+    if (!rolePermissionsLoaded) return false;
+    return resolveCreativeShowcaseDownload(rolePermissions, role);
+  }, [rolePermissions, rolePermissionsLoaded, role]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchJsonOrThrow<ShowcasePermissionsPayload>(
+          `${baseUrl}/api/permissions`,
+        );
+        if (!cancelled) {
+          setRolePermissions(data.permissions ?? {});
+          setRolePermissionsLoaded(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setRolePermissions({});
+          setRolePermissionsLoaded(true);
+        }
       }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl]);
 
-      const blob = await res.blob();
-      const filename = toSafeZipName(item.title);
+  const handleDownload = useCallback(
+    async (item: DemoItem) => {
+      if (!item.source || downloadingId || !canDownloadCreativeDemos || !role) return;
+      setDownloadingId(item.id);
+      try {
+        const res = await fetch(
+          `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(item.source)}`,
+          { headers: { "x-user-role": role } },
+        );
+        if (!res.ok) {
+          throw await backendErrorFromResponse(res);
+        }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Download failed";
-      setError(message);
-    } finally {
-      setDownloadingId(null);
-    }
-  };
+        const blob = await res.blob();
+        const filename = toSafeZipName(item.title);
 
-  const handleOpenDemo = async (item: DemoItem) => {
-    if (!item.source) return;
-    try {
-      await openYomediaDemoPreview({
-        remotePath: item.source,
-        formatValue: item.value,
-        forceDevice: item.category === "Display" ? "pc" : "mb",
-        serverApiUrl: baseUrl,
-      });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unable to open demo";
-      setError(message);
-    }
-  };
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Download failed";
+        setError(message);
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [baseUrl, downloadingId],
+  );
+
+  const handleOpenDemo = useCallback(
+    async (item: DemoItem) => {
+      if (!item.source) return;
+      try {
+        await openYomediaDemoPreview({
+          remotePath: item.source,
+          formatValue: item.value,
+          forceDevice: item.category === "Display" ? "pc" : "mb",
+          serverApiUrl: baseUrl,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Unable to open demo";
+        setError(message);
+      }
+    },
+    [baseUrl],
+  );
 
   useEffect(() => {
     const fetchDemos = async () => {
@@ -539,7 +655,7 @@ const CreativeShowcase: React.FC = () => {
               .map(normalizeDemo)
               .filter((item): item is DemoItem => Boolean(item))
           : [];
-        const sortedById = demos.sort((a: DemoItem, b: DemoItem) => {
+        const sortedById = [...demos].sort((a: DemoItem, b: DemoItem) => {
           const idA = Number(a.id);
           const idB = Number(b.id);
           if (Number.isNaN(idA) || Number.isNaN(idB)) {
@@ -560,17 +676,30 @@ const CreativeShowcase: React.FC = () => {
     void fetchDemos();
   }, [baseUrl]);
 
-  const filteredData = items.filter((item) => {
-    const matchesFilter = matchesShowcaseFilter(item, filter);
-    const matchesSearch = item.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredData = useMemo(
+    () =>
+      items.filter((item) => {
+        if (!matchesShowcaseFilter(item, filter)) return false;
+        if (!normalizedQuery) return true;
+        return item.title.toLowerCase().includes(normalizedQuery);
+      }),
+    [items, filter, normalizedQuery],
+  );
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredData.length / itemsPerPage)),
+    [filteredData.length, itemsPerPage],
+  );
+
+  const paginatedData = useMemo(
+    () =>
+      filteredData.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage,
+      ),
+    [filteredData, currentPage, itemsPerPage],
   );
 
   useEffect(() => {
@@ -583,17 +712,21 @@ const CreativeShowcase: React.FC = () => {
 
   return (
     <div className="w-full space-y-6 px-4 sm:space-y-7 sm:px-6 lg:space-y-8 lg:px-6 xl:space-y-8 xl:px-8">
-      <div className="max-w-full mx-auto">
+      <div className="relative max-w-full mx-auto">
+        <div
+          className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[min(92vw,42rem)] -translate-x-1/2 rounded-full bg-[#4cceac]/[0.07] blur-3xl"
+          aria-hidden
+        />
         <header className="relative mb-8 sm:mb-10 xl:mb-10">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between xl:flex-row xl:items-center xl:justify-between xl:gap-6">
             <div className="min-w-0 shrink">
               <div className="mb-1 flex items-center gap-2 sm:gap-3 xl:gap-3">
-                <div className="h-5 w-0.5 shrink-0 rounded-full bg-[#4cceac] sm:h-6 sm:w-1 xl:h-6 xl:w-1" />
-                <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white sm:text-3xl xl:text-3xl">
+                <div className="h-5 w-0.5 shrink-0 rounded-full bg-gradient-to-b from-[#4cceac] to-[#4cceac]/55 shadow-[0_0_12px_rgba(76,206,172,0.45)] sm:h-6 sm:w-1 xl:h-6 xl:w-1" />
+                <h1 className="bg-gradient-to-br from-white via-white to-white/75 bg-clip-text text-2xl font-black uppercase italic tracking-tighter text-transparent drop-shadow-[0_1px_24px_rgba(255,255,255,0.06)] sm:text-3xl xl:text-[2rem]">
                   Creative Showcase
                 </h1>
               </div>
-              <p className="ml-0 text-[8px] font-medium uppercase tracking-widest text-[#a3a3a3] sm:ml-4 sm:text-[9px] xl:ml-4 xl:text-[9px]">
+              <p className="ml-0 max-w-xl text-[8px] font-medium uppercase leading-relaxed tracking-widest text-[#8e97a8] sm:ml-4 sm:text-[9px] xl:ml-4 xl:text-[9px]">
                 Interactive Ad Format Demos &amp; Specifications
               </p>
             </div>
@@ -605,20 +738,20 @@ const CreativeShowcase: React.FC = () => {
                   placeholder="Search formats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#141b2d] py-2.5 pl-9 pr-3 text-xs font-medium text-white shadow-xl outline-none transition-all focus:border-[#4cceac]/50 sm:py-3 sm:pl-10 sm:pr-4 xl:py-3 xl:pl-10 xl:pr-4"
+                  className="w-full rounded-2xl border border-white/[0.07] bg-[#141b2d]/95 py-2.5 pl-9 pr-3 text-xs font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-all placeholder:text-[#6b7289] focus:border-[#4cceac]/45 focus:ring-1 focus:ring-[#4cceac]/25 sm:py-3 sm:pl-10 sm:pr-4 xl:py-3 xl:pl-10 xl:pr-4"
                 />
                 <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3a3a3] transition-colors group-focus-within:text-[#4cceac] sm:left-3 xl:left-3" />
               </div>
 
-              <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/5 bg-[#141b2d] p-1 shadow-xl sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 xl:mx-0 xl:flex-wrap xl:gap-2 xl:overflow-visible xl:p-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15">
+              <div className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-white/[0.07] bg-[#141b2d]/95 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:mx-0 sm:flex-wrap sm:gap-1.5 sm:overflow-visible sm:p-1.5 lg:flex-nowrap lg:gap-2 xl:mx-0 xl:flex-wrap xl:gap-2 xl:overflow-visible xl:p-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/18">
                 {SHOWCASE_FILTERS.map((f) => (
                   <Button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:rounded-xl xl:px-4 xl:py-1.5 xl:text-[10px] ${
+                    className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all duration-200 sm:rounded-xl sm:px-3 sm:text-[10px] lg:px-3.5 xl:rounded-xl xl:px-4 xl:py-1.5 xl:text-[10px] ${
                       filter === f
-                        ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/20"
-                        : "text-[#a3a3a3] hover:text-white"
+                        ? "bg-[#4cceac] text-[#141b2d] shadow-lg shadow-[#4cceac]/25 ring-1 ring-white/10"
+                        : "text-[#9ca6b8] hover:bg-white/[0.04] hover:text-white"
                     }`}
                   >
                     {f}
@@ -627,18 +760,28 @@ const CreativeShowcase: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-4 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
+          <div className="absolute -bottom-4 left-0 h-px w-full bg-gradient-to-r from-[#4cceac]/55 via-[#3d465d]/80 to-transparent" />
         </header>
 
         {error && (
-          <div className="mb-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-            {error}
+          <div
+            className="mb-4 flex gap-3 rounded-2xl border border-rose-500/35 bg-gradient-to-br from-rose-500/[0.12] to-rose-600/[0.06] px-4 py-3 text-xs leading-relaxed text-rose-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+            role="alert"
+          >
+            <span
+              className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.6)]"
+              aria-hidden
+            />
+            <span>{error}</span>
           </div>
         )}
 
         {loading && items.length === 0 ? (
-          <div className="flex items-center justify-center py-16 text-sm text-[#a3a3a3]">
-            Loading creative demos...
+          <div className="py-6">
+            <p className="mb-5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#6b7588]">
+              Loading creative demos
+            </p>
+            <ShowcaseGridSkeleton columns3={usesThreeColumnPage} />
           </div>
         ) : (
           <>
@@ -658,9 +801,9 @@ const CreativeShowcase: React.FC = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.4, delay: idx * 0.05 }}
-                    className="group relative overflow-visible rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl transition-all duration-500 hover:border-[#4cceac]/30"
+                    className="group/card relative overflow-visible rounded-[2rem] border border-white/[0.06] bg-gradient-to-b from-[#171f2f] via-[#141b2d] to-[#121827] shadow-[0_22px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#4cceac]/28 hover:shadow-[0_28px_60px_-15px_rgba(76,206,172,0.12)]"
                   >
-                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10] via-[#0d111a] to-[#141b2d] px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2 lg:px-1.5 lg:pt-0.5 lg:pb-0 xl:px-2 xl:pt-2 xl:pb-1">
+                    <div className="relative overflow-hidden bg-gradient-to-b from-[#080a10]/95 via-[#0d111a] to-[#141b2d]/98 px-1.5 pt-1.5 pb-1 sm:px-2 sm:pt-2 lg:px-1.5 lg:pt-0.5 lg:pb-0 xl:px-2 xl:pt-2 xl:pb-1">
                       <ShowcaseIphonePreviewWithEmbed
                         item={item}
                         serverApiUrl={baseUrl}
@@ -675,16 +818,16 @@ const CreativeShowcase: React.FC = () => {
                             void handleOpenDemo(item);
                           }}
                           disabled={!item.source}
-                          className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors group-hover:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg xl:text-lg"
+                          className="text-left text-base font-black uppercase italic tracking-tight text-white transition-colors duration-200 group-hover/card:text-[#4cceac] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg xl:text-lg"
                         >
                           {item.title}
                         </Button>
                       </h3>
 
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors duration-200 group-hover/card:border-white/10">
                           <div className="flex items-center gap-2">
-                            <Square3Stack3DIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <Square3Stack3DIcon className="h-4 w-4 shrink-0 text-[#7c8799] transition-colors group-hover/card:text-[#4cceac]/85" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Size
                             </span>
@@ -694,9 +837,9 @@ const CreativeShowcase: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors duration-200 group-hover/card:border-white/10">
                           <div className="flex items-center gap-2">
-                            <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <AdjustmentsHorizontalIcon className="h-4 w-4 shrink-0 text-[#7c8799] transition-colors group-hover/card:text-[#4cceac]/85" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Position
                             </span>
@@ -706,9 +849,9 @@ const CreativeShowcase: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors duration-200 group-hover/card:border-white/10">
                           <div className="flex items-center gap-2">
-                            <CommandLineIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <CommandLineIcon className="h-4 w-4 shrink-0 text-[#7c8799] transition-colors group-hover/card:text-[#4cceac]/85" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               File Type
                             </span>
@@ -718,9 +861,9 @@ const CreativeShowcase: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors duration-200 group-hover/card:border-white/10">
                           <div className="flex items-center gap-2">
-                            <VideoCameraIcon className="w-4 h-4 text-[#a3a3a3]" />
+                            <VideoCameraIcon className="h-4 w-4 shrink-0 text-[#7c8799] transition-colors group-hover/card:text-[#4cceac]/85" />
                             <span className="text-[10px] font-bold text-[#a3a3a3] uppercase tracking-widest">
                               Video
                             </span>
@@ -733,7 +876,7 @@ const CreativeShowcase: React.FC = () => {
                         </div>
                       </div>
 
-                      {!isRestrictedDownloadRole && (
+                      {canDownloadCreativeDemos && (
                         <div className="mt-4">
                           <Button
                             type="button"
@@ -741,7 +884,7 @@ const CreativeShowcase: React.FC = () => {
                               void handleDownload(item);
                             }}
                             disabled={!item.source || downloadingId === item.id}
-                            className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl border border-white/10 py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.05] py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 hover:border-white/15 hover:bg-white/[0.09] disabled:cursor-not-allowed disabled:opacity-40 group-hover/card:border-[#4cceac]/25"
                           >
                             <ArrowDownTrayIcon className="w-4 h-4" />
                             {downloadingId === item.id
@@ -752,7 +895,7 @@ const CreativeShowcase: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent to-[#4cceac]/5 pointer-events-none" />
+                    <div className="pointer-events-none absolute bottom-0 right-0 h-16 w-16 bg-gradient-to-br from-transparent via-transparent to-[#4cceac]/[0.08]" />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -801,16 +944,16 @@ const CreativeShowcase: React.FC = () => {
           </>
         )}
 
-        {filteredData.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-[#141b2d] rounded-3xl flex items-center justify-center mb-6 border border-white/5">
-              <MagnifyingGlassIcon className="w-10 h-10 text-[#3d465d]" />
+        {filteredData.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+            <div className="mb-7 flex h-24 w-24 items-center justify-center rounded-[1.65rem] border border-white/[0.08] bg-gradient-to-br from-[#141b2d] to-[#0d1320] shadow-[0_14px_40px_-12px_rgba(0,0,0,0.5)]">
+              <MagnifyingGlassIcon className="h-11 w-11 text-[#4cceac]/45" strokeWidth={1.25} />
             </div>
-            <h3 className="text-xl font-black text-white uppercase italic mb-2">
+            <h3 className="mb-2 text-xl font-black uppercase italic tracking-tight text-white">
               No formats found
             </h3>
-            <p className="text-[#a3a3a3] text-sm font-medium">
-              Try adjusting your search or filter criteria
+            <p className="max-w-sm text-sm font-medium leading-relaxed text-[#8e97a8]">
+              Try another keyword or switch the category filter above.
             </p>
           </div>
         )}

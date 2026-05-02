@@ -15,127 +15,136 @@ const routes: RouteInfo[] = [
     name: "Login",
     group: "Auth",
     description:
-      "Màn hình đăng nhập bằng Google OAuth, kiểm tra role và tạo phiên truy cập trước khi vào dashboard.",
+      "Google OAuth sign-in; verifies role and creates a session before entering the dashboard.",
     usage:
-      "Dùng khi bắt đầu phiên làm việc hoặc khi token hết hạn. Nếu không đăng nhập, các route trong dashboard sẽ bị chặn bởi PrivateRoute.",
-    note: "Route public duy nhất; không nằm trong Sidebar.",
+      "Use when starting a session or after the token expires. Without sign-in, dashboard routes are blocked by PrivateRoute.",
+    note: "Only public route; not listed in the Sidebar.",
   },
   {
     path: "/",
     name: "Dashboard",
     group: "Core",
     description:
-      "Trang tổng quan chính, hiển thị giới thiệu và các lối tắt đến những tính năng AI quan trọng.",
+      "Main overview with intros and shortcuts to core AI features.",
     usage:
-      "Dùng để mở nhanh các module chính trong buổi demo, xem high-level overview trước khi đi sâu vào từng tính năng.",
+      "Use to jump into primary modules during demos or to get a high-level overview before drilling down.",
   },
   {
     path: "/chat",
     name: "AI Chat",
     group: "AI Intelligence",
     description:
-      "Giao diện chat với AI, dùng để hỏi đáp, brainstorm ý tưởng, viết nội dung hoặc hỗ trợ code.",
+      "Chat UI for Q&A, brainstorming, copywriting, and lightweight coding help.",
     usage:
-      "Nhập prompt bằng tiếng Việt/Anh, có thể yêu cầu viết proposal, idea campaign, script TVC, email… Dùng khi cần tương tác linh hoạt, realtime với AI.",
+      "Enter prompts in Vietnamese or English — proposals, campaign ideas, TVC scripts, emails, etc. For flexible, real-time AI interaction.",
   },
   {
     path: "/vision",
     name: "Vision AI",
     group: "AI Intelligence",
     description:
-      "Xử lý/generative hình ảnh từ mô tả text hoặc upload ảnh để phân tích, chỉnh sửa.",
+      "Image understanding and generation from text or uploaded images.",
     usage:
-      "Dùng khi cần AI hiểu nội dung trong ảnh (phân tích layout, text, vật thể) hoặc sinh thêm biến thể từ một hình gốc để phục vụ đề xuất creative.",
+      "When you need layout/text/object understanding in images or extra variants from a base asset for creative proposals.",
   },
   {
     path: "/image-generator",
     name: "Image Generator",
     group: "AI Intelligence",
     description:
-      "Sinh ảnh sáng tạo phục vụ demo chiến dịch, banner, key visual.",
+      "Generate campaign visuals: banners, hero images, key visuals.",
     usage:
-      "Nhập mô tả chi tiết (brand, mood, màu sắc, đối tượng, kênh hiển thị) rồi generate 2–4 option để chọn. Thích hợp cho phần trình bày idea/visual nhanh trong meeting.",
+      "Describe brand, mood, colors, audience, and placement; generate 2–4 options to pick from. Good for fast idea reviews in meetings.",
   },
   {
     path: "/cinema",
     name: "Cinema AI",
     group: "AI Intelligence",
     description:
-      "Sinh video dạng cinematic, mô phỏng TVC hoặc motion demo cho chiến dịch.",
+      "Cinematic-style video generation for TVC-style or motion demos.",
     usage:
-      "Chuẩn bị script ngắn + mô tả cảnh, cho AI sinh video preview. Dùng để minh họa concept TVC, motion banner, intro clip trong buổi pitching.",
+      "Short script plus scene notes for an AI video preview. Pitch TVC concepts, motion banners, or intro clips.",
   },
   {
     path: "/live",
     name: "Live Stream",
     group: "AI Intelligence",
     description:
-      "Trò chuyện realtime với AI bằng giọng nói (voice), mô phỏng tư vấn trực tiếp.",
+      "Real-time voice conversation with AI, similar to live consultation.",
     usage:
-      "Dùng micro để nói chuyện trực tiếp với AI, phù hợp demo khả năng tư vấn realtime, Q&A live trong workshop hoặc event nội bộ.",
+      "Use the mic for live Q&A demos, workshops, or internal events.",
   },
   {
     path: "/ai-gmail",
     name: "AI Gmail",
     group: "AI Intelligence",
     description:
-      "Trợ lý email thông minh: hỗ trợ đọc/tóm tắt nội dung, phân loại và gợi ý phản hồi nhanh.",
+      "Email helper: read/summarize, triage, and suggest quick replies.",
     usage:
-      "Dùng cho các tác vụ xử lý email số lượng lớn hoặc cần trả lời nhanh theo ngữ cảnh chiến dịch.",
+      "High-volume inbox work or fast replies with campaign context.",
+  },
+  {
+    path: "/smtp-mail",
+    name: "SMTP",
+    group: "Data Management",
+    description:
+      "Test SMTP connectivity and send mail through the server API (admin only for send).",
+    usage:
+      "Verify relay with server env or custom host; compose a message when your role is admin.",
   },
   {
     path: "/creative-showcase",
     name: "Creative Showcase",
     group: "Data Management",
     description:
-      "Thư viện các demo/creative đã có sẵn để tham khảo và trình bày với client.",
+      "Library of ready-made demos and creatives for reference and client meetings.",
     usage:
-      "Dùng trước buổi gặp khách để chọn sẵn các demo phù hợp ngành hàng/format. Trong demo, mở nhanh từng entry để show case study hoặc ví dụ minh họa.",
+      "Pick relevant demos by vertical/format before meetings; open entries for case studies during live demos.",
   },
   {
     path: "/manage-demo",
     name: "Manage Demo",
     group: "Data Management",
     description:
-      "Quản lý danh sách demo (thêm/sửa/xóa, gán brand, trạng thái, phân loại).",
+      "CRUD for demos: brands, status, categories.",
     usage:
-      "Dùng cho team nội bộ (không demo cho khách) để dọn dẹp, đặt tên chuẩn, tag brand/campaign, ẩn các demo cũ và giữ thư viện luôn sạch, dễ tìm.",
+      "Internal housekeeping — naming, tags, hide outdated demos, keep the library tidy.",
   },
   {
     path: "/build-demo",
     name: "Build Demo",
     group: "Data Management",
     description:
-      "Pipeline ingest asset HTML/JS/ảnh, replace script & base64, upload sang SFTP và generate bundle.",
+      "Ingest HTML/JS/images, replace scripts & inline base64, upload to SFTP, build bundle.",
     usage:
-      "Dùng khi cần onboard một demo creative mới: upload file HTML/JS/ảnh nguồn, điền thông tin mapping, để hệ thống render & deploy thành demo hoàn chỉnh sẵn sàng dùng trong showcase.",
+      "Onboard new creatives: upload source assets and mapping metadata; deploy a finished demo for Showcase.",
   },
   {
     path: "/documentation",
     name: "Documentation",
     group: "Data Management",
     description:
-      "Trang hướng dẫn tính năng theo module (User Guide), phục vụ onboarding user mới và training nội bộ.",
+      "Module user guide for onboarding and internal training.",
     usage:
-      "Dùng làm tài liệu tham chiếu khi cần hiểu nhanh khả năng của từng module trong hệ thống.",
+      "Quick reference when you need each module explained at a glance.",
   },
   {
     path: "/bar",
     name: "Performance (Bar)",
     group: "Analytics",
     description:
-      "Trang biểu đồ cột, dùng để visualize performance (view, CTR, v.v.) theo nhiều chiều.",
+      "Bar charts for metrics like views and CTR across dimensions.",
     usage:
-      "Dùng để kể câu chuyện số liệu: chọn khoảng thời gian, loại chiến dịch, đối tượng… rồi dùng biểu đồ để giải thích hiệu quả media cho khách/management.",
+      "Tell a data story — time range, campaign type, audiences — then explain media performance for clients or leadership.",
   },
   {
     path: "/history",
     name: "History",
     group: "Core",
     description:
-      "Lịch sử các tương tác/giao dịch (ví dụ: prompt, request, job chạy gần đây).",
+      "Recent interactions — prompts, requests, jobs.",
     usage:
-      "Dùng để kiểm tra lại prompt, job đã chạy, hoặc truy vết khi có issue trong quá trình demo (nhìn lại xem lần chạy trước đã làm gì).",
+      "Audit what ran earlier or trace issues mid-demo.",
   },
 ];
 
@@ -149,31 +158,30 @@ const DocumentPage: React.FC = () => {
           Router Documentation
         </h1>
         <p className="relative text-[#a3a3a3] text-sm md:text-base max-w-2xl leading-relaxed">
-          Trang này liệt kê toàn bộ các router (đường dẫn) đang dùng trong
-          dashboard YomediaAI, kèm mô tả chức năng và gợi ý cách sử dụng cho
-          team nội bộ.
+          This page lists every router (path) in the YomediaAI dashboard, what it
+          does, and brief usage notes for internal teams.
         </p>
       </header>
 
       <section className="space-y-4 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
         <h2 className="text-xl font-black text-white tracking-tight">
-          1. Cách truy cập router
+          1. How to navigate routes
         </h2>
         <ul className="list-disc list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
           <li>
-            <span className="font-semibold">Qua Sidebar</span>: mỗi mục trong
-            sidebar được map 1–1 với một router (ví dụ: &quot;AI Chat&quot; →
+            <span className="font-semibold">Via Sidebar</span>: each item maps
+            1–1 to a route (for example &quot;AI Chat&quot; →{" "}
             <code className="ml-1 px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               /chat
             </code>
             ).
           </li>
           <li>
-            <span className="font-semibold">Gõ URL trực tiếp</span>: vì app dùng{" "}
+            <span className="font-semibold">Direct URL</span>: the app uses{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               HashRouter
             </code>
-            , bạn có thể truy cập dạng{" "}
+            , so open paths like{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               #/chat
             </code>
@@ -181,37 +189,41 @@ const DocumentPage: React.FC = () => {
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               #/build-demo
             </code>{" "}
-            trong URL.
+            in the URL bar.
           </li>
           <li>
-            <span className="font-semibold">Bảo mật</span>: mọi router bên trong
-            layout chính đều nằm sau{" "}
+            <span className="font-semibold">Security</span>: routes inside the
+            main layout sit behind{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               PrivateRoute
             </code>
-            , nên cần login thành công mới truy cập được.
+            — you must be signed in.
           </li>
           <li>
-            <span className="font-semibold">Phân quyền theo role</span>: một số
-            menu được ẩn theo role (ví dụ{" "}
+            <span className="font-semibold">Role-based UI</span>: some menu
+            items hide per role (for example{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               /build-demo
             </code>{" "}
-            có thể bị ẩn với role <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">manager</code>), nhưng route vẫn tồn tại trong app.
+            may be hidden for{" "}
+            <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
+              manager
+            </code>
+            ), but the route still exists in code.
           </li>
         </ul>
       </section>
 
       <section className="space-y-4 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
         <h2 className="text-xl font-black text-white tracking-tight">
-          2. Danh sách router & chức năng
+          2. Route list & descriptions
         </h2>
 
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220]/80 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
           <div className="grid grid-cols-12 px-4 py-3 text-[11px] md:text-xs font-black uppercase tracking-wide text-[#94a3b8] bg-[#0f172a]/90 border-b border-white/5">
             <div className="col-span-3 md:col-span-2">Router</div>
-            <div className="hidden md:block md:col-span-2">Nhóm</div>
-            <div className="col-span-9 md:col-span-8">Mô tả</div>
+            <div className="hidden md:block md:col-span-2">Group</div>
+            <div className="col-span-9 md:col-span-8">Description</div>
           </div>
           <div className="divide-y divide-white/5">
             {routes.map((route) => (
@@ -233,12 +245,14 @@ const DocumentPage: React.FC = () => {
                 <div className="col-span-9 md:col-span-8">
                   <p>{route.description}</p>
                   <p className="mt-1 text-[11px] md:text-xs text-[#94a3b8]">
-                    <span className="font-semibold text-[#cbd5e1]">Cách dùng nhanh:</span>{" "}
+                    <span className="font-semibold text-[#cbd5e1]">
+                      Quick tip:
+                    </span>{" "}
                     {route.usage}
                   </p>
                   {route.note && (
                     <p className="mt-1 text-[11px] text-[#fda4af]">
-                      Ghi chú: {route.note}
+                      Note: {route.note}
                     </p>
                   )}
                 </div>
@@ -250,117 +264,125 @@ const DocumentPage: React.FC = () => {
 
       <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
         <h2 className="text-xl font-black text-white tracking-tight">
-          3. Cách thêm router mới
+          3. Adding a new route
         </h2>
         <ol className="list-decimal list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
           <li>
-            Tạo file page mới trong thư mục{" "}
+            Create a page component under{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               apps/web/pages
             </code>{" "}
-            (ví dụ: <code className="text-xs">NewFeature.tsx</code>).
+            (example: <code className="text-xs">NewFeature.tsx</code>).
           </li>
           <li>
-            Import page đó trong{" "}
+            Import it in{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               App.tsx
             </code>{" "}
-            và thêm{" "}
+            and add{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               {"<Route path=\"/new-feature\" element={<NewFeature />} />"}
             </code>{" "}
-            bên trong khối <code className="text-xs">{"<Routes>"}</code> của{" "}
+            inside the <code className="text-xs">{"<Routes>"}</code> block of{" "}
             <code className="text-xs">DashboardLayout</code>.
           </li>
           <li>
-            Thêm navigation tương ứng trong{" "}
+            Wire navigation in{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
               components/Sidebar.tsx
             </code>{" "}
-            để user có thể click vào.
+            if users should discover it from the menu.
           </li>
         </ol>
       </section>
 
       <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
         <h2 className="text-xl font-black text-white tracking-tight">
-          4. API backend quan trọng theo chức năng
+          4. Key backend APIs
         </h2>
         <ul className="list-disc list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
           <li>
             <span className="font-semibold">RAG Chat</span>{" "}
-            <code className="text-xs">POST /api/rag/query</code>: nhận{" "}
-            <code className="text-xs">question</code>, trả về{" "}
-            <code className="text-xs">answer + sources</code>. Dùng cho trang{" "}
+            <code className="text-xs">POST /api/rag/query</code>: accepts{" "}
+            <code className="text-xs">question</code>, returns{" "}
+            <code className="text-xs">answer + sources</code>. Powers{" "}
             <code className="text-xs">/chat</code>.
           </li>
           <li>
             <span className="font-semibold">Creative Demos</span>{" "}
-            <code className="text-xs">GET /api/creative-demos</code>: trả danh
-            sách demo theo dữ liệu server (đang lọc theo status active), dùng ở{" "}
-            <code className="text-xs">/creative-showcase</code> và logic match format.
+            <code className="text-xs">GET /api/creative-demos</code>: demo list
+            from the server (active status filter); used by{" "}
+            <code className="text-xs">/creative-showcase</code> and format
+            matching.
           </li>
           <li>
             <span className="font-semibold">SFTP Connect</span>{" "}
-            <code className="text-xs">GET /api/sftp/connect</code>: test kết
-            nối SFTP, dùng tại <code className="text-xs">/manage-demo</code>.
+            <code className="text-xs">GET /api/sftp/connect</code>: connectivity
+            test; used from <code className="text-xs">/manage-demo</code>.
           </li>
           <li>
             <span className="font-semibold">SFTP List</span>{" "}
-            <code className="text-xs">GET /api/sftp/list?path=...</code>: liệt
-            kê file/thư mục từ đường dẫn SFTP.
+            <code className="text-xs">GET /api/sftp/list?path=...</code>: list
+            files/folders under an SFTP path.
           </li>
           <li>
             <span className="font-semibold">SFTP Read/Write</span>{" "}
             <code className="text-xs">GET /api/sftp/read</code>,{" "}
-            <code className="text-xs">POST /api/sftp/write</code>: đọc/sửa file
-            trực tiếp trên SFTP.
+            <code className="text-xs">POST /api/sftp/write</code>: read/edit
+            text files on SFTP.
           </li>
           <li>
             <span className="font-semibold">SFTP Exists</span>{" "}
-            <code className="text-xs">GET /api/sftp/exists?path=...</code>: kiểm
-            tra thư mục có tồn tại hay không (được dùng trong Chat để check path).
+            <code className="text-xs">GET /api/sftp/exists?path=...</code>: check
+            whether a path exists (used by Chat for quick path checks).
           </li>
           <li>
             <span className="font-semibold">SFTP Download Directory</span>{" "}
             <code className="text-xs">
               GET /api/sftp/download-directory?path=...
             </code>
-            : tải toàn bộ thư mục thành file zip (nút Download ở showcase).
+            : ZIP an entire folder (Showcase Download button).
           </li>
           <li>
-            <span className="font-semibold">GET /api/upload</span>: (đã xoá/không còn dùng)
+            <span className="font-semibold">GET /api/upload</span>: (removed /
+            unused)
           </li>
           <li>
             <span className="font-semibold">
               GET /api/upload?name=&lt;file&gt;
             </span>
-            : (đã xoá/không còn dùng)
+            : (removed / unused)
           </li>
           <li>
-            <span className="font-semibold">POST /api/upload</span>: nhận body
-            gồm <code className="text-xs">name</code>,{" "}
-            <code className="text-xs">content</code> (HTML/JS) và optional
-            mảng <code className="text-xs">images[]</code> (base64) để lưu
-            file & asset lên thư mục <code className="text-xs">uploads</code>{" "}
-            trên server. (đã xoá/không còn dùng)
+            <span className="font-semibold">POST /api/upload</span>: accepted{" "}
+            <code className="text-xs">name</code>,{" "}
+            <code className="text-xs">content</code> (HTML/JS), optional{" "}
+            <code className="text-xs">images[]</code> base64 payloads into the
+            server <code className="text-xs">uploads</code> folder. (removed /
+            unused)
           </li>
           <li>
-            <span className="font-semibold">DELETE /api/upload</span>: (đã xoá/không còn dùng)
+            <span className="font-semibold">DELETE /api/upload</span>: (removed
+            / unused)
           </li>
         </ul>
       </section>
 
       <section className="space-y-3 rounded-3xl border border-white/5 bg-[#141b2d]/40 p-6 shadow-xl">
         <h2 className="text-xl font-black text-white tracking-tight">
-          5. Checklist khi thêm chức năng mới
+          5. Checklist for new features
         </h2>
         <ol className="list-decimal list-inside text-sm md:text-base text-[#cbd5e1] space-y-2 leading-relaxed">
-          <li>Thêm route trong App.tsx và menu trong Sidebar.tsx (nếu cần).</li>
-          <li>Ghi 1 dòng vào trang này: path, mục đích, cách dùng nhanh.</li>
-          <li>Kiểm tra role nào được thấy/chạy chức năng đó.</li>
-          <li>Liệt kê API backend liên quan (method + endpoint + input/output chính).</li>
-          <li>Test lại end-to-end trước khi merge/push.</li>
+          <li>Add the route in App.tsx (and Sidebar when needed).</li>
+          <li>
+            Document path, intent, and a one-line usage blurb on this page.
+          </li>
+          <li>Verify which roles can see or invoke the feature.</li>
+          <li>
+            Note related APIs (HTTP method + endpoint + primary inputs /
+            outputs).
+          </li>
+          <li>Run an end-to-end smoke test before merge/push.</li>
         </ol>
       </section>
     </div>
@@ -368,4 +390,3 @@ const DocumentPage: React.FC = () => {
 };
 
 export default DocumentPage;
-

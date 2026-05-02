@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
 
 type Account = {
@@ -22,6 +23,9 @@ type RolePermissionConfig = Record<
     };
     routeAccess?: {
       allowedRoutes?: string[];
+    };
+    creativeShowcase?: {
+      canDownload?: boolean;
     };
   }
 >;
@@ -80,7 +84,7 @@ const normalizeRoutes = (routes: unknown): string[] => {
 const AdminUsers: React.FC = () => {
   const { user } = useAuth();
   const roleHeader = (user?.role || "").toLowerCase();
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const baseUrl = serverApiOrigin();
   const [activeTab, setActiveTab] = React.useState<AdminTab>("users");
 
   const [items, setItems] = React.useState<Account[]>([]);
@@ -242,6 +246,19 @@ const AdminUsers: React.FC = () => {
     }));
   };
 
+  const updateCreativeShowcaseDownload = (role: string, enabled: boolean) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [role]: {
+        ...(prev[role] || {}),
+        creativeShowcase: {
+          ...(prev[role]?.creativeShowcase || {}),
+          canDownload: enabled,
+        },
+      },
+    }));
+  };
+
   const handleSavePermission = async (role: string) => {
     setSavingPermissionRole(role);
     setError(null);
@@ -257,6 +274,8 @@ const AdminUsers: React.FC = () => {
       const canSwitchSftpHost =
         role === "admin" &&
         permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+      const canDownloadCreativeDemos =
+        permissions[role]?.creativeShowcase?.canDownload === true;
       await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
         method: "PUT",
         headers: {
@@ -274,6 +293,9 @@ const AdminUsers: React.FC = () => {
           routeAccess: {
             allowedRoutes,
           },
+          creativeShowcase: {
+            canDownload: canDownloadCreativeDemos,
+          },
         }),
       });
       setInitialPermissions((prev) => ({
@@ -285,6 +307,9 @@ const AdminUsers: React.FC = () => {
             allowedRoutes: normalizeRoutes(
               permissions[role]?.routeAccess?.allowedRoutes,
             ),
+          },
+          creativeShowcase: {
+            canDownload: canDownloadCreativeDemos,
           },
         },
       }));
@@ -318,6 +343,10 @@ const AdminUsers: React.FC = () => {
     const originalSwitch =
       role === "admin" &&
       initialPermissions[role]?.manageDemo?.canSwitchSftpHost === true;
+    const currentCreativeDownload =
+      permissions[role]?.creativeShowcase?.canDownload === true;
+    const originalCreativeDownload =
+      initialPermissions[role]?.creativeShowcase?.canDownload === true;
     const currentRoutes = normalizeRoutes(
       permissions[role]?.routeAccess?.allowedRoutes,
     );
@@ -327,6 +356,7 @@ const AdminUsers: React.FC = () => {
     return (
       currentCanUse !== originalCanUse ||
       currentSwitch !== originalSwitch ||
+      currentCreativeDownload !== originalCreativeDownload ||
       JSON.stringify(currentRoutes) !== JSON.stringify(originalRoutes)
     );
   };
@@ -339,7 +369,7 @@ const AdminUsers: React.FC = () => {
             User & Permission Management
           </h1>
           <p className="text-xs text-[#a3a3a3] mt-1">
-            Tách riêng quản lý người dùng và cấu hình permission theo role.
+            Separate user management from role-based permission configuration.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -522,6 +552,8 @@ const AdminUsers: React.FC = () => {
                       true;
                     const canSwitch =
                       permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+                    const canDownloadCreative =
+                      permissions[role]?.creativeShowcase?.canDownload === true;
                     const selectedRoutes = new Set(
                       Array.isArray(permissions[role]?.routeAccess?.allowedRoutes)
                         ? permissions[role]?.routeAccess?.allowedRoutes
@@ -568,6 +600,22 @@ const AdminUsers: React.FC = () => {
                                 canSwitchSftpHost — admin only
                               </p>
                             )}
+                            <label className="inline-flex items-center gap-2 text-[#cbd5e1]">
+                              <input
+                                type="checkbox"
+                                checked={canDownloadCreative}
+                                onChange={(e) =>
+                                  updateCreativeShowcaseDownload(
+                                    role,
+                                    e.target.checked,
+                                  )
+                                }
+                                className="h-4 w-4 accent-[#4cceac]"
+                              />
+                              <span className="text-xs leading-snug">
+                                Creative Showcase — allow ZIP download
+                              </span>
+                            </label>
                           </div>
                         </td>
                         <td className="px-4 py-3">

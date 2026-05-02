@@ -15,6 +15,7 @@ import { uploadRouter } from "./routes/upload.js";
 import { fileUploadRouter } from "./routes/fileUpload.js";
 import { testDataRouter } from "./routes/testData.js";
 import { userRouter } from "./routes/user.js";
+import { smtpRouter, legacySendEmailHandler } from "./routes/smtp.js";
 import { errorHandler, notFoundHandler } from "./lib/http/errors.js";
 import { getUserRole } from "./lib/auth/role.js";
 
@@ -39,6 +40,8 @@ app.use("/api/upload", uploadRouter);
 app.use("/api/file-upload", fileUploadRouter);
 app.use("/api/test-data", testDataRouter);
 app.use("/api/user", userRouter);
+app.use("/api/smtp", smtpRouter);
+app.post("/api/send-email", legacySendEmailHandler);
 
 // Simple JSON-file-based data
 const __filename = fileURLToPath(import.meta.url);
@@ -72,6 +75,10 @@ type RolePermissionConfig = Record<
     routeAccess?: {
       allowedRoutes?: string[];
     };
+    /** Creative Showcase — ZIP download of demo folders. */
+    creativeShowcase?: {
+      canDownload?: boolean;
+    };
   }
 >;
 
@@ -95,7 +102,7 @@ const BASE_ALLOWED_ROUTES = [
 ];
 const ADMIN_EXTRA_ROUTES = ["/manage-sftp", "/admin/users"];
 const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
-const NON_GUEST_EXTRA_ROUTES = ["/test-data"];
+const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
 const ALL_ALLOWED_ROUTES = Array.from(
   new Set([
     ...BASE_ALLOWED_ROUTES,
@@ -137,6 +144,7 @@ function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): string[] {
 
   if (role !== "guest") {
     routes.add("/test-data");
+    routes.add("/smtp-mail");
   }
   if (role === "admin" || role === "design") {
     routes.add("/build-demo");
@@ -331,6 +339,22 @@ function upsertLocalAccountFromClerkUser(clerkUser: any) {
   saveAccounts([...accounts, nextAccount]);
 }
 
+/** When `creativeShowcase` is absent in stored JSON, keep legacy behaviour (only `media` had no download in UI). */
+function normalizeCreativeShowcaseDownload(
+  config:
+    | {
+        creativeShowcase?: { canDownload?: boolean };
+      }
+    | undefined,
+  roleRaw: string,
+): boolean {
+  const raw = config?.creativeShowcase?.canDownload;
+  if (raw === true) return true;
+  if (raw === false) return false;
+  const r = normalizeText(roleRaw);
+  return r !== "media";
+}
+
 function loadCreativeDemos() {
   const raw = fs.readFileSync(creativeDemosPath, "utf8");
   const parsed = JSON.parse(raw) as { demos?: any[] };
@@ -355,6 +379,12 @@ function normalizeRolePermissions(
           getDefaultAllowedRoutesByRole("guest"),
         ),
       },
+      creativeShowcase: {
+        canDownload: normalizeCreativeShowcaseDownload(
+          safeInput.default,
+          "default",
+        ),
+      },
     },
   };
 
@@ -375,6 +405,9 @@ function normalizeRolePermissions(
           config?.routeAccess?.allowedRoutes,
           getDefaultAllowedRoutesByRole(role),
         ),
+      },
+      creativeShowcase: {
+        canDownload: normalizeCreativeShowcaseDownload(config, role),
       },
     };
   }
@@ -621,6 +654,7 @@ app.put("/api/admin/permissions/:role", (req, res) => {
       canSwitchSftpHost?: unknown;
     };
     routeAccess?: { allowedRoutes?: unknown };
+    creativeShowcase?: { canDownload?: unknown };
   };
   const canUseFileActionButtons =
     payload?.manageDemo?.canUseFileActionButtons === true;
@@ -632,6 +666,13 @@ app.put("/api/admin/permissions/:role", (req, res) => {
   );
 
   const currentPermissions = loadRolePermissions();
+  const existingCreativeDownload =
+    currentPermissions[role]?.creativeShowcase?.canDownload === true;
+  const canDownloadCreativeDemos =
+    typeof payload?.creativeShowcase?.canDownload === "boolean"
+      ? payload.creativeShowcase.canDownload === true
+      : existingCreativeDownload;
+
   const nextPermissions: RolePermissionConfig = {
     ...currentPermissions,
     [role]: {
@@ -644,6 +685,10 @@ app.put("/api/admin/permissions/:role", (req, res) => {
       routeAccess: {
         ...currentPermissions[role]?.routeAccess,
         allowedRoutes,
+      },
+      creativeShowcase: {
+        ...currentPermissions[role]?.creativeShowcase,
+        canDownload: canDownloadCreativeDemos,
       },
     },
   };
@@ -768,6 +813,9 @@ app.get("/api/creative-demo-titles", (req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+const LISTEN_HOST = process.env.LISTEN_HOST || "0.0.0.0";
+app.listen(PORT, LISTEN_HOST, () => {
+  console.log(
+    `Server listening on http://${LISTEN_HOST === "0.0.0.0" ? "localhost" : LISTEN_HOST}:${PORT}`,
+  );
 });

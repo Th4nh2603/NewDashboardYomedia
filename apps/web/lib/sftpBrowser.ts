@@ -1,4 +1,5 @@
 import { fetchJsonOrThrow } from "./apiError";
+import { serverApiOrigin } from "./serverApiOrigin";
 
 export type SftpEntry = {
   name: string;
@@ -14,7 +15,7 @@ export type SftpSearchMatch = {
 };
 
 export function getServerBaseUrl(): string {
-  return import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  return serverApiOrigin();
 }
 
 export function sortSftpEntries(list: SftpEntry[]): SftpEntry[] {
@@ -43,15 +44,16 @@ export function joinPath(base: string, name: string): string {
   return normalizedBase === "/" ? `/${name}` : `${normalizedBase}/${name}`;
 }
 
-export async function fetchSftpList(path: string): Promise<SftpEntry[]> {
+export async function fetchSftpList(
+  path: string,
+  init?: RequestInit,
+): Promise<SftpEntry[]> {
   const baseUrl = getServerBaseUrl();
   const data = await fetchJsonOrThrow<{
     ok?: boolean;
     entries?: SftpEntry[];
     error?: string;
-  }>(
-    `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`,
-  );
+  }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`, init);
   if (!data.ok) {
     throw new Error(data.error || `Unable to list ${path}`);
   }
@@ -61,6 +63,7 @@ export async function fetchSftpList(path: string): Promise<SftpEntry[]> {
 export async function fetchSftpSearch(
   path: string,
   query: string,
+  init?: RequestInit,
 ): Promise<SftpSearchMatch[]> {
   const baseUrl = getServerBaseUrl();
   const data = await fetchJsonOrThrow<{
@@ -69,9 +72,10 @@ export async function fetchSftpSearch(
     error?: string;
   }>(
     `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(path)}&q=${encodeURIComponent(query)}`,
+    init,
   );
   if (!data.ok) {
-    throw new Error(data.error || "Tìm thư mục thất bại");
+    throw new Error(data.error || "Folder search failed");
   }
   return Array.isArray(data.matches) ? data.matches : [];
 }

@@ -1,7 +1,9 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
+import NoticePopup from "../components/NoticePopup";
 
 type DemoListItem = {
   id: string;
@@ -11,9 +13,9 @@ type DemoListItem = {
   fla?: boolean;
 };
 
-/** Mỗi file tối đa (không vượt quá tổng batch). */
+/** Max size per file (must not exceed total batch limit). */
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
-/** Tổng dung lượng mọi file trong một lần upload. */
+/** Total size of all files in one upload batch. */
 const MAX_BATCH_TOTAL_BYTES = 30 * 1024 * 1024;
 const ALLOWED_UPLOAD_EXTENSIONS = new Set(["fla", "psd"]);
 
@@ -33,7 +35,7 @@ function formatFileSize(bytes: number): string {
 
 type FolderUploadItem = { file: File; relativePath: string };
 
-/** Đọc hết batch từ DirectoryReader (Chrome trả tối đa ~100 entry mỗi lần). */
+/** Read every batch from DirectoryReader (Chrome yields up to ~100 entries per batch). */
 function readAllDirEntries(
   reader: FileSystemDirectoryReader,
 ): Promise<FileSystemEntry[]> {
@@ -86,7 +88,7 @@ function collectFilesFromEntry(
   });
 }
 
-/** File giả (0 byte, không đuôi) khi kéo thả folder trên một số bản Chrome/Windows. */
+/** Placeholder file (0 bytes, no extension) when dragging a folder on some Chrome/Windows builds. */
 function isDroppedFolderPlaceholder(file: File): boolean {
   if (file.size !== 0) return false;
   const base = file.name.split(/[/\\]/).pop() ?? file.name;
@@ -98,7 +100,7 @@ function isDroppedFolderPlaceholder(file: File): boolean {
 
 const Upload: React.FC = () => {
   const { user } = useAuth();
-  const baseUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+  const baseUrl = serverApiOrigin();
   const role = (user?.role || "").toLowerCase();
   const canUpload = role === "admin" || role === "design";
 
@@ -117,8 +119,22 @@ const Upload: React.FC = () => {
   const [message, setMessage] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isFolderDropActive, setIsFolderDropActive] = React.useState(false);
+  const folderOverwriteResolverRef = React.useRef<
+    ((value: boolean) => void) | null
+  >(null);
+  const [folderOverwriteBody, setFolderOverwriteBody] = React.useState<
+    string | null
+  >(null);
   const demoComboRef = React.useRef<HTMLDivElement | null>(null);
   const folderDropDepthRef = React.useRef(0);
+
+  const resolveFolderOverwrite = React.useCallback((choice: boolean) => {
+    const r = folderOverwriteResolverRef.current;
+    if (!r) return;
+    folderOverwriteResolverRef.current = null;
+    setFolderOverwriteBody(null);
+    r(choice);
+  }, []);
 
   const resetFolderForm = React.useCallback(() => {
     setSelectedFolderItems([]);
@@ -372,7 +388,7 @@ const Upload: React.FC = () => {
       for (const snap of snapshots) {
         if (snap.kind === "entry") {
           try {
-            // File lẻ: path = tên file (không thêm thư mục ảo); thư mục: giữ cây như Explorer.
+            // Single file: path = file name (no synthetic folder); folders: preserve tree like Explorer.
             const fromEntry = await collectFilesFromEntry(snap.entry, "");
             collected.push(...fromEntry);
           } catch {
@@ -475,9 +491,15 @@ const Upload: React.FC = () => {
         const conflictList = Array.isArray(data.existingPaths)
           ? data.existingPaths.join("\n")
           : "";
-        const shouldOverwrite = window.confirm(
-          `File da ton tai tren SFTP:\n${conflictList}\n\nBan co muon ghi de khong?`,
-        );
+        const bodyText = conflictList
+          ? `The following paths already exist on the server:\n${conflictList}\n\nOverwrite these files on SFTP?`
+          : "Some files already exist on SFTP. Do you want to overwrite them?";
+
+        const shouldOverwrite = await new Promise<boolean>((resolve) => {
+          folderOverwriteResolverRef.current = resolve;
+          setFolderOverwriteBody(bodyText);
+        });
+
         if (!shouldOverwrite) {
           resetFolderForm();
           setMessage("Upload cancelled. Form has been reset.");
@@ -518,11 +540,11 @@ const Upload: React.FC = () => {
   if (!canUpload) {
     return (
       <div className="w-full px-8 pt-10">
-        <div className="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-6">
-          <h1 className="text-xl font-bold text-rose-300">
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 dark:border-rose-500/30 dark:bg-rose-500/10">
+          <h1 className="text-xl font-bold text-rose-700 dark:text-rose-300">
             Upload Permission Denied
           </h1>
-          <p className="mt-2 text-sm text-rose-200/80">
+          <p className="mt-2 text-sm text-rose-700/90 dark:text-rose-200/80">
             This feature is only available for admin or design roles.
           </p>
         </div>
@@ -532,26 +554,26 @@ const Upload: React.FC = () => {
 
   return (
     <div className="w-full space-y-6 px-6 pb-8 pt-8 md:px-8">
-      <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-[#0b1220] to-[#111827] p-6 shadow-[0_20px_70px_rgba(2,6,23,0.55)]">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#4cceac]/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-indigo-500/20 blur-3xl" />
-        <h1 className="relative text-3xl font-bold tracking-tight text-slate-100">
+      <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-slate-900 dark:via-[#0b1220] dark:to-[#111827] dark:shadow-[0_20px_70px_rgba(2,6,23,0.55)]">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#4cceac]/25 blur-3xl dark:bg-[#4cceac]/15" />
+        <div className="pointer-events-none absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-indigo-400/25 blur-3xl dark:bg-indigo-500/20" />
+        <h1 className="relative text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           File Upload
         </h1>
-        <p className="relative mt-2 text-sm text-slate-300/80">
+        <p className="relative mt-2 text-sm text-slate-600 dark:text-slate-300/80">
           Upload folders to server storage at <code>uploads/file-center</code>.
         </p>
       </header>
 
-      <section className="space-y-5 rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
+      <section className="space-y-5 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b1220] dark:to-[#020617] dark:shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#9ca3af]">
             Category filter
           </label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-sm text-white shadow-inner shadow-black/20 outline-none transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-inner shadow-slate-200/80 outline-none transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 dark:border-white/10 dark:bg-slate-900/80 dark:text-white dark:shadow-black/20"
           >
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -564,7 +586,7 @@ const Upload: React.FC = () => {
         <div className="space-y-2">
           <label
             htmlFor="creative-demo-combo"
-            className="text-xs font-semibold uppercase tracking-wider text-[#9ca3af]"
+            className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#9ca3af]"
           >
             Creative Demo Title
           </label>
@@ -598,7 +620,7 @@ const Upload: React.FC = () => {
                 aria-expanded={demoPickerOpen}
                 aria-controls="creative-demo-listbox"
                 aria-autocomplete="list"
-                className="w-full rounded-xl border border-white/10 bg-slate-900/80 py-2.5 pl-4 pr-10 text-sm text-white placeholder:text-[#64748b] shadow-inner shadow-black/20 outline-none transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-4 pr-10 text-sm text-slate-900 shadow-inner shadow-slate-200/80 outline-none placeholder:text-slate-400 transition focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 dark:border-white/10 dark:bg-slate-900/80 dark:text-white dark:placeholder:text-[#64748b] dark:shadow-black/20"
               />
               <Button
                 type="button"
@@ -610,7 +632,7 @@ const Upload: React.FC = () => {
                 onClick={() => setDemoPickerOpen((o) => !o)}
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#94a3b8] hover:text-white"
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 dark:text-[#94a3b8] dark:hover:text-white"
               >
                 <svg
                   className={`h-4 w-4 transition-transform ${demoPickerOpen ? "rotate-180" : ""}`}
@@ -630,10 +652,10 @@ const Upload: React.FC = () => {
               <ul
                 id="creative-demo-listbox"
                 role="listbox"
-                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-white/10 bg-slate-900/95 py-1 shadow-2xl backdrop-blur"
+                className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-slate-900/95"
               >
                 {demosListFiltered.length === 0 ? (
-                  <li className="px-4 py-2.5 text-sm text-[#94a3b8]">
+                  <li className="px-4 py-2.5 text-sm text-slate-500 dark:text-[#94a3b8]">
                     {filteredDemos.length === 0
                       ? "No title available"
                       : "No matches"}
@@ -645,10 +667,10 @@ const Upload: React.FC = () => {
                         type="button"
                         role="option"
                         aria-selected={item.id === selectedDemoId}
-                        className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-white/10 ${
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-white/10 ${
                           item.id === selectedDemoId
-                            ? "bg-white/5 text-[#9ff3de]"
-                            : "text-white"
+                            ? "bg-[#4cceac]/10 text-teal-800 dark:bg-white/5 dark:text-[#9ff3de]"
+                            : "text-slate-800 dark:text-white"
                         }`}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => pickDemo(item)}
@@ -681,27 +703,27 @@ const Upload: React.FC = () => {
             disabled={loading}
             variant="secondary"
             size="md"
-            className="border border-white/10 text-sm normal-case tracking-normal hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="border border-slate-200 text-sm normal-case tracking-normal hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 dark:border-white/10"
           >
             {loading ? "Refreshing..." : "Refresh list"}
           </Button>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
+      <section className="space-y-4 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b1220] dark:to-[#020617] dark:shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Upload Folder</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Upload Folder</h2>
           <span className="rounded-full border border-[#4cceac]/30 bg-[#4cceac]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#9ff3de]">
             .fla / .psd only
           </span>
         </div>
-        <p className="text-xs text-[#94a3b8]">
+        <p className="text-xs text-slate-600 dark:text-[#94a3b8]">
           Drag-and-drop a folder or multiple .fla/.psd files to SFTP under the
           demo path. Max 30MB per file, max 30MB total per upload; dropped
           folders keep relative paths.
         </p>
         {!hasSelectedDemo && (
-          <p className="text-xs text-amber-300">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
             Please select Creative Demo Title before dropping files here.
           </p>
         )}
@@ -709,10 +731,10 @@ const Upload: React.FC = () => {
         <div
           className={`rounded-2xl border border-dashed p-5 transition ${
             !hasSelectedDemo
-              ? "border-white/10 bg-slate-900/60 opacity-80"
+              ? "border-slate-300/80 bg-slate-50 opacity-90 dark:border-white/10 dark:bg-slate-900/60 dark:opacity-80"
               : isFolderDropActive
                 ? "border-[#4cceac]/70 bg-[#4cceac]/10 shadow-[0_0_0_4px_rgba(76,206,172,0.18)]"
-                : "border-white/10 bg-slate-900/70 hover:border-[#4cceac]/40"
+                : "border-slate-300/80 bg-slate-50/90 hover:border-[#4cceac]/55 dark:border-white/10 dark:bg-slate-900/70 dark:hover:border-[#4cceac]/40"
           }`}
           onDragEnter={(e) => {
             if (!hasSelectedDemo) return;
@@ -739,44 +761,45 @@ const Upload: React.FC = () => {
           }}
           onDrop={(e) => void handleFolderDrop(e)}
         >
-          <p className="text-sm leading-relaxed text-[#cbd5e1]">
+          <p className="text-sm leading-relaxed text-slate-700 dark:text-[#cbd5e1]">
             {hasSelectedDemo ? (
               <>
-                Kéo thả thư mục hoặc nhiều file{" "}
-                <span className="text-[#9ff3de]">.fla</span> /{" "}
-                <span className="text-[#9ff3de]">.psd</span> vào vùng này (tổng
-                tối đa 30MB).
+                Drag and drop a folder or multiple{" "}
+                <span className="font-semibold text-teal-700 dark:text-[#9ff3de]">.fla</span> /{" "}
+                <span className="font-semibold text-teal-700 dark:text-[#9ff3de]">.psd</span>{" "}
+                files into this zone
+                (combined max 30MB).
               </>
             ) : (
-              "Chọn Creative Demo Title trước, sau đó kéo thả file hoặc thư mục vào đây."
+              "Pick a Creative Demo Title first, then drag and drop files or a folder here."
             )}
           </p>
-          <p className="mt-2 text-xs text-[#94a3b8]">
+          <p className="mt-2 text-xs text-slate-500 dark:text-[#94a3b8]">
             {selectedFolderItems.length > 0
               ? `${selectedFolderItems.length} file(s) · total ${formatFileSize(stagedTotalBytes)} / ${formatFileSize(MAX_BATCH_TOTAL_BYTES)}`
               : "No files selected"}
           </p>
           {selectedFolderItems.length > 0 && (
             <div className="mt-3">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748b]">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#64748b]">
                 Files staged (path · size)
               </p>
               <ul
-                className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-white/5 bg-[#020617]/80 p-2"
+                className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/5 dark:bg-[#020617]/80"
                 aria-label="Selected files for upload"
               >
                 {selectedFolderItems.map((it, idx) => (
                   <li
                     key={`${it.relativePath}\0${it.file.size}\0${it.file.lastModified}\0${idx}`}
-                    className="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-xs transition hover:bg-white/[0.04]"
+                    className="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-xs transition hover:bg-slate-100/90 dark:hover:bg-white/[0.04]"
                   >
                     <span
-                      className="min-w-0 break-all text-[#e2e8f0]"
+                      className="min-w-0 break-all text-slate-800 dark:text-[#e2e8f0]"
                       title={it.file.name}
                     >
                       {it.relativePath}
                     </span>
-                    <span className="shrink-0 tabular-nums text-[#94a3b8]">
+                    <span className="shrink-0 tabular-nums text-slate-500 dark:text-[#94a3b8]">
                       {formatFileSize(it.file.size)}
                     </span>
                   </li>
@@ -786,20 +809,26 @@ const Upload: React.FC = () => {
           )}
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-xs text-[#a3a3a3] sm:grid-cols-3">
+        <div className="grid gap-3 rounded-2xl border border-slate-200/90 bg-slate-50 p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-[#a3a3a3] sm:grid-cols-3">
           <p>
-            Folder: <span className="text-white">{selectedFolderName || "-"}</span>
+            Folder:{" "}
+            <span className="font-medium text-slate-900 dark:text-white">
+              {selectedFolderName || "-"}
+            </span>
           </p>
           <p>
-            Files: <span className="text-white">{selectedFolderItems.length}</span>
+            Files:{" "}
+            <span className="font-medium text-slate-900 dark:text-white">
+              {selectedFolderItems.length}
+            </span>
           </p>
           <p>
             Total:{" "}
             <span
               className={
                 stagedTotalBytes > MAX_BATCH_TOTAL_BYTES
-                  ? "text-rose-400"
-                  : "text-white"
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "font-medium text-slate-900 dark:text-white"
               }
             >
               {formatFileSize(stagedTotalBytes)}
@@ -835,18 +864,18 @@ const Upload: React.FC = () => {
         </div>
       )}
 
-      <section className="rounded-3xl border border-white/10 bg-gradient-to-b from-[#0b1220] to-[#020617] p-6 shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
-        <h2 className="text-lg font-semibold text-white">Uploaded Files</h2>
+      <section className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gradient-to-b dark:from-[#0b1220] dark:to-[#020617] dark:shadow-[0_10px_40px_rgba(2,6,23,0.35)]">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Uploaded Files</h2>
         {loading ? (
-          <p className="mt-3 text-sm text-[#94a3b8]">Loading files...</p>
+          <p className="mt-3 text-sm text-slate-500 dark:text-[#94a3b8]">Loading files...</p>
         ) : files.length === 0 ? (
-          <p className="mt-3 text-sm text-[#94a3b8]">No files uploaded yet.</p>
+          <p className="mt-3 text-sm text-slate-500 dark:text-[#94a3b8]">No files uploaded yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {files.map((file) => (
               <li
                 key={file}
-                className="rounded-xl border border-white/5 bg-slate-900/80 px-3 py-2 text-sm text-[#e5e7eb] transition hover:border-[#4cceac]/30 hover:bg-slate-900"
+                className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition hover:border-[#4cceac]/40 hover:bg-slate-50 dark:border-white/5 dark:bg-slate-900/80 dark:text-[#e5e7eb] dark:hover:border-[#4cceac]/30 dark:hover:bg-slate-900"
               >
                 {file}
               </li>
@@ -854,6 +883,20 @@ const Upload: React.FC = () => {
           </ul>
         )}
       </section>
+
+      <NoticePopup
+        open={folderOverwriteBody !== null}
+        onClose={() => resolveFolderOverwrite(false)}
+        title="File already exists on SFTP"
+        description={folderOverwriteBody ?? undefined}
+        variant="warning"
+        cancelLabel="Cancel"
+        confirmLabel="Overwrite"
+        confirmButtonVariant="danger"
+        onConfirm={async () => {
+          resolveFolderOverwrite(true);
+        }}
+      />
     </div>
   );
 };

@@ -20,6 +20,9 @@
         "/history",
         "/ai-gmail"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": true
     }
   },
   "admin": {
@@ -46,8 +49,12 @@
         "/build-demo",
         "/upload",
         "/manage-sftp",
-        "/admin/users"
+        "/admin/users",
+        "/smtp-mail"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": true
     }
   },
   "manager": {
@@ -63,6 +70,9 @@
         "/documentation",
         "/manage-demo"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": false
     }
   },
   "media": {
@@ -87,6 +97,9 @@
         "/ai-gmail",
         "/test-data"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": false
     }
   },
   "design": {
@@ -112,6 +125,9 @@
         "/build-demo",
         "/upload"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": true
     }
   },
   "guest": {
@@ -124,6 +140,9 @@
         "/",
         "/creative-showcase"
       ]
+    },
+    "creativeShowcase": {
+      "canDownload": false
     }
   }
 }

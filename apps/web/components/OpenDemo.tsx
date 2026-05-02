@@ -1,20 +1,21 @@
 import React from "react";
 import { loadActiveCreativeDemos } from "../data/creativeDemos";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from './Button';
 
 export type OpenYomediaDemoPreviewParams = {
-  /** Đường dẫn tương đối (vd `2026/03/.../480x270`) hoặc full có prefix `/script/demo`. */
+  /** Relative path (e.g. `2026/03/.../480x270`) or full path under `/script/demo`. */
   remotePath: string;
   bannerPath?: string;
   formatValue?: string;
   forceDevice?: "pc" | "mb";
   baseRemotePath?: string;
-  /** Base URL server có `/api/creative-demos` (mặc định giống nút Demo). */
+  /** Server base URL with `/api/creative-demos` (same default as the Demo button). */
   serverApiUrl?: string;
   /**
-   * Tab mở đồng bộ trong click (vd `about:blank`) để gán `location` sau khi SFTP xong —
-   * tránh trình duyệt chặn `window.open` sau chuỗi `await`.
+   * Window opened synchronously on click (e.g. `about:blank`), then navigate after SFTP resolves —
+   * avoids popup blocking `window.open` after `await`.
    */
   targetWindow?: Window | null;
 };
@@ -166,15 +167,12 @@ async function getFormatFromData(size: string | null) {
   return { format, device: device as "mb" | "pc" };
 }
 
-/** URL preview demo.yomedia.vn (`f=`, `b=`, …) — cùng logic với nút Demo. */
+/** demo.yomedia.vn preview URL (`f=`, `b=`, …) — same logic as the Demo button. */
 export async function getYomediaDemoPreviewUrl(
   params: OpenYomediaDemoPreviewParams,
 ): Promise<string | null> {
   const baseRemotePath = params.baseRemotePath ?? "/script/demo";
-  const serverApiUrl =
-    params.serverApiUrl ??
-    import.meta.env.VITE_SERVER_URL ??
-    "http://localhost:3000";
+  const serverApiUrl = params.serverApiUrl ?? serverApiOrigin();
 
   const hasPath = Boolean(
     (params.bannerPath ?? params.remotePath ?? "").trim(),
@@ -217,7 +215,7 @@ export async function getYomediaDemoPreviewUrl(
   return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
 }
 
-/** Mở tab preview demo.yomedia.vn với `b=` trỏ tới thư mục / file banner (giống nút Demo). */
+/** Opens demo.yomedia.vn preview tab with `b=` pointing at banner folder/file (same as Demo button). */
 export async function openYomediaDemoPreview(
   params: OpenYomediaDemoPreviewParams,
 ) {
@@ -236,13 +234,13 @@ export async function openYomediaDemoPreview(
 }
 
 type OpenDemoButtonProps = {
-  /** Relative path (folder) trên CDN/SFTP; dùng để suy ra `b=.../index.html` và đoán size (vd 384x683). */
+  /** Relative folder on CDN/SFTP; used to derive `b=.../index.html` and infer size (e.g. 384x683). */
   remotePath: string;
-  /** Truyền trực tiếp query param b=... nếu đã có sẵn */
+  /** Pass through `b=` query if you already have it */
   bannerPath?: string;
-  /** Truyền trực tiếp query param f=... nếu đã có sẵn */
+  /** Pass through `f=` query if you already have it */
   formatValue?: string;
-  /** Ép site preview: `pc` -> idpc, `mb` -> idmb */
+  /** Force preview site: `pc` -> idpc, `mb` -> idmb */
   forceDevice?: "pc" | "mb";
   baseRemotePath?: string;
   className?: string;
@@ -260,8 +258,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   label = "demo",
   disabled = false,
 }) => {
-  const serverApiUrl =
-    import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+  const serverApiUrl = serverApiOrigin();
 
   const handleOpenDemo = React.useCallback(async () => {
     const hasPath = Boolean((bannerPath ?? remotePath).trim());

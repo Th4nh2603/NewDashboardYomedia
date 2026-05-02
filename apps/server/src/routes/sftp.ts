@@ -27,6 +27,7 @@ import {
   maybeCompressVideoUpload,
 } from "../lib/media/videoCompress.js";
 import { isManageDemoMediaSftpAllowed } from "../lib/auth/manageDemoMediaSftp.js";
+import { assertCreativeShowcaseDownloadAllowed } from "../lib/auth/creativeShowcaseDownload.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -471,6 +472,8 @@ sftpRouter.get(
         code: "BAD_REQUEST",
       });
     }
+
+    assertCreativeShowcaseDownloadAllowed(req);
 
     const scope = parseManageSftpScope(req);
     assertMediaManageSftpAllowed(req, scope);
