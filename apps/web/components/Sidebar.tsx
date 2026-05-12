@@ -3,6 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage, type NavMessageKey } from "../contexts/LanguageContext";
+import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
+import { useServerReachable } from "../hooks/useServerReachable";
 import { useUser } from "@clerk/react";
 import { motion } from "motion/react";
 import {
@@ -17,14 +19,71 @@ import {
   ServerStackIcon,
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
+  TableCellsIcon,
   WrenchScrewdriverIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
+  SignalSlashIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+}
+
+function SidebarAdminOfflineToggle({
+  isCollapsed,
+  isDark,
+}: {
+  isCollapsed: boolean;
+  isDark: boolean;
+}) {
+  const { tLayout } = useLanguage();
+  const { enabled, toggle } = useAdminOfflineMode();
+  return (
+    <motion.button
+      type="button"
+      layout
+      onClick={() => toggle()}
+      title={tLayout("adminOfflineModeAria")}
+      className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-center gap-2"} rounded-2xl py-2.5 px-3 text-[10px] font-black uppercase tracking-widest transition-colors border ${
+        enabled
+          ? isDark
+            ? "bg-amber-500/15 text-amber-200 border-amber-500/35 hover:bg-amber-500/25"
+            : "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100"
+          : isDark
+            ? "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-slate-200"
+            : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100"
+      }`}
+    >
+      <SignalSlashIcon
+        className={`w-4 h-4 shrink-0 ${enabled ? "text-amber-400" : ""}`}
+      />
+      {!isCollapsed && (
+        <span className="whitespace-nowrap">
+          {enabled
+            ? tLayout("adminOfflineModeActive")
+            : tLayout("adminOfflineMode")}
+        </span>
+      )}
+    </motion.button>
+  );
+}
+
+/** Keeps `/api/health` polling next to its UI so status never references an out-of-scope name. */
+function SidebarApiLine() {
+  const reachable = useServerReachable();
+  const { tNav } = useLanguage();
+  return (
+    <span className="flex items-center gap-1">
+      <span
+        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+          reachable ? "bg-[#4cceac] animate-pulse" : "bg-amber-500 animate-none"
+        }`}
+      />
+      {reachable ? tNav("systemOnline") : tNav("systemOffline")}
+    </span>
+  );
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
@@ -82,9 +141,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const adminSectionItems: SectionSpec["items"] =
     normalizedRole !== "admin"
       ? []
-      : (([
-          ...(!hasAllowedRouteConfig ||
-          allowedRouteSet.has("/admin/users")
+      : ([
+          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/admin/users")
             ? [
                 {
                   nameKey: "navUserPermissions" as const,
@@ -94,7 +152,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               ]
             : []),
           ...(!hasAllowedRouteConfig ||
-          allowedRouteSet.has("/manage-sftp")
+          allowedRouteSet.has("/creative-demos-edit")
+            ? [
+                {
+                  nameKey: "navCreativeDemosEdit" as const,
+                  path: "/creative-demos-edit",
+                  icon: TableCellsIcon,
+                },
+              ]
+            : []),
+          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/manage-sftp")
             ? [
                 {
                   nameKey: "navManageSftp" as const,
@@ -103,7 +170,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 },
               ]
             : []),
-        ] satisfies SectionSpec["items"]));
+          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/smtp-mail")
+            ? [
+                {
+                  nameKey: "navSmtpMail" as const,
+                  path: "/smtp-mail",
+                  icon: EnvelopeOpenIcon,
+                },
+              ]
+            : []),
+        ] satisfies SectionSpec["items"]);
 
   const sections: SectionSpec[] = [
     {
@@ -131,7 +207,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       items: [
         {
           nameKey: "navCreativeShowcase",
-          path: "/creative-showcase",
+          path: "/creative",
           icon: SparklesIconFilled,
         },
         { nameKey: "navManageDemo", path: "/manage-demo", icon: UsersIcon },
@@ -140,11 +216,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           nameKey: "navTestData",
           path: "/test-data",
           icon: ClipboardDocumentListIcon,
-        },
-        {
-          nameKey: "navSmtpMail",
-          path: "/smtp-mail",
-          icon: EnvelopeOpenIcon,
         },
         {
           nameKey: "navDocumentation",
@@ -357,20 +428,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         ))}
       </div>
 
-      {/* Footer Info */}
-      {!isCollapsed && (
+      {/* Footer: admin offline toggle — admin only; version row when sidebar expanded */}
+      {(normalizedRole === "admin" || !isCollapsed) && (
         <div
           className={`p-6 border-t ${isDark ? "border-white/5" : "border-slate-200/80"}`}
         >
-          <div
-            className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-[#475569]" : "text-slate-500"}`}
-          >
-            <span>v1.2.0</span>
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4cceac] animate-pulse" />
-              {tNav("systemOnline")}
-            </span>
-          </div>
+          {normalizedRole === "admin" && (
+            <SidebarAdminOfflineToggle
+              isCollapsed={isCollapsed}
+              isDark={isDark}
+            />
+          )}
+          {!isCollapsed && (
+            <div
+              className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-widest ${
+                isDark ? "text-[#475569]" : "text-slate-500"
+              } ${normalizedRole === "admin" ? "mt-3 pt-3 border-t border-dashed border-slate-500/20 dark:border-white/10" : ""}`}
+            >
+              <span>v1.2.0</span>
+              <SidebarApiLine />
+            </div>
+          )}
         </div>
       )}
     </motion.nav>

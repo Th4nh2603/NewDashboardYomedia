@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useCallback,
@@ -31,6 +30,9 @@ const LAYOUT_MESSAGES: Record<
     collapseSidebar: string;
     themeAriaUseLight: string;
     themeAriaUseDark: string;
+    adminOfflineMode: string;
+    adminOfflineModeActive: string;
+    adminOfflineModeAria: string;
   }
 > = {
   en: {
@@ -40,6 +42,9 @@ const LAYOUT_MESSAGES: Record<
     collapseSidebar: "Collapse sidebar",
     themeAriaUseLight: "Switch to light theme",
     themeAriaUseDark: "Switch to dark theme",
+    adminOfflineMode: "Offline mode",
+    adminOfflineModeActive: "API disconnected",
+    adminOfflineModeAria: "Toggle admin offline mode — blocks dashboard API requests",
   },
   vi: {
     searchPlaceholder: "Tìm kiếm...",
@@ -48,6 +53,10 @@ const LAYOUT_MESSAGES: Record<
     collapseSidebar: "Thu gọn menu",
     themeAriaUseLight: "Chuyển sang giao diện sáng",
     themeAriaUseDark: "Chuyển sang giao diện tối",
+    adminOfflineMode: "Chế độ offline",
+    adminOfflineModeActive: "Đã ngắt API",
+    adminOfflineModeAria:
+      "Bật/tắt chế độ offline (admin) — chặn mọi gọi API dashboard",
   },
 };
 
@@ -65,11 +74,13 @@ const NAV_MESSAGES: Record<
     navManageDemo: string;
     navUpload: string;
     navTestData: string;
+    navCreativeDemosEdit: string;
     navDocumentation: string;
     navUserPermissions: string;
     navManageSftp: string;
     navSmtpMail: string;
     systemOnline: string;
+    systemOffline: string;
   }
 > = {
   en: {
@@ -80,15 +91,17 @@ const NAV_MESSAGES: Record<
     navDashboard: "Dashboard",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
-    navCreativeShowcase: "Creative Showcase",
+    navCreativeShowcase: "Creative",
     navManageDemo: "Manage Demo",
     navUpload: "Upload",
     navTestData: "Test data",
+    navCreativeDemosEdit: "Creative demos (table)",
     navDocumentation: "Documentation",
     navUserPermissions: "User & Permissions",
     navManageSftp: "SFTP",
     navSmtpMail: "SMTP",
     systemOnline: "System Online",
+    systemOffline: "System offline",
   },
   vi: {
     sectionAiIntelligence: "Trí tuệ AI",
@@ -98,15 +111,17 @@ const NAV_MESSAGES: Record<
     navDashboard: "Tổng quan",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
-    navCreativeShowcase: "Creative Showcase",
+    navCreativeShowcase: "Creative",
     navManageDemo: "Quản lý Demo",
     navUpload: "Tải lên",
     navTestData: "Dữ liệu test",
+    navCreativeDemosEdit: "Creative demos (bảng)",
     navDocumentation: "Tài liệu",
     navUserPermissions: "Người dùng & quyền",
     navManageSftp: "SFTP",
     navSmtpMail: "SMTP",
     systemOnline: "Hệ thống hoạt động",
+    systemOffline: "Hệ thống offline",
   },
 };
 
@@ -142,18 +157,6 @@ const DASHBOARD_MESSAGES: Record<
     quickShowcaseDesc: string;
     quickDocsName: string;
     quickDocsDesc: string;
-    sftpTitle: string;
-    sftpSubtitle: string;
-    sftpRefresh: string;
-    sftpSearchPlaceholder: string;
-    sftpParent: string;
-    sftpGoPath: string;
-    sftpNoMatch: string;
-    sftpLoadingList: string;
-    sftpEmpty: string;
-    fileLabel: string;
-    errSftpList: string;
-    errFolderSearch: string;
   }
 > = {
   en: {
@@ -161,7 +164,7 @@ const DASHBOARD_MESSAGES: Record<
     heroTitleLead: "Command center for ",
     heroTitleAccent: "creative AI",
     heroSubtitle:
-      "A focused, rhythmic hub: jump to tools, skim activity, and browse demo SFTP — clear in light or dark mode.",
+      "A focused, rhythmic hub: jump to tools and skim activity — clear in light or dark mode.",
     ctaChat: "Start with AI Chat",
     statCampaignsLabel: "Active campaigns",
     statCampaignsHint: "+3 this week",
@@ -183,30 +186,17 @@ const DASHBOARD_MESSAGES: Record<
     quickVisionDesc: "Visual analysis & moodboards",
     quickBuildDemoName: "Build Demo",
     quickBuildDemoDesc: "Structured creative demos",
-    quickShowcaseName: "Creative Showcase",
-    quickShowcaseDesc: "Library & internal showcase",
+    quickShowcaseName: "Creative",
+    quickShowcaseDesc: "Library & format specs",
     quickDocsName: "Documentation",
     quickDocsDesc: "Guides, flows, checklists",
-    sftpTitle: "Demo SFTP browser",
-    sftpSubtitle: "Browse script/demo folders in the workspace.",
-    sftpRefresh: "Refresh",
-    sftpSearchPlaceholder:
-      "Filter by name or recursive search (2+ characters)...",
-    sftpParent: "Up one level",
-    sftpGoPath: "Go to path",
-    sftpNoMatch: 'No folders match "{query}".',
-    sftpLoadingList: "Loading listing…",
-    sftpEmpty: "Folder is empty or nothing matches the filter.",
-    fileLabel: "file",
-    errSftpList: "SFTP list failed",
-    errFolderSearch: "Folder search failed",
   },
   vi: {
     workspaceBadge: "Không gian demo",
     heroTitleLead: "Bộ điều khiển ",
     heroTitleAccent: "creative AI",
     heroSubtitle:
-      "Một không gian gọn và đầy nhịp: truy cập công cụ, theo dõi hoạt động và duyệt file demo SFTP — sáng, tối đều dễ đọc.",
+      "Một không gian gọn và đầy nhịp: truy cập công cụ, theo dõi hoạt động — sáng, tối đều dễ đọc.",
     ctaChat: "Bắt đầu với AI Chat",
     statCampaignsLabel: "Campaign đang chạy",
     statCampaignsHint: "+3 tuần này",
@@ -228,23 +218,10 @@ const DASHBOARD_MESSAGES: Record<
     quickVisionDesc: "Phân tích visual & moodboard",
     quickBuildDemoName: "Build Demo",
     quickBuildDemoDesc: "Dựng demo sáng tạo có cấu trúc",
-    quickShowcaseName: "Creative Showcase",
-    quickShowcaseDesc: "Thư viện & showcase nội bộ",
+    quickShowcaseName: "Creative",
+    quickShowcaseDesc: "Thư viện & thông số format",
     quickDocsName: "Tài liệu",
     quickDocsDesc: "HDSD, flow và checklist",
-    sftpTitle: "Trình duyệt SFTP demo",
-    sftpSubtitle: "Duyệt thư mục script/demo trực tiếp trong workspace.",
-    sftpRefresh: "Làm mới",
-    sftpSearchPlaceholder:
-      "Lọc tên trong thư mục hoặc tìm đệ quy (≥2 ký tự)...",
-    sftpParent: "Lên cấp",
-    sftpGoPath: "Đi tới path",
-    sftpNoMatch: "Không có thư mục khớp “{query}”.",
-    sftpLoadingList: "Đang tải danh sách…",
-    sftpEmpty: "Thư mục trống hoặc không có mục khớp bộ lọc.",
-    fileLabel: "file",
-    errSftpList: "Không đọc được danh sách SFTP",
-    errFolderSearch: "Tìm thư mục thất bại",
   },
 };
 

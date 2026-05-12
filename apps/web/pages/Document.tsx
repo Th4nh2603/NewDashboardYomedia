@@ -86,15 +86,15 @@ const routes: RouteInfo[] = [
   {
     path: "/smtp-mail",
     name: "SMTP",
-    group: "Data Management",
+    group: "Administration",
     description:
       "Test SMTP connectivity and send mail through the server API (admin only for send).",
     usage:
       "Verify relay with server env or custom host; compose a message when your role is admin.",
   },
   {
-    path: "/creative-showcase",
-    name: "Creative Showcase",
+    path: "/creative",
+    name: "Creative",
     group: "Data Management",
     description:
       "Library of ready-made demos and creatives for reference and client meetings.",
@@ -312,7 +312,7 @@ const DocumentPage: React.FC = () => {
             <span className="font-semibold">Creative Demos</span>{" "}
             <code className="text-xs">GET /api/creative-demos</code>: demo list
             from the server (active status filter); used by{" "}
-            <code className="text-xs">/creative-showcase</code> and format
+            <code className="text-xs">/creative</code> and format
             matching.
           </li>
           <li>

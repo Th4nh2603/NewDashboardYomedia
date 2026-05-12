@@ -1,12 +1,41 @@
 import React from "react";
-import { loadActiveCreativeDemos } from "../data/creativeDemos";
+import {
+  loadActiveCreativeDemos,
+  type CreativeDemoItem,
+} from "../data/creativeDemos";
 import { fetchJsonOrThrow } from "../lib/apiError";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
-import Button from './Button';
+import Button from "./Button";
+
+/** Last segment counts as a file if it looks like `name.ext` (e.g. `make-vast.xml`, `index.html`). */
+export function splitRelativeDemoPath(relativePath: string): {
+  dirRel: string;
+  fileName: string | null;
+} {
+  const norm = relativePath.replace(/^\/+|\/+$/g, "");
+  if (!norm) return { dirRel: "", fileName: null };
+  const segs = norm.split("/").filter(Boolean);
+  const last = segs[segs.length - 1] ?? "";
+  if (/\.[a-z0-9]{1,12}$/i.test(last)) {
+    return {
+      dirRel: segs.slice(0, -1).join("/"),
+      fileName: last,
+    };
+  }
+  return { dirRel: norm, fileName: null };
+}
 
 export type OpenYomediaDemoPreviewParams = {
-  /** Relative path (e.g. `2026/03/.../480x270`) or full path under `/script/demo`. */
+  /**
+   * Relative path under `baseRemotePath`: folder (e.g. `2026/01/cj/tvc/480x270`) or folder + file
+   * (e.g. `2026/01/cj/tvc/make-vast.xml`).
+   */
   remotePath: string;
+  /**
+   * Video / VAST on idvd: `.../idvd/index.html?f=<creative value>&b=.../make-vast.xml&l=null&c=demo`.
+   * `f=` must be passed via `formatValue` (creative-demos `value`, e.g. instream, outstream) — no default.
+   */
+  instreamVideo?: boolean;
   bannerPath?: string;
   formatValue?: string;
   forceDevice?: "pc" | "mb";
@@ -14,13 +43,22 @@ export type OpenYomediaDemoPreviewParams = {
   /** Server base URL with `/api/creative-demos` (same default as the Demo button). */
   serverApiUrl?: string;
   /**
+   * Active creative rows (e.g. from Manage/Build). When provided, `f=` inference skips an extra
+   * `loadActiveCreativeDemos()` hop; omit until your first catalog fetch finished if the list may be empty.
+   */
+  creativeDemosForPreview?: CreativeDemoItem[];
+  /**
    * Window opened synchronously on click (e.g. `about:blank`), then navigate after SFTP resolves —
    * avoids popup blocking `window.open` after `await`.
    */
   targetWindow?: Window | null;
 };
 
-function buildRemoteRelativePath(fullPath: string, baseRemotePath: string) {
+/** SFTP full path → relative segment under `baseRemotePath` (used for `b=` and public demo URLs). */
+export function buildDemoRemoteRelativePath(
+  fullPath: string,
+  baseRemotePath: string,
+) {
   if (fullPath.startsWith(baseRemotePath)) {
     return fullPath.slice(baseRemotePath.length).replace(/^\/+/, "");
   }
@@ -142,10 +180,71 @@ function inferDeviceByCategory(
   return "mb";
 }
 
-async function getFormatFromData(size: string | null) {
-  if (!size) return { format: "inpage-mb", device: "mb" as const };
+function inferPreviewSiteByCategory(category: string | null | undefined) {
+  const key = String(category ?? "")
+    .trim()
+    .toLowerCase();
+  if (key === "video") return "idvd" as const;
+  if (key === "display") return "idpc" as const;
+  if (key === "mobile") return "idmb" as const;
+  return "idmb" as const;
+}
 
-  const demos = await loadActiveCreativeDemos();
+async function getFormatFromCatalogValue(
+  formatValue: string | null | undefined,
+  preloadedActiveDemos?: CreativeDemoItem[],
+) {
+  const format = String(formatValue ?? "").trim();
+  if (!format) {
+    return {
+      format: "inpage-mb",
+      device: "mb" as const,
+      category: null as string | null,
+      previewSite: "idmb" as const,
+      entryFile: "index.html",
+    };
+  }
+
+  const demos =
+    preloadedActiveDemos !== undefined
+      ? preloadedActiveDemos
+      : await loadActiveCreativeDemos();
+  const row = demos.find((item) => String(item.value ?? "").trim() === format);
+  const category = row?.category ? String(row.category) : null;
+  const deviceByCategory = inferDeviceByCategory(row?.category);
+  const device = format.includes("-pc") ? "pc" : deviceByCategory;
+  const previewSite = category
+    ? inferPreviewSiteByCategory(category)
+    : device === "pc"
+      ? ("idpc" as const)
+      : ("idmb" as const);
+
+  return {
+    format,
+    device: device as "mb" | "pc",
+    category,
+    previewSite,
+    entryFile: (row?.file ?? "").trim() || "index.html",
+  };
+}
+
+async function getFormatFromData(
+  size: string | null,
+  preloadedActiveDemos?: CreativeDemoItem[],
+) {
+  if (!size)
+    return {
+      format: "inpage-mb",
+      device: "mb" as const,
+      category: null as string | null,
+      previewSite: "idmb" as const,
+      entryFile: "index.html",
+    };
+
+  const demos =
+    preloadedActiveDemos !== undefined
+      ? preloadedActiveDemos
+      : await loadActiveCreativeDemos();
 
   const foundBySize = demos.find((item) => {
     const sizes: unknown[] = [];
@@ -162,9 +261,19 @@ async function getFormatFromData(size: string | null) {
   });
 
   const format = foundBySize?.value || fallbackFormatBySize(size, demos);
+  const category = foundBySize?.category ? String(foundBySize.category) : null;
   const deviceByCategory = inferDeviceByCategory(foundBySize?.category);
   const device = format.includes("-pc") ? "pc" : deviceByCategory;
-  return { format, device: device as "mb" | "pc" };
+  const previewSite = inferPreviewSiteByCategory(foundBySize?.category);
+  const entryFile =
+    (foundBySize?.file ?? "").trim() || "index.html";
+  return {
+    format,
+    device: device as "mb" | "pc",
+    category,
+    previewSite,
+    entryFile,
+  };
 }
 
 /** demo.yomedia.vn preview URL (`f=`, `b=`, …) — same logic as the Demo button. */
@@ -179,33 +288,72 @@ export async function getYomediaDemoPreviewUrl(
   );
   if (!hasPath) return null;
 
-  const relative = buildRemoteRelativePath(
+  const relative = buildDemoRemoteRelativePath(
     params.remotePath.trim(),
     baseRemotePath,
   );
-  const computedBannerPath = params.bannerPath?.trim()
-    ? params.bannerPath.trim().replace(/^\/+/, "")
-    : relative
-      ? /\.html?$/i.test(relative)
-        ? relative.replace(/\/+$/, "")
-        : `${relative.replace(/\/+$/, "")}/index.html`
-      : "index.html";
+  const { dirRel, fileName } = splitRelativeDemoPath(relative);
+  const relativeForFolder = fileName !== null ? dirRel : relative;
 
   const sizeFromSftp = await getSizeFromSftpDirectory(
-    params.remotePath,
+    relativeForFolder,
     baseRemotePath,
     serverApiUrl,
   );
-  const size = sizeFromSftp ?? extractSizeFromPath(computedBannerPath);
+  const provisionalPath = (() => {
+    if (!relative) return relative;
+    if (/\.html?$/i.test(relative)) return relative.replace(/\/+$/, "");
+    if (fileName !== null) {
+      const d = dirRel.replace(/\/+$/, "");
+      return d ? `${d}/index.html` : "index.html";
+    }
+    return relative && !/\.html?$/i.test(relative)
+      ? `${relative.replace(/\/+$/, "")}/index.html`
+      : relative.replace(/\/+$/, "");
+  })();
+  const size =
+    sizeFromSftp ??
+    extractSizeFromPath(relativeForFolder) ??
+    extractSizeFromPath(provisionalPath);
+
   const resolved = params.formatValue?.trim()
-    ? {
-        format: params.formatValue.trim(),
-        device: params.formatValue.includes("-pc")
-          ? ("pc" as const)
-          : ("mb" as const),
-      }
-    : await getFormatFromData(size);
-  const { format: formatParam, device } = resolved;
+    ? await getFormatFromCatalogValue(
+        params.formatValue,
+        params.creativeDemosForPreview,
+      )
+    : await getFormatFromData(size, params.creativeDemosForPreview);
+  const {
+    format: formatParam,
+    device,
+    category,
+    previewSite,
+    entryFile,
+  } = resolved;
+
+  const computedBannerPath = params.bannerPath?.trim()
+    ? params.bannerPath.trim().replace(/^\/+/, "")
+    : relative
+      ? fileName !== null
+        ? relative.replace(/\/+$/, "")
+        : /\.html?$/i.test(relative)
+          ? relative.replace(/\/+$/, "")
+          : `${relative.replace(/\/+$/, "")}/${entryFile}`
+      : entryFile;
+
+  const shouldUseVideoSite =
+    params.instreamVideo || previewSite === "idvd" || category === "Video";
+  if (shouldUseVideoSite) {
+    const vastRel = params.bannerPath?.trim()
+      ? params.bannerPath.trim().replace(/^\/+/, "")
+      : fileName !== null &&
+          /\.(xml|xaml)$/i.test(fileName)
+        ? relative.replace(/\/+$/, "")
+        : `${relative.replace(/\/+$/, "")}/make-vast.xml`;
+    const previewBase =
+      "https://demo.yomedia.vn/yomedia/site/idvd/index.html";
+    return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(vastRel)}&l=${encodeURIComponent("null")}&c=demo`;
+  }
+
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";
   /** PC: …/idpc/index.html — Mobile: …/idmb/index.html. */
@@ -234,8 +382,11 @@ export async function openYomediaDemoPreview(
 }
 
 type OpenDemoButtonProps = {
-  /** Relative folder on CDN/SFTP; used to derive `b=.../index.html` and infer size (e.g. 384x683). */
+  /**
+   * Relative path under demo root: folder or `folder/file.ext` (e.g. `2026/01/cj/tvc/make-vast.xml`).
+   */
   remotePath: string;
+  instreamVideo?: boolean;
   /** Pass through `b=` query if you already have it */
   bannerPath?: string;
   /** Pass through `f=` query if you already have it */
@@ -250,6 +401,7 @@ type OpenDemoButtonProps = {
 
 const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   remotePath,
+  instreamVideo,
   bannerPath,
   formatValue,
   forceDevice,
@@ -266,6 +418,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
 
     await openYomediaDemoPreview({
       remotePath: remotePath.trim(),
+      instreamVideo,
       bannerPath,
       formatValue,
       forceDevice,
@@ -275,6 +428,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   }, [
     disabled,
     bannerPath,
+    instreamVideo,
     forceDevice,
     formatValue,
     remotePath,

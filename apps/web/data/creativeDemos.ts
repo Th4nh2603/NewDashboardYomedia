@@ -8,6 +8,8 @@ export type CreativeDemoItem = {
   size?: string | string[];
   position: string;
   fileType: string;
+  /** Entry file under `source` / preview `b=` (e.g. index.html, tvc.mp4) */
+  file?: string;
   value?: string;
   format?: string;
   video?: string;
@@ -47,6 +49,7 @@ function normalizeDemo(raw: unknown): CreativeDemoItem | null {
     size: item.size as string | string[] | undefined,
     position: String(item.position ?? "-"),
     fileType: String(item.fileType ?? ""),
+    file: item.file ? String(item.file).trim() || undefined : undefined,
     value: item.value ? String(item.value) : undefined,
     format: item.format ? String(item.format).trim() : undefined,
     video: item.video ? String(item.video) : undefined,
@@ -60,10 +63,12 @@ function normalizeDemo(raw: unknown): CreativeDemoItem | null {
 export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
   if (cache) return cache;
   let data: CreativeDemoResponse | null = null;
+  let loadedFromServerApi = false;
   try {
     data = await fetchJsonOrThrow<CreativeDemoResponse>(
       `${serverApiOrigin()}/api/creative-demos`,
     );
+    loadedFromServerApi = true;
   } catch {
     // fallback below
   }
@@ -75,7 +80,11 @@ export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
         .map(normalizeDemo)
         .filter((item): item is CreativeDemoItem => Boolean(item))
     : [];
-  cache = demos;
+  // Only cache when API server is reachable; if we had to fallback,
+  // keep retrying API on later calls instead of pinning stale public data.
+  if (loadedFromServerApi) {
+    cache = demos;
+  }
   return demos;
 }
 

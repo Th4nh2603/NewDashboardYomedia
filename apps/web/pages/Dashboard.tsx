@@ -2,13 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
-  MagnifyingGlassIcon,
   SparklesIcon,
   PhotoIcon,
   ChatBubbleBottomCenterTextIcon,
-  FolderIcon,
   DocumentIcon,
-  ArrowPathIcon,
   BoltIcon,
   RectangleStackIcon,
   ChartBarIcon,
@@ -16,41 +13,13 @@ import {
   WrenchScrewdriverIcon,
   RocketLaunchIcon,
 } from "@heroicons/react/24/outline";
-import {
-  fetchSftpList,
-  fetchSftpSearch,
-  getParentPath,
-  joinPath,
-  type SftpEntry,
-} from "../lib/sftpBrowser";
 import { useTheme } from "../contexts/ThemeContext";
-import { interpolate, useLanguage } from "../contexts/LanguageContext";
-
-const DEFAULT_SFTP_PATH = "/script/demo";
-
-type SftpSearchMatch = {
-  fullPath: string;
-  relativePath: string;
-  matchedName: string;
-};
+import { useLanguage } from "../contexts/LanguageContext";
 
 const Dashboard: React.FC = () => {
   const { theme } = useTheme();
   const { tDashboard } = useLanguage();
   const isDark = theme === "dark";
-  const [sftpPath, setSftpPath] = React.useState(DEFAULT_SFTP_PATH);
-  const [pathDraft, setPathDraft] = React.useState(DEFAULT_SFTP_PATH);
-  const [filterQuery, setFilterQuery] = React.useState("");
-  const [debouncedQ, setDebouncedQ] = React.useState("");
-  const [searchMatches, setSearchMatches] = React.useState<SftpSearchMatch[]>(
-    [],
-  );
-  const [searchLoading, setSearchLoading] = React.useState(false);
-  const [searchError, setSearchError] = React.useState<string | null>(null);
-  const [searchRefreshToken, setSearchRefreshToken] = React.useState(0);
-  const [listEntries, setListEntries] = React.useState<SftpEntry[]>([]);
-  const [loadingList, setLoadingList] = React.useState(false);
-  const [listError, setListError] = React.useState<string | null>(null);
 
   const shell = isDark
     ? "border-white/[0.08] bg-[#1a2336]/75 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"
@@ -60,84 +29,6 @@ const Dashboard: React.FC = () => {
   const subCard = isDark
     ? "border-white/[0.06] bg-[#151d2f]/90"
     : "border-slate-200/80 bg-slate-50/90";
-
-  const loadSftpList = React.useCallback(async (path: string) => {
-    setLoadingList(true);
-    setListError(null);
-    try {
-      const entries = await fetchSftpList(path);
-      setListEntries(entries);
-      setSftpPath(path);
-      setPathDraft(path);
-    } catch (err) {
-      setListEntries([]);
-      setListError(
-        err instanceof Error ? err.message : tDashboard("errSftpList"),
-      );
-    } finally {
-      setLoadingList(false);
-    }
-  }, [tDashboard]);
-
-  React.useEffect(() => {
-    void loadSftpList(DEFAULT_SFTP_PATH);
-  }, [loadSftpList]);
-
-  React.useEffect(() => {
-    const id = window.setTimeout(() => setDebouncedQ(filterQuery.trim()), 400);
-    return () => window.clearTimeout(id);
-  }, [filterQuery]);
-
-  React.useEffect(() => {
-    if (debouncedQ.length < 2) {
-      setSearchMatches([]);
-      setSearchError(null);
-      setSearchLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setSearchLoading(true);
-    setSearchError(null);
-    void (async () => {
-      try {
-        const data = await fetchSftpSearch(sftpPath, debouncedQ);
-        if (!cancelled) {
-          setSearchMatches(data);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setSearchMatches([]);
-          setSearchError(
-            e instanceof Error ? e.message : tDashboard("errFolderSearch"),
-          );
-        }
-      } finally {
-        if (!cancelled) setSearchLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedQ, sftpPath, searchRefreshToken, tDashboard]);
-
-  const flatFiltered = React.useMemo(() => {
-    const q = filterQuery.trim().toLowerCase();
-    if (!q) return listEntries;
-    return listEntries.filter((e) => e.name.toLowerCase().includes(q));
-  }, [listEntries, filterQuery]);
-
-  const parentPath = getParentPath(sftpPath);
-
-  const openDirectory = (name: string) => {
-    if (loadingList) return;
-    const next = joinPath(sftpPath, name);
-    void loadSftpList(next);
-  };
-
-  const openPath = (fullPath: string) => {
-    if (loadingList) return;
-    void loadSftpList(fullPath);
-  };
 
   const quickActions = React.useMemo(
     () => [
@@ -180,7 +71,7 @@ const Dashboard: React.FC = () => {
       {
         name: tDashboard("quickShowcaseName"),
         desc: tDashboard("quickShowcaseDesc"),
-        path: "/creative-showcase",
+        path: "/creative",
         icon: RectangleStackIcon,
         accent: "from-fuchsia-500/85 to-purple-700/85",
         iconBg: isDark ? "bg-fuchsia-500/15" : "bg-fuchsia-500/10",
@@ -293,14 +184,20 @@ const Dashboard: React.FC = () => {
               aria-hidden
             />
             <div className="relative flex items-start justify-between gap-3">
-              <div className={`rounded-xl p-2 ${isDark ? "bg-white/5" : "bg-white shadow-sm border border-slate-200/60"}`}>
+              <div
+                className={`rounded-xl p-2 ${isDark ? "bg-white/5" : "bg-white shadow-sm border border-slate-200/60"}`}
+              >
                 <s.icon className={`h-5 w-5 ${muted}`} />
               </div>
             </div>
-            <p className={`relative mt-4 text-2xl font-black tabular-nums ${heading}`}>
+            <p
+              className={`relative mt-4 text-2xl font-black tabular-nums ${heading}`}
+            >
               {s.value}
             </p>
-            <p className={`relative text-xs font-semibold uppercase tracking-wide mt-1 ${muted}`}>
+            <p
+              className={`relative text-xs font-semibold uppercase tracking-wide mt-1 ${muted}`}
+            >
               {s.label}
             </p>
             <p className={`relative text-[11px] mt-2 ${muted} opacity-80`}>
@@ -313,7 +210,9 @@ const Dashboard: React.FC = () => {
       <div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
-            <h2 className={`text-xl font-black ${heading}`}>Lối tắt creative</h2>
+            <h2 className={`text-xl font-black ${heading}`}>
+              Lối tắt creative
+            </h2>
             <p className={`text-sm mt-1 ${muted}`}>
               Các luồng hay dùng — hover để “nổi” card.
             </p>
@@ -341,7 +240,9 @@ const Dashboard: React.FC = () => {
                     <action.icon className={`w-7 h-7 ${action.iconClr}`} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className={`font-bold text-lg ${heading} group-hover:text-[#4cceac] transition-colors`}>
+                    <h3
+                      className={`font-bold text-lg ${heading} group-hover:text-[#4cceac] transition-colors`}
+                    >
                       {action.name}
                     </h3>
                     <p className={`text-sm mt-1 leading-snug ${muted}`}>
@@ -353,7 +254,9 @@ const Dashboard: React.FC = () => {
                   className={`mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${muted}`}
                 >
                   {tDashboard("quickOpenTool")}
-                  <span className={`transition-transform group-hover:translate-x-1 ${heading}`}>
+                  <span
+                    className={`transition-transform group-hover:translate-x-1 ${heading}`}
+                  >
                     →
                   </span>
                 </div>
@@ -362,206 +265,6 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
       </div>
-
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className={`rounded-[1.75rem] border overflow-hidden ${shell}`}
-      >
-        <div
-          className={`flex flex-col gap-1 px-6 py-5 border-b ${isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-200/90 bg-slate-50/50"}`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className={`text-lg font-black ${heading}`}>
-                {tDashboard("sftpTitle")}
-              </h2>
-              <p className={`text-sm ${muted}`}>
-                {tDashboard("sftpSubtitle")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchRefreshToken((t) => t + 1);
-                void loadSftpList(sftpPath);
-              }}
-              disabled={loadingList}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors disabled:opacity-50 ${
-                isDark
-                  ? "bg-white/10 hover:bg-white/15 text-white"
-                  : "bg-slate-900 text-white hover:bg-slate-800"
-              }`}
-            >
-              <ArrowPathIcon
-                className={`h-4 w-4 ${loadingList ? "animate-spin" : ""}`}
-              />
-              {tDashboard("sftpRefresh")}
-            </button>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <div
-              className={`flex flex-1 items-center gap-2 rounded-xl border px-3 py-2 min-w-0 ${
-                isDark
-                  ? "border-white/10 bg-[#0f172a]/50"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              <MagnifyingGlassIcon className={`h-4 w-4 shrink-0 ${muted}`} />
-              <input
-                type="search"
-                value={filterQuery}
-                onChange={(e) => setFilterQuery(e.target.value)}
-                placeholder={tDashboard("sftpSearchPlaceholder")}
-                className={`bg-transparent border-none outline-none text-sm w-full min-w-0 ${
-                  isDark
-                    ? "text-[#e8e8e8] placeholder:text-slate-500"
-                    : "text-slate-900 placeholder:text-slate-400"
-                }`}
-              />
-              {searchLoading && (
-                <span className={`text-[10px] font-bold uppercase ${muted}`}>
-                  …
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {parentPath !== null && (
-                <button
-                  type="button"
-                  disabled={loadingList}
-                  onClick={() => openPath(parentPath)}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold border transition-colors disabled:opacity-50 ${
-                    isDark
-                      ? "border-white/10 hover:bg-white/10 text-[#e0e0e0]"
-                      : "border-slate-200 hover:bg-slate-100 text-slate-800"
-                  }`}
-                >
-                  {tDashboard("sftpParent")}
-                </button>
-              )}
-              <button
-                type="button"
-                disabled={loadingList || !pathDraft.trim()}
-                onClick={() => void loadSftpList(pathDraft.trim())}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold bg-gradient-to-r from-[#4cceac] to-teal-600 text-white hover:brightness-105 disabled:opacity-50`}
-              >
-                {tDashboard("sftpGoPath")}
-              </button>
-            </div>
-          </div>
-          <input
-            type="text"
-            value={pathDraft}
-            onChange={(e) => setPathDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")
-                void loadSftpList(pathDraft.trim());
-            }}
-            className={`mt-2 w-full rounded-xl border px-3 py-2 text-xs font-mono ${
-              isDark
-                ? "border-white/10 bg-[#0f172a]/40 text-[#cbd5e1]"
-                : "border-slate-200 bg-white text-slate-700"
-            }`}
-            spellCheck={false}
-          />
-          {debouncedQ.length >= 2 && (
-            <div className={`mt-3 rounded-xl border p-3 text-sm ${subCard}`}>
-              {searchError && (
-                <p className="text-red-500 font-medium">{searchError}</p>
-              )}
-              {!searchError && searchMatches.length === 0 && !searchLoading && (
-                <p className={muted}>
-                  {interpolate(tDashboard("sftpNoMatch"), {
-                    query: debouncedQ,
-                  })}
-                </p>
-              )}
-              {searchMatches.length > 0 && (
-                <ul className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-                  {searchMatches.map((m) => (
-                    <li key={m.fullPath}>
-                      <button
-                        type="button"
-                        className={`text-left w-full rounded-lg px-2 py-1.5 font-mono text-xs hover:bg-[#4cceac]/10 transition-colors ${heading}`}
-                        onClick={() => openPath(m.fullPath)}
-                      >
-                        {m.relativePath || m.fullPath}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className={`p-4 md:p-5 min-h-[200px]`}>
-          {listError && (
-            <div
-              className={`rounded-xl border px-4 py-3 text-sm font-medium ${isDark ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-red-200 bg-red-50 text-red-800"}`}
-            >
-              {listError}
-            </div>
-          )}
-          {!listError && loadingList && listEntries.length === 0 && (
-            <div className={`flex items-center justify-center py-16 ${muted}`}>
-              {tDashboard("sftpLoadingList")}
-            </div>
-          )}
-          {!listError && !loadingList && flatFiltered.length === 0 && (
-            <div className={`flex items-center justify-center py-14 ${muted}`}>
-              {tDashboard("sftpEmpty")}
-            </div>
-          )}
-          {!listError && flatFiltered.length > 0 && (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {flatFiltered.map((entry) => {
-                const isDir = entry.type === "d";
-                return (
-                  <li key={entry.name}>
-                    <button
-                      type="button"
-                      disabled={!isDir || loadingList}
-                      onClick={() => {
-                        if (isDir) openDirectory(entry.name);
-                      }}
-                      className={`w-full flex items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm transition-all ${
-                        isDir
-                          ? isDark
-                            ? "border-white/[0.08] hover:bg-white/[0.06] hover:border-[#4cceac]/35"
-                            : "border-slate-200/90 hover:bg-slate-50 hover:border-[#4cceac]/40"
-                          : isDark
-                            ? "border-white/[0.04] opacity-75 cursor-default"
-                            : "border-slate-100 opacity-90 cursor-default"
-                      }`}
-                    >
-                      <span
-                        className={`shrink-0 rounded-lg p-2 ${isDark ? "bg-white/5" : "bg-slate-100"}`}
-                      >
-                        {isDir ? (
-                          <FolderIcon className={`h-5 w-5 ${muted}`} />
-                        ) : (
-                          <DocumentIcon className={`h-5 w-5 ${muted}`} />
-                        )}
-                      </span>
-                      <span className={`font-semibold truncate ${heading}`}>
-                        {entry.name}
-                      </span>
-                      {!isDir && (
-                        <span className={`ml-auto text-[10px] font-bold uppercase shrink-0 ${muted}`}>
-                          {tDashboard("fileLabel")}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </motion.section>
     </div>
   );
 };

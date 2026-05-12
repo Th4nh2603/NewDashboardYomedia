@@ -11,7 +11,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { user, isAuthenticated, authReady } = useAuth();
   const { isSignedIn, isLoaded } = useClerkAuth();
   const location = useLocation();
-  const publicPaths = new Set(["/creative-showcase"]);
+  const publicPaths = new Set(["/creative"]);
 
   if (publicPaths.has(location.pathname)) {
     return <>{children}</>;

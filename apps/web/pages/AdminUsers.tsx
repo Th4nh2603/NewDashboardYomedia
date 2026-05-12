@@ -20,6 +20,11 @@ type RolePermissionConfig = Record<
     manageDemo?: {
       canUseFileActionButtons?: boolean;
       canSwitchSftpHost?: boolean;
+      canSftpUploadBinary?: boolean;
+      canSftpWriteFile?: boolean;
+      canSftpDelete?: boolean;
+      canSftpRename?: boolean;
+      canSftpMkdir?: boolean;
     };
     routeAccess?: {
       allowedRoutes?: string[];
@@ -39,6 +44,108 @@ const ROLE_OPTIONS = [
   { value: "media", label: "Media" },
   { value: "guest", label: "Guest" },
 ];
+
+/** <Route path="…"> in apps/web/App.tsx; HashRouter exposes them as `#/…` in the browser URL. */
+const WEB_MANAGE_DEMO = "/manage-demo";
+const WEB_BUILD_DEMO = "/build-demo";
+const WEB_MANAGE_SFTP = "/manage-sftp";
+const WEB_CREATIVE = "/creative";
+
+const SFTP_ACL_FIELDS: {
+  key:
+    | "canSftpUploadBinary"
+    | "canSftpWriteFile"
+    | "canSftpDelete"
+    | "canSftpRename"
+    | "canSftpMkdir";
+  title: string;
+  detail?: string;
+  paths: readonly string[];
+}[] = [
+  {
+    key: "canSftpUploadBinary",
+    title: "Upload binary",
+    paths: [WEB_MANAGE_DEMO, WEB_BUILD_DEMO],
+  },
+  {
+    key: "canSftpWriteFile",
+    title: "Write file",
+    detail: "Text + base64",
+    paths: [WEB_MANAGE_DEMO, WEB_BUILD_DEMO, WEB_MANAGE_SFTP],
+  },
+  {
+    key: "canSftpDelete",
+    title: "Delete path",
+    paths: [WEB_MANAGE_DEMO, WEB_MANAGE_SFTP],
+  },
+  {
+    key: "canSftpRename",
+    title: "Rename path",
+    paths: [WEB_MANAGE_DEMO],
+  },
+  {
+    key: "canSftpMkdir",
+    title: "Create directory",
+    paths: [WEB_MANAGE_DEMO],
+  },
+];
+
+const WebRouteChips: React.FC<{ paths: readonly string[] }> = ({ paths }) => (
+  <span className="flex flex-wrap gap-1">
+    {paths.map((p) => (
+      <span
+        key={p}
+        className="inline-flex rounded-md border border-[#4cceac]/30 bg-[#4cceac]/10 px-1.5 py-0.5 font-mono text-[11px] leading-none text-emerald-700 dark:border-[#4cceac]/25 dark:bg-[#4cceac]/[0.08] dark:text-[#a7f3d0]"
+        title="React route (HashRouter: # + this path)"
+      >
+        {p}
+      </span>
+    ))}
+  </span>
+);
+
+type PermissionCheckboxRowProps = {
+  checked: boolean;
+  onChecked: (checked: boolean) => void;
+  title: React.ReactNode;
+  paths?: readonly string[];
+  subtitle?: React.ReactNode;
+};
+
+const PermissionCheckboxRow: React.FC<PermissionCheckboxRowProps> = ({
+  checked,
+  onChecked,
+  title,
+  paths,
+  subtitle,
+}) => (
+  <label className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-white/[0.07] dark:bg-[#0d111a]/90 dark:hover:border-white/12 dark:hover:bg-[#0d111a]">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChecked(e.target.checked)}
+      className="mt-0.5 h-4 w-4 shrink-0 accent-[#4cceac]"
+    />
+    <span className="flex min-w-0 flex-col gap-1">
+      <span className="text-[13px] font-medium leading-snug text-slate-800 dark:text-[#e2e8f0]">
+        {title}
+      </span>
+      {subtitle ? (
+        <span className="text-[11px] leading-snug text-slate-500 dark:text-slate-500">
+          {subtitle}
+        </span>
+      ) : null}
+      {paths && paths.length > 0 ? (
+        <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-500">
+            Paths
+          </span>
+          <WebRouteChips paths={paths} />
+        </span>
+      ) : null}
+    </span>
+  </label>
+);
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -233,6 +340,23 @@ const AdminUsers: React.FC = () => {
     }));
   };
 
+  const updateSftpAcl = (
+    role: string,
+    field: (typeof SFTP_ACL_FIELDS)[number]["key"],
+    enabled: boolean,
+  ) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [role]: {
+        ...(prev[role] || {}),
+        manageDemo: {
+          ...(prev[role]?.manageDemo || {}),
+          [field]: enabled,
+        },
+      },
+    }));
+  };
+
   const updatePermissionRoutes = (role: string, routes: string[]) => {
     setPermissions((prev) => ({
       ...prev,
@@ -274,6 +398,16 @@ const AdminUsers: React.FC = () => {
       const canSwitchSftpHost =
         role === "admin" &&
         permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+      const canSftpUploadBinary =
+        permissions[role]?.manageDemo?.canSftpUploadBinary === true;
+      const canSftpWriteFile =
+        permissions[role]?.manageDemo?.canSftpWriteFile === true;
+      const canSftpDelete =
+        permissions[role]?.manageDemo?.canSftpDelete === true;
+      const canSftpRename =
+        permissions[role]?.manageDemo?.canSftpRename === true;
+      const canSftpMkdir =
+        permissions[role]?.manageDemo?.canSftpMkdir === true;
       const canDownloadCreativeDemos =
         permissions[role]?.creativeShowcase?.canDownload === true;
       await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
@@ -289,6 +423,11 @@ const AdminUsers: React.FC = () => {
               role === "admin"
                 ? canSwitchSftpHost
                 : false,
+            canSftpUploadBinary,
+            canSftpWriteFile,
+            canSftpDelete,
+            canSftpRename,
+            canSftpMkdir,
           },
           routeAccess: {
             allowedRoutes,
@@ -343,6 +482,12 @@ const AdminUsers: React.FC = () => {
     const originalSwitch =
       role === "admin" &&
       initialPermissions[role]?.manageDemo?.canSwitchSftpHost === true;
+    const md = permissions[role]?.manageDemo;
+    const imd = initialPermissions[role]?.manageDemo;
+    const sftpDirty = SFTP_ACL_FIELDS.some(
+      (f) =>
+        (md?.[f.key] === true) !== (imd?.[f.key] === true),
+    );
     const currentCreativeDownload =
       permissions[role]?.creativeShowcase?.canDownload === true;
     const originalCreativeDownload =
@@ -356,6 +501,7 @@ const AdminUsers: React.FC = () => {
     return (
       currentCanUse !== originalCanUse ||
       currentSwitch !== originalSwitch ||
+      sftpDirty ||
       currentCreativeDownload !== originalCreativeDownload ||
       JSON.stringify(currentRoutes) !== JSON.stringify(originalRoutes)
     );
@@ -365,10 +511,10 @@ const AdminUsers: React.FC = () => {
     <div className="w-full px-8 pt-10 pb-16 space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight uppercase italic">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic dark:text-white">
             User & Permission Management
           </h1>
-          <p className="text-xs text-[#a3a3a3] mt-1">
+          <p className="text-xs text-slate-600 mt-1 dark:text-[#a3a3a3]">
             Separate user management from role-based permission configuration.
           </p>
         </div>
@@ -380,7 +526,7 @@ const AdminUsers: React.FC = () => {
               if (activeTab === "permissions") void loadPermissions();
             }}
             disabled={loading || permissionsLoading}
-            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 text-white/90 bg-white/5 hover:bg-white/10 disabled:opacity-40"
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-40 dark:border-white/10 dark:text-white/90 dark:bg-white/5 dark:hover:bg-white/10"
           >
             Reload
           </Button>
@@ -393,8 +539,8 @@ const AdminUsers: React.FC = () => {
           onClick={() => setActiveTab("users")}
           className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
             activeTab === "users"
-              ? "border-[#4cceac] bg-[#4cceac]/20 text-[#9ff3de]"
-              : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+              ? "border-[#4cceac] bg-[#4cceac]/15 text-emerald-700 dark:bg-[#4cceac]/20 dark:text-[#9ff3de]"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
           }`}
         >
           Users
@@ -404,8 +550,8 @@ const AdminUsers: React.FC = () => {
           onClick={() => setActiveTab("permissions")}
           className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
             activeTab === "permissions"
-              ? "border-[#4cceac] bg-[#4cceac]/20 text-[#9ff3de]"
-              : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+              ? "border-[#4cceac] bg-[#4cceac]/15 text-emerald-700 dark:bg-[#4cceac]/20 dark:text-[#9ff3de]"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
           }`}
         >
           Permissions
@@ -413,21 +559,21 @@ const AdminUsers: React.FC = () => {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+        <div className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-xs text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
           {error}
         </div>
       )}
       {message && (
-        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
+        <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-xs text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
           {message}
         </div>
       )}
 
       {activeTab === "users" ? (
-        <div className="rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl overflow-hidden">
+        <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
-              <thead className="bg-[#0d111a] text-[#94a3b8]">
+              <thead className="bg-slate-50 text-slate-600 dark:bg-[#0d111a] dark:text-[#94a3b8]">
                 <tr>
                   <th className="text-left px-4 py-3">Name</th>
                   <th className="text-left px-4 py-3">Email</th>
@@ -440,21 +586,21 @@ const AdminUsers: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-6 text-center text-[#a3a3a3]" colSpan={6}>
+                    <td className="px-4 py-6 text-center text-slate-500 dark:text-[#a3a3a3]" colSpan={6}>
                       Loading users...
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-6 text-center text-[#a3a3a3]" colSpan={6}>
+                    <td className="px-4 py-6 text-center text-slate-500 dark:text-[#a3a3a3]" colSpan={6}>
                       No user records.
                     </td>
                   </tr>
                 ) : (
                   items.map((item) => (
-                    <tr key={item.id} className="border-t border-white/5">
-                      <td className="px-4 py-3 text-white">{item.name}</td>
-                      <td className="px-4 py-3 text-[#cbd5e1]">{item.email}</td>
+                    <tr key={item.id} className="border-t border-slate-100 dark:border-white/5">
+                      <td className="px-4 py-3 text-slate-900 dark:text-white">{item.name}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-[#cbd5e1]">{item.email}</td>
                       <td className="px-4 py-3">
                         <select
                           value={item.role || ""}
@@ -463,7 +609,7 @@ const AdminUsers: React.FC = () => {
                             updateItem(item.id, "role", role);
                             updateItem(item.id, "roleTitle", roleTitleFromRole(role));
                           }}
-                          className="w-full rounded-lg bg-[#0d111a] border border-white/10 px-2 py-1.5 text-white"
+                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
                         >
                           {ROLE_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -478,7 +624,7 @@ const AdminUsers: React.FC = () => {
                           onChange={(e) =>
                             updateItem(item.id, "roleTitle", e.target.value)
                           }
-                          className="w-full rounded-lg bg-[#0d111a] border border-white/10 px-2 py-1.5 text-white"
+                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -487,7 +633,7 @@ const AdminUsers: React.FC = () => {
                           onChange={(e) =>
                             updateItem(item.id, "status", e.target.value)
                           }
-                          className="w-full rounded-lg bg-[#0d111a] border border-white/10 px-2 py-1.5 text-white"
+                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
                         >
                           {STATUS_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -524,23 +670,48 @@ const AdminUsers: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="rounded-[2rem] border border-white/5 bg-[#141b2d] shadow-2xl overflow-hidden">
+        <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 dark:border-white/5 dark:bg-[#0f141d] dark:text-slate-400">
+            <span className="font-medium text-slate-700 dark:text-slate-300">Web routes</span> use{" "}
+            <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px] text-emerald-700 dark:bg-white/5 dark:text-[#7dd3c0]">
+              HashRouter
+            </code>{" "}
+            (<code className="rounded bg-slate-100 px-1 text-[11px] text-slate-700 dark:bg-white/5 dark:text-slate-300">
+              #
+            </code>{" "}
+            + path in the URL). Declared under{" "}
+            <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px] text-emerald-700 dark:bg-white/5 dark:text-[#7dd3c0]">
+              App.tsx
+            </code>
+            .
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-sm">
-              <thead className="bg-[#0d111a] text-[#94a3b8]">
+              <thead className="bg-slate-50 text-slate-600 dark:bg-[#0d111a] dark:text-[#94a3b8]">
                 <tr>
-                  <th className="text-left px-4 py-3">Role</th>
-                  <th className="text-left px-4 py-3">
-                    Manage Demo / permissions
+                  <th className="w-[140px] text-left px-4 py-3 align-bottom">
+                    Role
                   </th>
-                  <th className="text-left px-4 py-3">Allowed Routes</th>
-                  <th className="text-right px-4 py-3">Action</th>
+                  <th className="min-w-[320px] text-left px-4 py-3 align-bottom font-normal">
+                    <span className="block font-semibold text-slate-800 dark:text-[#cbd5e1]">
+                      Manage Demo / permissions
+                    </span>
+                    <span className="mt-1 block text-[11px] font-normal capitalize tracking-normal text-slate-500 dark:text-slate-500">
+                      Checkbox + paths where each action runs in the web app.
+                    </span>
+                  </th>
+                  <th className="min-w-[200px] text-left px-4 py-3 align-bottom">
+                    Allowed Routes
+                  </th>
+                  <th className="w-[110px] text-right px-4 py-3 align-bottom">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {permissionsLoading ? (
                   <tr>
-                    <td className="px-4 py-6 text-center text-[#a3a3a3]" colSpan={4}>
+                    <td className="px-4 py-6 text-center text-slate-500 dark:text-[#a3a3a3]" colSpan={4}>
                       Loading permissions...
                     </td>
                   </tr>
@@ -560,70 +731,92 @@ const AdminUsers: React.FC = () => {
                         : [],
                     );
                     return (
-                      <tr key={role} className="border-t border-white/5">
-                        <td className="px-4 py-3 text-white">{option.label}</td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2.5">
-                            <label className="inline-flex items-center gap-2 text-[#cbd5e1]">
-                              <input
-                                type="checkbox"
-                                checked={canUse}
-                                onChange={(e) =>
-                                  updatePermission(role, e.target.checked)
-                                }
-                                className="h-4 w-4 accent-[#4cceac]"
-                              />
-                              <span className="text-xs">
-                                canUseFileActionButtons
-                              </span>
-                            </label>
-                            {role === "admin" ? (
-                              <label className="inline-flex items-center gap-2 text-[#cbd5e1]">
-                                <input
-                                  type="checkbox"
-                                  checked={canSwitch}
-                                  onChange={(e) =>
-                                    updateCanSwitchSftpHost(
-                                      role,
-                                      e.target.checked,
-                                    )
-                                  }
-                                  className="h-4 w-4 accent-[#4cceac]"
-                                />
-                                <span className="text-xs leading-snug">
-                                  canSwitchSftpHost (demo ↔ media SFTP on Manage
-                                  Demo)
+                      <tr key={role} className="border-t border-slate-100 dark:border-white/5">
+                        <td className="align-top px-4 py-4 text-slate-900 dark:text-white whitespace-nowrap">
+                          {option.label}
+                        </td>
+                        <td className="align-top px-4 py-4">
+                          <div className="flex max-w-xl flex-col gap-2">
+                            <PermissionCheckboxRow
+                              checked={canUse}
+                              onChecked={(v) => updatePermission(role, v)}
+                              title={
+                                <span className="font-mono text-[12px] text-slate-700 dark:text-slate-200">
+                                  canUseFileActionButtons
                                 </span>
-                              </label>
+                              }
+                              subtitle="Toolbar actions on Manage Demo file list"
+                              paths={[WEB_MANAGE_DEMO]}
+                            />
+                            {role === "admin" ? (
+                              <PermissionCheckboxRow
+                                checked={canSwitch}
+                                onChecked={(v) =>
+                                  updateCanSwitchSftpHost(role, v)
+                                }
+                                title={
+                                  <span className="font-mono text-[12px] text-slate-700 dark:text-slate-200">
+                                    canSwitchSftpHost
+                                  </span>
+                                }
+                                subtitle="Switch demo ↔ media SFTP host on Manage Demo"
+                                paths={[WEB_MANAGE_DEMO]}
+                              />
                             ) : (
-                              <p className="text-[11px] text-slate-500 italic">
-                                canSwitchSftpHost — admin only
+                              <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-[11px] leading-snug text-slate-500 dark:border-white/10 dark:bg-[#0d111a]/50 dark:text-slate-500">
+                                <span className="font-mono text-slate-600 dark:text-slate-400">
+                                  canSwitchSftpHost
+                                </span>{" "}
+                                — admin only
                               </p>
                             )}
-                            <label className="inline-flex items-center gap-2 text-[#cbd5e1]">
-                              <input
-                                type="checkbox"
-                                checked={canDownloadCreative}
-                                onChange={(e) =>
-                                  updateCreativeShowcaseDownload(
-                                    role,
-                                    e.target.checked,
-                                  )
-                                }
-                                className="h-4 w-4 accent-[#4cceac]"
-                              />
-                              <span className="text-xs leading-snug">
-                                Creative Showcase — allow ZIP download
-                              </span>
-                            </label>
+                            <div className="flex flex-col gap-2 rounded-xl border border-[#4cceac]/25 bg-[#4cceac]/[0.08] p-2.5 dark:border-[#4cceac]/15 dark:bg-[#4cceac]/[0.04]">
+                              <div className="px-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-[#94a3b8]">
+                                  SFTP mutations
+                                </span>
+                              </div>
+                              {SFTP_ACL_FIELDS.map((f) => (
+                                <PermissionCheckboxRow
+                                  key={f.key}
+                                  checked={
+                                    permissions[role]?.manageDemo?.[f.key] ===
+                                    true
+                                  }
+                                  onChecked={(v) => updateSftpAcl(role, f.key, v)}
+                                  title={
+                                    <>
+                                      <span className="text-slate-800 dark:text-[#cbd5e1]">
+                                        {f.title}
+                                      </span>
+                                      {f.detail ? (
+                                        <span className="ml-1.5 font-normal text-slate-500 dark:text-slate-500">
+                                          · {f.detail}
+                                        </span>
+                                      ) : null}
+                                    </>
+                                  }
+                                  paths={f.paths}
+                                />
+                              ))}
+                            </div>
+                            <PermissionCheckboxRow
+                              checked={canDownloadCreative}
+                              onChecked={(v) =>
+                                updateCreativeShowcaseDownload(role, v)
+                              }
+                              title="Creative ZIP download"
+                              subtitle="Creative Showcase folder download"
+                              paths={[WEB_CREATIVE]}
+                            />
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <td className="align-top px-4 py-4">
+                          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                             {availableRoutes.map((route) => (
                               <label
                                 key={`${role}-${route}`}
-                                className="inline-flex items-center gap-2 text-[#cbd5e1]"
+                                className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 transition-colors hover:border-slate-300 dark:border-white/[0.06] dark:bg-[#0d111a]/60 dark:text-[#cbd5e1] dark:hover:border-white/10"
                               >
                                 <input
                                   type="checkbox"
@@ -637,14 +830,16 @@ const AdminUsers: React.FC = () => {
                                     }
                                     updatePermissionRoutes(role, Array.from(next));
                                   }}
-                                  className="h-4 w-4 accent-[#4cceac]"
+                                  className="h-4 w-4 shrink-0 accent-[#4cceac]"
                                 />
-                                <span className="text-xs">{route}</span>
+                                <span className="font-mono text-[11px] leading-tight text-slate-700 dark:text-slate-300">
+                                  {route}
+                                </span>
                               </label>
                             ))}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="align-top px-4 py-4 text-right">
                           {(() => {
                             const dirty = isPermissionDirty(role);
                             return (

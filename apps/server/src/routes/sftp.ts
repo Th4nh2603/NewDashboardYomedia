@@ -1,6 +1,5 @@
 import express, { Router, Request, Response } from "express";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
-import { getUserRole } from "../lib/auth/role.js";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -28,6 +27,13 @@ import {
 } from "../lib/media/videoCompress.js";
 import { isManageDemoMediaSftpAllowed } from "../lib/auth/manageDemoMediaSftp.js";
 import { assertCreativeShowcaseDownloadAllowed } from "../lib/auth/creativeShowcaseDownload.js";
+import {
+  assertSftpDeleteAllowed,
+  assertSftpMkdirAllowed,
+  assertSftpRenameAllowed,
+  assertSftpUploadBinaryAllowed,
+  assertSftpWriteFileAllowed,
+} from "../lib/auth/sftpMutate.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,16 +71,6 @@ function assertMediaManageSftpAllowed(req: Request, scope: ManageSftpScope) {
       403,
       "Forbidden: media SFTP requires admin role and canSwitchSftpHost permission.",
       { code: "FORBIDDEN_MEDIA_SFTP" },
-    );
-  }
-}
-
-function requireAdminRole(req: Request): void {
-  const role = getUserRole(req);
-  if (role !== "admin") {
-    throw new HttpError(
-      403,
-      "Forbidden: only admin can edit/delete SFTP files",
     );
   }
 }
@@ -296,7 +292,7 @@ sftpRouter.post(
   "/write-binary",
   express.raw({ type: "application/octet-stream", limit: "500mb" }),
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    assertSftpUploadBinaryAllowed(req);
     const targetPath = typeof req.query.path === "string" ? req.query.path : "";
     if (!targetPath) {
       throw new HttpError(400, "Missing 'path' query parameter", {
@@ -347,7 +343,7 @@ sftpRouter.post(
 sftpRouter.post(
   "/write",
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    assertSftpWriteFileAllowed(req);
     const body = req.body as {
       path?: string;
       content?: string;
@@ -400,7 +396,7 @@ sftpRouter.post(
 sftpRouter.post(
   "/rename",
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    assertSftpRenameAllowed(req);
     const body = req.body as {
       oldPath?: string;
       newPath?: string;
@@ -428,7 +424,7 @@ sftpRouter.post(
 sftpRouter.post(
   "/mkdir",
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    assertSftpMkdirAllowed(req);
     const body = req.body as { path?: string; scope?: string };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {
@@ -447,7 +443,7 @@ sftpRouter.post(
 sftpRouter.post(
   "/delete",
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdminRole(req);
+    assertSftpDeleteAllowed(req);
     const body = req.body as { path?: string; scope?: string };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {

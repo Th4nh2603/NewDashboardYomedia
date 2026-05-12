@@ -1,4 +1,5 @@
 import React from "react";
+import AdminOfflineFetchGate from "./AdminOfflineFetchGate";
 import Sidebar from "./Sidebar";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage, type AppLocale } from "../contexts/LanguageContext";
@@ -51,6 +52,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
         isDark ? "bg-[#141b2d] text-[#e0e0e0]" : "bg-slate-100 text-slate-900"
       }`}
     >
+      <AdminOfflineFetchGate />
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <motion.div
         animate={{

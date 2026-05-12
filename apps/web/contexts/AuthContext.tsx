@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/react";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { setAdminOfflineMode } from "../lib/adminOfflineMode";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 
 interface User {
@@ -32,6 +33,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const isAuthenticated = !!user;
   const getServerBaseUrl = () => serverApiOrigin();
+
+  useEffect(() => {
+    if (!authReady) return;
+    const r = user?.role?.trim().toLowerCase();
+    if (!user || r !== "admin") {
+      setAdminOfflineMode(false);
+    }
+  }, [user, authReady]);
 
   useEffect(() => {
     let cancelled = false;

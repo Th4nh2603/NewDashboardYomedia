@@ -6,9 +6,10 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import net from "node:net";
+import { createServer as createHttpServer } from "node:http";
 import { fileURLToPath } from "url";
 import { createClerkClient } from "@clerk/backend";
-import { isClerkAPIResponseError } from "@clerk/shared/error";
 import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
@@ -19,8 +20,69 @@ import { smtpRouter, legacySendEmailHandler } from "./routes/smtp.js";
 import { errorHandler, notFoundHandler } from "./lib/http/errors.js";
 import { getUserRole } from "./lib/auth/role.js";
 
+function getClerkApiFirstErrorMessage(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) return undefined;
+  const errors = (error as { errors?: unknown }).errors;
+  if (!Array.isArray(errors) || errors.length === 0) return undefined;
+  const first = errors[0];
+  if (typeof first !== "object" || first === null) return undefined;
+  const msg = (first as { message?: unknown }).message;
+  return msg == null ? undefined : String(msg);
+}
+
 const app = express();
-const PORT = Number(process.env.PORT) || 3001;
+const BASE_PORT = Number(process.env.PORT) || 3001;
+
+function findAvailablePort(
+  startPort: number,
+  host: string,
+  maxAttempts = 30,
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    let port = startPort;
+    const tryPort = () => {
+      if (port >= startPort + maxAttempts) {
+        reject(
+          new Error(
+            `No free TCP port found between ${startPort} and ${startPort + maxAttempts - 1} on ${host}`,
+          ),
+        );
+        return;
+      }
+      const tester = net.createServer();
+      tester.once("error", (err: NodeJS.ErrnoException) => {
+        tester.close();
+        if (err.code === "EADDRINUSE") {
+          console.warn(`Port ${port} in use, trying ${port + 1}…`);
+          port += 1;
+          tryPort();
+        } else {
+          reject(err);
+        }
+      });
+      tester.listen(port, host, () => {
+        tester.close(() => resolve(port));
+      });
+    };
+    tryPort();
+  });
+}
+
+function writeDevApiPortFile(port: number) {
+  if (process.env.NODE_ENV === "production") return;
+  try {
+    const webApiPortFile = path.join(
+      __dirname,
+      "..",
+      "..",
+      "web",
+      ".dev-api-port",
+    );
+    fs.writeFileSync(webApiPortFile, String(port), "utf8");
+  } catch (e) {
+    console.warn("Could not write apps/web/.dev-api-port (Vite API proxy):", e);
+  }
+}
 
 app.use(
   cors({
@@ -32,7 +94,12 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "x-user-role"],
   }),
 );
-app.use(express.json({ limit: "50mb" }));
+/** Large enough for bulky JSON; video uploads prefer /api/sftp/write-binary (octet-stream, 500mb). */
+app.use(express.json({ limit: "500mb" }));
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.use("/api/sftp", sftpRouter);
 app.use("/api/rag", ragRouter);
@@ -71,11 +138,18 @@ type RolePermissionConfig = Record<
       canUseFileActionButtons?: boolean;
       /** Admin only: switch Manage Demo between demo / media SFTP host. */
       canSwitchSftpHost?: boolean;
+      /** @deprecated Loaded for backward compat; not written by normalize. */
+      canEditDeleteSftp?: boolean;
+      canSftpUploadBinary?: boolean;
+      canSftpWriteFile?: boolean;
+      canSftpDelete?: boolean;
+      canSftpRename?: boolean;
+      canSftpMkdir?: boolean;
     };
     routeAccess?: {
       allowedRoutes?: string[];
     };
-    /** Creative Showcase — ZIP download of demo folders. */
+    /** Creative page — ZIP download of demo folders. */
     creativeShowcase?: {
       canDownload?: boolean;
     };
@@ -90,7 +164,7 @@ const BASE_ALLOWED_ROUTES = [
   "/chat",
   "/vision",
   "/image-generator",
-  "/creative-showcase",
+  "/creative",
   "/document",
   "/documentation",
   "/manage-demo",
@@ -100,7 +174,11 @@ const BASE_ALLOWED_ROUTES = [
   "/history",
   "/ai-gmail",
 ];
-const ADMIN_EXTRA_ROUTES = ["/manage-sftp", "/admin/users"];
+const ADMIN_EXTRA_ROUTES = [
+  "/manage-sftp",
+  "/admin/users",
+  "/creative-demos-edit",
+];
 const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
 const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
 const ALL_ALLOWED_ROUTES = Array.from(
@@ -146,22 +224,22 @@ function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): string[] {
     routes.add("/test-data");
     routes.add("/smtp-mail");
   }
-  if (role === "admin" || role === "design") {
+  if (role === "admin" || role === "design" || role === "media") {
     routes.add("/build-demo");
+  }
+  if (role === "admin" || role === "design") {
     routes.add("/upload");
   }
   if (role === "admin") {
     routes.add("/manage-sftp");
     routes.add("/admin/users");
+    routes.add("/creative-demos-edit");
   }
 
   return Array.from(routes);
 }
 
-function normalizeAllowedRoutes(
-  value: unknown,
-  fallback: string[],
-): string[] {
+function normalizeAllowedRoutes(value: unknown, fallback: string[]): string[] {
   const fallbackSet = new Set(
     fallback.filter((route) => ALL_ALLOWED_ROUTES.includes(route)),
   );
@@ -340,6 +418,37 @@ function upsertLocalAccountFromClerkUser(clerkUser: any) {
 }
 
 /** When `creativeShowcase` is absent in stored JSON, keep legacy behaviour (only `media` had no download in UI). */
+
+type ManageDemoPermSlice = NonNullable<
+  RolePermissionConfig[string]["manageDemo"]
+>;
+type SftpAclField = keyof Pick<
+  ManageDemoPermSlice,
+  | "canSftpUploadBinary"
+  | "canSftpWriteFile"
+  | "canSftpDelete"
+  | "canSftpRename"
+  | "canSftpMkdir"
+>;
+
+function resolveLegacySftpBundle(
+  md: ManageDemoPermSlice | undefined,
+): boolean {
+  if (md?.canEditDeleteSftp === true) return true;
+  if (md?.canEditDeleteSftp === false) return false;
+  return md?.canUseFileActionButtons === true;
+}
+
+function resolveSftpAclField(
+  md: ManageDemoPermSlice | undefined,
+  field: SftpAclField,
+): boolean {
+  const v = md?.[field];
+  if (v === true) return true;
+  if (v === false) return false;
+  return resolveLegacySftpBundle(md);
+}
+
 function normalizeCreativeShowcaseDownload(
   config:
     | {
@@ -357,7 +466,9 @@ function normalizeCreativeShowcaseDownload(
 
 function loadCreativeDemos() {
   const raw = fs.readFileSync(creativeDemosPath, "utf8");
-  const parsed = JSON.parse(raw) as { demos?: any[] };
+  // Guard against UTF-8 BOM so JSON.parse does not crash and break /api/creative-demos.
+  const safeRaw = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
+  const parsed = JSON.parse(safeRaw) as { demos?: any[] };
   return parsed.demos || [];
 }
 
@@ -372,6 +483,26 @@ function normalizeRolePermissions(
       manageDemo: {
         canUseFileActionButtons: normalizedDefault,
         canSwitchSftpHost: false,
+        canSftpUploadBinary: resolveSftpAclField(
+          safeInput.default?.manageDemo,
+          "canSftpUploadBinary",
+        ),
+        canSftpWriteFile: resolveSftpAclField(
+          safeInput.default?.manageDemo,
+          "canSftpWriteFile",
+        ),
+        canSftpDelete: resolveSftpAclField(
+          safeInput.default?.manageDemo,
+          "canSftpDelete",
+        ),
+        canSftpRename: resolveSftpAclField(
+          safeInput.default?.manageDemo,
+          "canSftpRename",
+        ),
+        canSftpMkdir: resolveSftpAclField(
+          safeInput.default?.manageDemo,
+          "canSftpMkdir",
+        ),
       },
       routeAccess: {
         allowedRoutes: normalizeAllowedRoutes(
@@ -399,6 +530,17 @@ function normalizeRolePermissions(
           r === "admin"
             ? config?.manageDemo?.canSwitchSftpHost === true
             : false,
+        canSftpUploadBinary: resolveSftpAclField(
+          config?.manageDemo,
+          "canSftpUploadBinary",
+        ),
+        canSftpWriteFile: resolveSftpAclField(
+          config?.manageDemo,
+          "canSftpWriteFile",
+        ),
+        canSftpDelete: resolveSftpAclField(config?.manageDemo, "canSftpDelete"),
+        canSftpRename: resolveSftpAclField(config?.manageDemo, "canSftpRename"),
+        canSftpMkdir: resolveSftpAclField(config?.manageDemo, "canSftpMkdir"),
       },
       routeAccess: {
         allowedRoutes: normalizeAllowedRoutes(
@@ -610,11 +752,8 @@ app.get("/api/admin/accounts", async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch admin accounts from Clerk", error);
     const clerkMsg =
-      isClerkAPIResponseError(error) && error.errors[0]?.message
-        ? String(error.errors[0].message)
-        : error instanceof Error
-          ? error.message
-          : "";
+      getClerkApiFirstErrorMessage(error) ||
+      (error instanceof Error ? error.message : "");
     return res.status(500).json({
       ok: false,
       error: clerkMsg
@@ -652,6 +791,11 @@ app.put("/api/admin/permissions/:role", (req, res) => {
     manageDemo?: {
       canUseFileActionButtons?: unknown;
       canSwitchSftpHost?: unknown;
+      canSftpUploadBinary?: unknown;
+      canSftpWriteFile?: unknown;
+      canSftpDelete?: unknown;
+      canSftpRename?: unknown;
+      canSftpMkdir?: unknown;
     };
     routeAccess?: { allowedRoutes?: unknown };
     creativeShowcase?: { canDownload?: unknown };
@@ -660,6 +804,12 @@ app.put("/api/admin/permissions/:role", (req, res) => {
     payload?.manageDemo?.canUseFileActionButtons === true;
   const canSwitchSftpHost =
     role === "admin" && payload?.manageDemo?.canSwitchSftpHost === true;
+  const md = payload?.manageDemo;
+  const canSftpUploadBinary = md?.canSftpUploadBinary === true;
+  const canSftpWriteFile = md?.canSftpWriteFile === true;
+  const canSftpDelete = md?.canSftpDelete === true;
+  const canSftpRename = md?.canSftpRename === true;
+  const canSftpMkdir = md?.canSftpMkdir === true;
   const allowedRoutes = normalizeAllowedRoutes(
     payload?.routeAccess?.allowedRoutes,
     getDefaultAllowedRoutesByRole(role),
@@ -681,6 +831,11 @@ app.put("/api/admin/permissions/:role", (req, res) => {
         ...currentPermissions[role]?.manageDemo,
         canUseFileActionButtons,
         canSwitchSftpHost,
+        canSftpUploadBinary,
+        canSftpWriteFile,
+        canSftpDelete,
+        canSftpRename,
+        canSftpMkdir,
       },
       routeAccess: {
         ...currentPermissions[role]?.routeAccess,
@@ -799,6 +954,8 @@ app.get("/api/creative-demo-titles", (req, res) => {
       title: typeof d?.title === "string" ? d.title.trim() : "",
       category: typeof d?.category === "string" ? d.category.trim() : "",
       value: typeof d?.value === "string" ? d.value.trim() : "",
+      fileType:
+        typeof d?.fileType === "string" ? d.fileType.trim() : "",
       size: Array.isArray(d?.size)
         ? d.size.map((s: unknown) => String(s ?? "").trim()).filter(Boolean)
         : typeof d?.size === "string"
@@ -814,8 +971,23 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 const LISTEN_HOST = process.env.LISTEN_HOST || "0.0.0.0";
-app.listen(PORT, LISTEN_HOST, () => {
-  console.log(
-    `Server listening on http://${LISTEN_HOST === "0.0.0.0" ? "localhost" : LISTEN_HOST}:${PORT}`,
-  );
-});
+
+findAvailablePort(BASE_PORT, LISTEN_HOST)
+  .then((port) => {
+    if (port !== BASE_PORT) {
+      console.warn(
+        `API bound to ${port} (PORT ${BASE_PORT} was in use). Vite dev reads apps/web/.dev-api-port for /api proxy.`,
+      );
+    }
+    const server = createHttpServer(app);
+    server.listen(port, LISTEN_HOST, () => {
+      writeDevApiPortFile(port);
+      console.log(
+        `Server listening on http://${LISTEN_HOST === "0.0.0.0" ? "localhost" : LISTEN_HOST}:${port}`,
+      );
+    });
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

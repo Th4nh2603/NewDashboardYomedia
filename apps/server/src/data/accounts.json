@@ -5,8 +5,8 @@
       "name": "Thanh Nguyen Tran Minh",
       "email": "thanh.ntm@pinetech.vn",
       "phone": "0902392603",
-      "role": "manager",
-      "roleTitle": "Manager",
+      "role": "media",
+      "roleTitle": "Media",
       "status": "active"
     },
     {
@@ -16,6 +16,42 @@
       "phone": "",
       "role": "admin",
       "roleTitle": "Administrator",
+      "status": "active"
+    },
+    {
+      "id": "user_3D1hm9CSu1ARH289V5KM7MxoYJi",
+      "name": "Tiên Nguyễn Hồ Thuỷ",
+      "email": "tien.nht@pinetech.vn",
+      "phone": "",
+      "role": "media",
+      "roleTitle": "Media",
+      "status": "active"
+    },
+    {
+      "id": "user_3DZexFDhZOYpp2LW9seCtjytnZT",
+      "name": "Linh Lê Thị Mai",
+      "email": "linh.ltm@pinetech.vn",
+      "phone": "",
+      "role": "media",
+      "roleTitle": "Media",
+      "status": "active"
+    },
+    {
+      "id": "user_3DaCbwmZ3XTfPLhiIJUjfKKRfSO",
+      "name": "Trân Phạm Lệ",
+      "email": "tran.pl@pinetech.vn",
+      "phone": "",
+      "role": "design",
+      "roleTitle": "Design",
+      "status": "active"
+    },
+    {
+      "id": "user_3Dbk3Y9Z7SCNd4ALma19ppNKWea",
+      "name": "Annie Quan",
+      "email": "anniequan89@gmail.com",
+      "phone": "",
+      "role": "media",
+      "roleTitle": "Media",
       "status": "active"
     }
   ]

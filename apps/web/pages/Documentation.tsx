@@ -130,7 +130,7 @@ const Documentation: React.FC = () => {
             "Chon cac tai san tu Neural Drive de dua vao pipeline.",
             "Thiet lap logic tuong tac va luong trai nghiem nguoi dung.",
             "Chay thu nghiem (Simulation) de kiem tra loi.",
-            "Trien khai ban demo len Creative Showcase.",
+            "Triển khai bản demo lên Creative.",
           ],
         },
         {

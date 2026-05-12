@@ -15,31 +15,72 @@ import {
   FolderPlusIcon,
   ArrowsRightLeftIcon,
 } from "@heroicons/react/24/outline";
-import { getYomediaDemoPreviewUrl } from "../components/OpenDemo";
+import {
+  buildDemoRemoteRelativePath,
+} from "../components/OpenDemo";
+import { useDemoPreviewUrl } from "../hooks/useDemoPreviewUrl";
 import {
   loadActiveCreativeDemos,
   type CreativeDemoItem,
 } from "../data/creativeDemos";
-import { getServerBaseUrl } from "../lib/sftpBrowser";
+import { createSftpClient, type SftpEntry } from "../lib/sftpClient";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
 import InputPopup from "../components/InputPopup";
+
+/** Align with Build Demo: Video format list uses creative-demos `fileType` VIDEO only. */
+function isCreativeDemoVideoFileType(demo: CreativeDemoItem): boolean {
+  return String(demo.fileType ?? "").toUpperCase() === "VIDEO";
+}
+
+function hasPortraitSize(input: string): boolean {
+  const match = String(input).trim().match(/^(\d{2,4})x(\d{2,4})$/i);
+  if (!match) return false;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  return Number.isFinite(width) && Number.isFinite(height) && height > width;
+}
+
+function isVerticalCreativeDemo(demo: CreativeDemoItem): boolean {
+  const title = String(demo.title ?? "").toLowerCase();
+  const value = String(demo.value ?? "").toLowerCase();
+  const format = String(demo.format ?? "").toLowerCase();
+  if (
+    title.includes("vertical") ||
+    value.includes("vertical") ||
+    format.includes("vertical")
+  ) {
+    return true;
+  }
+  const sizes = Array.isArray(demo.size)
+    ? demo.size
+    : demo.size
+      ? [demo.size]
+      : [];
+  return sizes.some((size) => hasPortraitSize(String(size)));
+}
 
 const BASE_REMOTE_PATH = "/script/demo";
 /** UI path when connected to media SFTP (mirrors server `mapRemotePathForManageScope`). */
 const MEDIA_UI_DISPLAY_ROOT = "/media";
 const MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY = "manageDemoSftpScope";
 
+function getItemLabelById(
+  list: { id?: string; label?: string }[],
+  id: string,
+) {
+  const found = list.find((item) => item.id === id);
+  return String(found?.label ?? found?.id ?? id ?? "").trim();
+}
+
 function logicalManagePathToDisplayPath(
   logicalPath: string,
   target: "demo" | "media",
 ): string {
   if (target !== "media") return logicalPath;
-  return logicalPath.replace(
-    /^\/script\/demo(?=\/|$)/i,
-    MEDIA_UI_DISPLAY_ROOT,
-  );
+  return logicalPath.replace(/^\/script\/demo(?=\/|$)/i, MEDIA_UI_DISPLAY_ROOT);
 }
 const VIDEO_TARGET_MAX_BYTES = 4 * 1024 * 1024;
 const VIDEO_COMPRESSIBLE_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
@@ -49,6 +90,11 @@ type RolePermissionConfig = Record<
     manageDemo?: {
       canUseFileActionButtons?: boolean;
       canSwitchSftpHost?: boolean;
+      canSftpUploadBinary?: boolean;
+      canSftpWriteFile?: boolean;
+      canSftpDelete?: boolean;
+      canSftpRename?: boolean;
+      canSftpMkdir?: boolean;
     };
   }
 >;
@@ -61,17 +107,39 @@ const ManageDemo: React.FC = () => {
       manageDemo: {
         canUseFileActionButtons: false,
         canSwitchSftpHost: false,
+        canSftpUploadBinary: false,
+        canSftpWriteFile: false,
+        canSftpDelete: false,
+        canSftpRename: false,
+        canSftpMkdir: false,
       },
     },
   });
+  const md =
+    permissions[normalizedRole]?.manageDemo ??
+    permissions.default?.manageDemo;
   const canUseFileActionButtons =
-    permissions[normalizedRole]?.manageDemo?.canUseFileActionButtons ??
-    permissions.default?.manageDemo?.canUseFileActionButtons ??
-    false;
+    md?.canUseFileActionButtons === true;
+  const canSftpUploadBinary = md?.canSftpUploadBinary === true;
+  const canSftpWriteFile = md?.canSftpWriteFile === true;
+  const canSftpDelete = md?.canSftpDelete === true;
+  const canSftpRename = md?.canSftpRename === true;
+  const canSftpMkdir = md?.canSftpMkdir === true;
+  const canManageDemoWriteFile =
+    canUseFileActionButtons && canSftpWriteFile;
+  const canManageDemoDelete =
+    canUseFileActionButtons && canSftpDelete;
+  const canManageDemoRename =
+    canUseFileActionButtons && canSftpRename;
+  const canManageDemoMkdir =
+    canUseFileActionButtons && canSftpMkdir;
+  const canDropUpload =
+    canUseFileActionButtons &&
+    canSftpUploadBinary &&
+    canSftpWriteFile;
   const canShowSftpHostSwitch =
     normalizedRole === "admin" &&
     (permissions[normalizedRole]?.manageDemo?.canSwitchSftpHost ?? false);
-  const canDropUpload = normalizedRole === "admin";
   const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
     const id = String(i + 1).padStart(2, "0");
     return { id, label: id };
@@ -98,24 +166,10 @@ const ManageDemo: React.FC = () => {
       (m) => m.id === currentMonthLabel || m.label === currentMonthLabel,
     )?.id ?? "01";
 
-  const getItemLabelById = (list: any[], id: string) => {
-    const found = list.find((item: any) => item.id === id);
-    return String(found?.label ?? found?.id ?? id ?? "").trim();
-  };
-
-  type SftpEntry = {
-    name: string;
-    type: string;
-    size: number;
-    modifyTime?: number;
-  };
-
   const [listEntries, setListEntries] = React.useState<SftpEntry[]>([]);
   const [loadingList, setLoadingList] = React.useState(false);
   const [isNavigating, setIsNavigating] = React.useState(false);
   const [listError, setListError] = React.useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const [resolvingPreview, setResolvingPreview] = React.useState(false);
   const [directoryHasSizeJs, setDirectoryHasSizeJs] = React.useState<
     Record<string, boolean>
   >({});
@@ -152,7 +206,10 @@ const ManageDemo: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      sessionStorage.setItem(MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY, manageSftpTarget);
+      sessionStorage.setItem(
+        MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY,
+        manageSftpTarget,
+      );
     } catch {
       // ignore quota / private mode
     }
@@ -163,31 +220,26 @@ const ManageDemo: React.FC = () => {
       setManageSftpTarget("demo");
     }
   }, [canShowSftpHostSwitch, manageSftpTarget]);
-
-  const sftpScopeQuerySuffix =
-    manageSftpTarget === "media"
-      ? `&scope=${encodeURIComponent("media")}`
-      : "";
-  const sftpScopeJsonFields =
-    manageSftpTarget === "media" ? ({ scope: "media" as const } as const) : {};
-
-  const roleHeader = React.useMemo(
+  const baseUrl = serverApiOrigin();
+  const sftpScope = manageSftpTarget === "media" ? "media" : "demo";
+  const sftpClient = React.useMemo(
     () =>
-      normalizedRole
-        ? ({
-            "x-user-role": normalizedRole,
-          } as const)
-        : undefined,
+      createSftpClient({
+        roleHeader: normalizedRole || undefined,
+      }),
     [normalizedRole],
   );
 
   const [activeDemos, setActiveDemos] = React.useState<CreativeDemoItem[]>([]);
-  const [formatOptions, setFormatOptions] = React.useState<string[]>([]);
+  const [demosCatalogReady, setDemosCatalogReady] = React.useState(false);
+
+  type FormatSelectOption = { value: string; label: string };
+  type ManageDemoCategory = "Mobile" | "Display" | "Video";
   const [config, setConfig] = React.useState({
     quality: currentYearId,
     mode: currentMonthId,
     formatValue: "",
-    category: "Mobile" as "Mobile" | "Display",
+    category: "Mobile" as ManageDemoCategory,
   });
 
   const demoPaths = React.useMemo(() => {
@@ -219,6 +271,8 @@ const ManageDemo: React.FC = () => {
         if (!cancelled) setActiveDemos(demos);
       } catch {
         if (!cancelled) setActiveDemos([]);
+      } finally {
+        if (!cancelled) setDemosCatalogReady(true);
       }
     })();
     return () => {
@@ -233,7 +287,7 @@ const ManageDemo: React.FC = () => {
         const data = await fetchJsonOrThrow<{
           ok?: boolean;
           permissions?: RolePermissionConfig;
-        }>(`${getServerBaseUrl()}/api/permissions`);
+        }>(`${baseUrl}/api/permissions`);
         if (!cancelled && data?.permissions) {
           setPermissions(data.permissions);
         }
@@ -244,6 +298,11 @@ const ManageDemo: React.FC = () => {
               manageDemo: {
                 canUseFileActionButtons: false,
                 canSwitchSftpHost: false,
+                canSftpUploadBinary: false,
+                canSftpWriteFile: false,
+                canSftpDelete: false,
+                canSftpRename: false,
+                canSftpMkdir: false,
               },
             },
           });
@@ -253,7 +312,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [baseUrl]);
 
   const detectedSizes = React.useMemo(() => {
     const sizeRegex = /(\d{2,4})x(\d{2,4})/gi;
@@ -268,31 +327,86 @@ const ManageDemo: React.FC = () => {
     return detected;
   }, [currentPath, listEntries]);
 
-  React.useEffect(() => {
-    const values = Array.from(
-      new Set(
-        activeDemos
-          .filter((demo) => {
-            const sizes = Array.isArray(demo.size)
-              ? demo.size
-              : demo.size
-                ? [demo.size]
-                : [];
-            return sizes.some((s) =>
-              detectedSizes.has(String(s).trim().toLowerCase()),
-            );
-          })
-          .map((d) => (d.format ? String(d.format).trim() : ""))
-          .filter(Boolean),
+  const listingHasMakeVastXml = React.useMemo(
+    () =>
+      listEntries.some(
+        (e) =>
+          e.type !== "d" &&
+          e.name.trim().toLowerCase() === "make-vast.xml",
       ),
-    ).sort((a, b) => a.localeCompare(b));
-    setFormatOptions(values);
-  }, [activeDemos, detectedSizes]);
+    [listEntries],
+  );
 
-  const autoDetectedCategory = React.useMemo<
-    "Mobile" | "Display" | null
-  >(() => {
-    const matchedCategories = new Set<"Mobile" | "Display">();
+  const demoMatchesDetectedSize = React.useCallback(
+    (demo: CreativeDemoItem) => {
+      const sizes = Array.isArray(demo.size)
+        ? demo.size
+        : demo.size
+          ? [demo.size]
+          : [];
+      return sizes.some((s) =>
+        detectedSizes.has(String(s).trim().toLowerCase()),
+      );
+    },
+    [detectedSizes],
+  );
+
+  const formatSelectOptions = React.useMemo(() => {
+    const filteredDemos = activeDemos.filter((demo) => {
+      if (demo.category !== config.category) return false;
+      if (demo.category === "Video") {
+        if (!isCreativeDemoVideoFileType(demo)) return false;
+        // Video formats are value-driven (e.g. instream), not strict size-driven.
+        // Keep all active VIDEO entries visible so valid options like 0080 are not hidden
+        // when the current folder contains a different detected size.
+        return true;
+      }
+      return demoMatchesDetectedSize(demo);
+    });
+
+    const byValue = new Map<string, CreativeDemoItem[]>();
+    for (const d of filteredDemos) {
+      const key =
+        d.category === "Video"
+          ? String(d.value ?? "").trim()
+          : d.format
+            ? String(d.format).trim()
+            : "";
+      if (!key) continue;
+      const list = byValue.get(key) ?? [];
+      list.push(d);
+      byValue.set(key, list);
+    }
+
+    const options: FormatSelectOption[] = Array.from(
+      byValue.entries(),
+      ([value, demos]) => {
+        const titles = demos
+          .map((item) => String(item.title ?? "").trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
+        const title = titles[0] ?? value;
+        const hasVerticalFormat =
+          config.category === "Video" &&
+          demos.some((item) => isVerticalCreativeDemo(item));
+        const labelBase =
+          title && title !== value ? `${title} · ${value}` : value;
+        const label = hasVerticalFormat ? `${labelBase} · vertical` : labelBase;
+        return { value, label };
+      },
+    );
+    options.sort((a, b) => a.label.localeCompare(b.label));
+    return options;
+  }, [
+    activeDemos,
+    config.category,
+    demoMatchesDetectedSize,
+  ]);
+
+  const autoDetectedCategory = React.useMemo<ManageDemoCategory | null>(() => {
+    if (listingHasMakeVastXml) return "Video";
+
+    const matchedCategories = new Set<ManageDemoCategory>();
     activeDemos.forEach((demo) => {
       const sizes = Array.isArray(demo.size)
         ? demo.size
@@ -303,20 +417,47 @@ const ManageDemo: React.FC = () => {
         detectedSizes.has(String(s).trim().toLowerCase()),
       );
       if (!hasMatchedSize) return;
-      if (demo.category === "Mobile" || demo.category === "Display") {
+      if (demo.category === "Video" && !isCreativeDemoVideoFileType(demo)) {
+        return;
+      }
+      if (
+        demo.category === "Mobile" ||
+        demo.category === "Display" ||
+        demo.category === "Video"
+      ) {
         matchedCategories.add(demo.category);
       }
     });
 
-    if (matchedCategories.has("Mobile") && !matchedCategories.has("Display")) {
+    if (
+      matchedCategories.has("Mobile") &&
+      !matchedCategories.has("Display") &&
+      !matchedCategories.has("Video")
+    ) {
       return "Mobile";
     }
-    if (matchedCategories.has("Display") && !matchedCategories.has("Mobile")) {
+    if (
+      matchedCategories.has("Display") &&
+      !matchedCategories.has("Mobile") &&
+      !matchedCategories.has("Video")
+    ) {
       return "Display";
+    }
+    if (
+      matchedCategories.has("Video") &&
+      !matchedCategories.has("Mobile") &&
+      !matchedCategories.has("Display")
+    ) {
+      return "Video";
     }
     if (matchedCategories.has(config.category)) return config.category;
     return null;
-  }, [activeDemos, detectedSizes, config.category]);
+  }, [
+    activeDemos,
+    detectedSizes,
+    config.category,
+    listingHasMakeVastXml,
+  ]);
 
   React.useEffect(() => {
     if (!autoDetectedCategory) return;
@@ -325,60 +466,36 @@ const ManageDemo: React.FC = () => {
   }, [autoDetectedCategory, config.category]);
 
   React.useEffect(() => {
-    if (config.formatValue && !formatOptions.includes(config.formatValue)) {
-      setConfig((prev) => ({ ...prev, formatValue: "" }));
-    }
-  }, [config.formatValue, formatOptions]);
+    if (autoDetectedCategory !== "Video") return;
+    const firstOption = formatSelectOptions[0];
+    if (!firstOption) return;
+
+    setConfig((prev) =>
+      prev.formatValue === firstOption.value
+        ? prev
+        : { ...prev, formatValue: firstOption.value },
+    );
+  }, [autoDetectedCategory, formatSelectOptions]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    setResolvingPreview(true);
-    void (async () => {
-      try {
-        const serverApiUrl = getServerBaseUrl();
-        const url = await getYomediaDemoPreviewUrl({
-          remotePath: currentPath,
-          formatValue: config.formatValue || undefined,
-          baseRemotePath: BASE_REMOTE_PATH,
-          forceDevice: config.category === "Display" ? "pc" : "mb",
-          serverApiUrl,
-        });
-        if (!cancelled) {
-          if (url) {
-            try {
-              const u = new URL(url);
-              u.searchParams.set("qr", "false");
-              const withQrFlagDisabled = u.toString();
-              console.log(
-                "[ManageDemo] iframe preview URL (qr=false):",
-                withQrFlagDisabled,
-              );
-              setPreviewUrl(withQrFlagDisabled);
-            } catch {
-              // Fallback: best-effort append if URL parsing fails.
-              const withQrFlagDisabled = url.includes("?")
-                ? `${url}&qr=false`
-                : `${url}?qr=false`;
-              console.log(
-                "[ManageDemo] iframe preview URL (qr=false fallback):",
-                withQrFlagDisabled,
-              );
-              setPreviewUrl(withQrFlagDisabled);
-            }
-          } else {
-            setPreviewUrl(null);
-          }
-        }
-      } catch {
-        if (!cancelled) setPreviewUrl(null);
-      } finally {
-        if (!cancelled) setResolvingPreview(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPath, config.formatValue, config.category]);
+    if (
+      config.formatValue &&
+      !formatSelectOptions.some((o) => o.value === config.formatValue)
+    ) {
+      setConfig((prev) => ({ ...prev, formatValue: "" }));
+    }
+  }, [config.formatValue, formatSelectOptions]);
+
+  const { previewUrl, resolvingPreview } = useDemoPreviewUrl({
+    remotePath: currentPath,
+    formatValue: config.formatValue || undefined,
+    category: config.category,
+    listingHasMakeVastXml,
+    demosCatalogReady,
+    activeDemos,
+    baseRemotePath: BASE_REMOTE_PATH,
+    serverApiUrl: baseUrl,
+  });
 
   const displayRemotePath = React.useCallback(
     (logicalPath: string) =>
@@ -395,13 +512,6 @@ const ManageDemo: React.FC = () => {
     /(\/(?:media|script\/demo)\/)\d{4}(\/)/,
     "$1…$2",
   );
-
-  const buildRemoteRelativePath = (fullPath: string) => {
-    if (fullPath.startsWith(BASE_REMOTE_PATH)) {
-      return fullPath.slice(BASE_REMOTE_PATH.length).replace(/^\/+/, "");
-    }
-    return fullPath.replace(/^\/+/, "");
-  };
 
   const buildEntryFullPath = React.useCallback(
     (entryName: string, basePath: string) => {
@@ -439,15 +549,12 @@ const ManageDemo: React.FC = () => {
     [currentPath, loadingList, isNavigating],
   );
 
-  const openRemoteMedia = React.useCallback(
-    (fullPath: string) => {
-      const relative = buildRemoteRelativePath(fullPath);
-      const baseUrl = "https://demo.yomedia.vn";
-      const url = relative ? `${baseUrl}/${encodeURI(relative)}` : baseUrl;
-      window.open(url, "_blank", "noopener,noreferrer");
-    },
-    [buildRemoteRelativePath],
-  );
+  const openRemoteMedia = React.useCallback((fullPath: string) => {
+    const relative = buildDemoRemoteRelativePath(fullPath, BASE_REMOTE_PATH);
+    const baseUrl = "https://demo.yomedia.vn";
+    const url = relative ? `${baseUrl}/${encodeURI(relative)}` : baseUrl;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
 
   const openCurrentDemo = React.useCallback(() => {
     if (!previewUrl) return;
@@ -483,41 +590,25 @@ const ManageDemo: React.FC = () => {
     let cancelled = false;
     setLoadingList(true);
     setListError(null);
-    const baseUrl = getServerBaseUrl();
-
-    const sortEntries = (list: SftpEntry[]) => {
-      const filtered = list.filter(
-        (e) => !e.name.startsWith(".") && !e.name.startsWith(".bash"),
-      );
-      return filtered.slice().sort((a, b) => {
-        const isDirA = a.type === "d";
-        const isDirB = b.type === "d";
-        if (isDirA && !isDirB) return -1;
-        if (!isDirA && isDirB) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    };
-
-    const fetchList = async (path: string): Promise<SftpEntry[]> => {
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        entries?: SftpEntry[];
-        error?: string;
-      }>(
-        `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}${sftpScopeQuerySuffix}`,
-        {
-          headers: { ...(roleHeader ?? {}) },
-        },
-      );
-      if (!data.ok) {
-        throw new Error(data.error || `Unable to list ${path}`);
-      }
-      return sortEntries((data.entries as SftpEntry[]) ?? []);
-    };
+    const sortEntries = (list: SftpEntry[]) =>
+      list
+        .filter((e) => !e.name.startsWith(".") && !e.name.startsWith(".bash"))
+        .slice()
+        .sort((a, b) => {
+          const isDirA = a.type === "d";
+          const isDirB = b.type === "d";
+          if (isDirA && !isDirB) return -1;
+          if (!isDirA && isDirB) return 1;
+          return a.name.localeCompare(b.name);
+        });
 
     void (async () => {
       try {
-        const entries = await fetchList(pathToList);
+        const data = await sftpClient.list(pathToList, { scope: sftpScope });
+        if (!data.ok) {
+          throw new Error(data.error || `Unable to list ${pathToList}`);
+        }
+        const entries = sortEntries((data.entries as SftpEntry[]) ?? []);
         if (cancelled) return;
         setListEntries(entries);
         setListError(null);
@@ -538,7 +629,12 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentPath, reloadTick, manageSftpTarget, sftpScopeQuerySuffix, roleHeader]);
+  }, [
+    currentPath,
+    reloadTick,
+    sftpScope,
+    sftpClient,
+  ]);
 
   React.useEffect(() => {
     const dirs = listEntries.filter((entry) => entry.type === "d");
@@ -548,7 +644,6 @@ const ManageDemo: React.FC = () => {
     }
 
     let cancelled = false;
-    const baseUrl = getServerBaseUrl();
     const sizeJsRegex = /^\d{2,4}x\d{2,4}\.js$/i;
 
     void (async () => {
@@ -556,15 +651,7 @@ const ManageDemo: React.FC = () => {
         dirs.map(async (dir) => {
           const fullPath = buildEntryFullPath(dir.name, currentPath);
           try {
-            const data = await fetchJsonOrThrow<{
-              ok?: boolean;
-              entries?: SftpEntry[];
-            }>(
-              `${baseUrl}/api/sftp/list?path=${encodeURIComponent(fullPath)}${sftpScopeQuerySuffix}`,
-              {
-                headers: { ...(roleHeader ?? {}) },
-              },
-            );
+            const data = await sftpClient.list(fullPath, { scope: sftpScope });
             if (!data?.ok || !Array.isArray(data?.entries)) {
               return [fullPath, false] as const;
             }
@@ -590,7 +677,13 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [listEntries, currentPath, buildEntryFullPath, sftpScopeQuerySuffix, roleHeader]);
+  }, [
+    listEntries,
+    currentPath,
+    buildEntryFullPath,
+    sftpScope,
+    sftpClient,
+  ]);
 
   const listBusy = loadingList || isNavigating;
 
@@ -599,52 +692,36 @@ const ManageDemo: React.FC = () => {
     return /\.(html?|js|mjs|ts|css|json|txt|xml)$/i.test(lower);
   }, []);
 
-  const handleOpenEditor = React.useCallback(async (fullPath: string) => {
-    try {
-      const baseUrl = getServerBaseUrl();
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        content?: string;
-        error?: string;
-      }>(
-        `${baseUrl}/api/sftp/read?path=${encodeURIComponent(fullPath)}${sftpScopeQuerySuffix}`,
-        {
-          headers: { ...(roleHeader ?? {}) },
-        },
-      );
-      if (!data?.ok) {
-        setListError(data?.error || "Unable to read file content");
-        return;
+  const handleOpenEditor = React.useCallback(
+    async (fullPath: string) => {
+      try {
+        const data = await sftpClient.read(fullPath, { scope: sftpScope });
+        if (!data?.ok) {
+          setListError(data?.error || "Unable to read file content");
+          return;
+        }
+        setEditorPath(fullPath);
+        setEditorContent(String(data.content ?? ""));
+        setListError(null);
+      } catch (err) {
+        setListError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
       }
-      setEditorPath(fullPath);
-      setEditorContent(String(data.content ?? ""));
-      setListError(null);
-    } catch (err) {
-      setListError(
-        err instanceof Error ? err.message : "Unknown network error",
-      );
-    }
-  }, [sftpScopeQuerySuffix, roleHeader]);
+    },
+    [sftpClient, sftpScope],
+  );
 
   const handleSaveEditor = React.useCallback(async () => {
-    if (!editorPath || !canUseFileActionButtons) return;
+    if (!editorPath || !canManageDemoWriteFile) return;
     setSavingFile(true);
     try {
-      const baseUrl = getServerBaseUrl();
-      const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-        `${baseUrl}/api/sftp/write`,
+      const data = await sftpClient.write(
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(roleHeader ?? {}),
-          },
-          body: JSON.stringify({
-            path: editorPath,
-            content: editorContent,
-            ...sftpScopeJsonFields,
-          }),
+          path: editorPath,
+          content: editorContent,
         },
+        { scope: sftpScope },
       );
       if (!data?.ok) {
         setListError(data?.error || "Unable to save file");
@@ -662,36 +739,25 @@ const ManageDemo: React.FC = () => {
   }, [
     editorPath,
     editorContent,
-    canUseFileActionButtons,
-    roleHeader,
-    sftpScopeJsonFields,
+    canManageDemoWriteFile,
+    sftpClient,
+    sftpScope,
   ]);
 
   const requestDeletePath = React.useCallback(
     (fullPath: string, isDir: boolean) => {
-      if (!canUseFileActionButtons || deletingPath) return;
+      if (!canManageDemoDelete || deletingPath) return;
       setDeleteConfirm({ fullPath, isDir });
     },
-    [canUseFileActionButtons, deletingPath],
+    [canManageDemoDelete, deletingPath],
   );
 
   const performDeletePath = React.useCallback(
     async (fullPath: string, isDir: boolean) => {
-      if (!canUseFileActionButtons || deletingPath) return;
+      if (!canManageDemoDelete || deletingPath) return;
       setDeletingPath(fullPath);
       try {
-        const baseUrl = getServerBaseUrl();
-        const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-          `${baseUrl}/api/sftp/delete`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(roleHeader ?? {}),
-            },
-            body: JSON.stringify({ path: fullPath, ...sftpScopeJsonFields }),
-          },
-        );
+        const data = await sftpClient.remove(fullPath, { scope: sftpScope });
         if (!data?.ok) {
           setListError(data?.error || "Unable to delete path");
           return;
@@ -711,46 +777,33 @@ const ManageDemo: React.FC = () => {
       }
     },
     [
-      canUseFileActionButtons,
+      canManageDemoDelete,
       deletingPath,
-      roleHeader,
+      sftpClient,
+      sftpScope,
       buildEntryFullPath,
       currentPath,
-      sftpScopeJsonFields,
     ],
   );
 
   const requestRenamePath = React.useCallback(
     (fullPath: string, currentName: string) => {
-      if (!canUseFileActionButtons || renamingPath) return;
+      if (!canManageDemoRename || renamingPath) return;
       setRenameTarget({ fullPath, currentName });
     },
-    [canUseFileActionButtons, renamingPath],
+    [canManageDemoRename, renamingPath],
   );
 
   const performRenamePath = React.useCallback(
     async (fullPath: string, nextName: string) => {
-      if (!canUseFileActionButtons || renamingPath) return;
+      if (!canManageDemoRename || renamingPath) return;
       const parent = getParentPath(fullPath) || "/";
       const targetPath = buildEntryFullPath(nextName, parent);
       setRenamingPath(fullPath);
       try {
-        const baseUrl = getServerBaseUrl();
-        const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-          `${baseUrl}/api/sftp/rename`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(roleHeader ?? {}),
-            },
-            body: JSON.stringify({
-              oldPath: fullPath,
-              newPath: targetPath,
-              ...sftpScopeJsonFields,
-            }),
-          },
-        );
+        const data = await sftpClient.rename(fullPath, targetPath, {
+          scope: sftpScope,
+        });
         if (!data?.ok) {
           setListError(data?.error || "Unable to rename path");
           return;
@@ -766,36 +819,23 @@ const ManageDemo: React.FC = () => {
       }
     },
     [
-      canUseFileActionButtons,
+      canManageDemoRename,
       renamingPath,
       getParentPath,
       buildEntryFullPath,
-      roleHeader,
-      sftpScopeJsonFields,
+      sftpClient,
+      sftpScope,
     ],
   );
 
   const performCreateFolder = React.useCallback(
     async (folderName: string) => {
-      if (!canUseFileActionButtons || creatingFolder) return;
+      if (!canManageDemoMkdir || creatingFolder) return;
       const targetPath = buildEntryFullPath(folderName, currentPath);
       setCreatingFolder(true);
       try {
-        const baseUrl = getServerBaseUrl();
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          path?: string;
-          error?: string;
-        }>(`${baseUrl}/api/sftp/mkdir`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(roleHeader ?? {}),
-          },
-          body: JSON.stringify({
-            path: targetPath,
-            ...sftpScopeJsonFields,
-          }),
+        const data = await sftpClient.mkdir(targetPath, {
+          scope: sftpScope,
         });
 
         if (!data?.ok) {
@@ -814,12 +854,12 @@ const ManageDemo: React.FC = () => {
       }
     },
     [
-      canUseFileActionButtons,
+      canManageDemoMkdir,
       creatingFolder,
       buildEntryFullPath,
       currentPath,
-      roleHeader,
-      sftpScopeJsonFields,
+      sftpClient,
+      sftpScope,
     ],
   );
 
@@ -854,7 +894,6 @@ const ManageDemo: React.FC = () => {
       setListError(null);
       setUploadSummary(null);
       try {
-        const baseUrl = getServerBaseUrl();
         const videoCompressionLogs: string[] = [];
         for (const file of validFiles) {
           const fileName = file.name.replace(/[\\/]/g, "_").trim();
@@ -863,51 +902,22 @@ const ManageDemo: React.FC = () => {
           const targetPath = buildEntryFullPath(fileName, currentPath);
           const isVideoFile = isCompressibleVideoFileName(fileName);
           const data = isVideoFile
-            ? await fetchJsonOrThrow<{
-                ok?: boolean;
-                error?: string;
-                video?: {
-                  originalBytes?: number;
-                  compressedBytes?: number;
-                  videoCompressed?: boolean;
-                };
-              }>(
-                `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(targetPath)}${sftpScopeQuerySuffix}`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/octet-stream",
-                    ...(roleHeader ?? {}),
-                  },
-                  body: file,
-                },
-              )
+            ? await sftpClient.writeBinary(targetPath, file, {
+                scope: sftpScope,
+              })
             : await (async () => {
                 const dataUrl = await readFileAsDataUrl(file);
                 const base64 = dataUrl.includes(",")
                   ? dataUrl.split(",")[1]
                   : dataUrl;
-                return fetchJsonOrThrow<{
-                  ok?: boolean;
-                  error?: string;
-                  video?: {
-                    originalBytes?: number;
-                    compressedBytes?: number;
-                    videoCompressed?: boolean;
-                  };
-                }>(`${baseUrl}/api/sftp/write`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(roleHeader ?? {}),
-                  },
-                  body: JSON.stringify({
+                return sftpClient.write(
+                  {
                     path: targetPath,
                     content: base64,
                     encoding: "base64",
-                    ...sftpScopeJsonFields,
-                  }),
-                });
+                  },
+                  { scope: sftpScope },
+                );
               })();
 
           if (!data?.ok) {
@@ -970,9 +980,8 @@ const ManageDemo: React.FC = () => {
       readFileAsDataUrl,
       isCompressibleVideoFileName,
       formatSizeInMb,
-      roleHeader,
-      sftpScopeQuerySuffix,
-      sftpScopeJsonFields,
+      sftpClient,
+      sftpScope,
     ],
   );
 
@@ -1152,36 +1161,53 @@ const ManageDemo: React.FC = () => {
             </div>
 
             <div className="space-y-2 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-sm md:col-span-2 dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730]/80 dark:to-[#10283f]/75 dark:shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
-                  Format
-                </label>
+              <div className="flex items-center justify-between gap-2 ml-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]" />
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="manage-demo-format"
+                      className="block text-[9px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400"
+                    >
+                      Format
+                    </label>
+                    <span className="block text-[10px] font-medium leading-tight text-slate-400 dark:text-slate-500 normal-case tracking-normal mt-0.5">
+                      By creative title · value for preview
+                      {config.category === "Video"
+                        ? " · add vertical when detected"
+                        : ""}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="relative group">
                 <select
+                  id="manage-demo-format"
                   value={config.formatValue}
                   onChange={(e) =>
                     setConfig({ ...config, formatValue: e.target.value })
                   }
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 appearance-none cursor-pointer dark:border-white/10 dark:bg-[#111c36] dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-11 text-sm font-semibold leading-snug tracking-wide text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 appearance-none cursor-pointer dark:border-white/10 dark:bg-[#111c36] dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
                 >
                   <option
                     value=""
                     className="bg-white text-slate-900 dark:bg-[#0b1730] dark:text-white"
                   >
-                    Auto detect
+                    Auto detect · from folder & catalogue
                   </option>
-                  {formatOptions.map((format) => (
+                  {formatSelectOptions.map((item) => (
                     <option
-                      key={format}
-                      value={format}
+                      key={item.value}
+                      value={item.value}
                       className="bg-white text-slate-900 dark:bg-[#0b1730] dark:text-white"
                     >
-                      {format}
+                      {item.label}
                     </option>
                   ))}
                 </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-1.5">
+                  <CodeBracketIcon className="w-3.5 h-3.5 text-emerald-300" />
+                </div>
               </div>
             </div>
 
@@ -1198,7 +1224,7 @@ const ManageDemo: React.FC = () => {
                   onChange={(e) =>
                     setConfig((prev) => ({
                       ...prev,
-                      category: e.target.value as "Mobile" | "Display",
+                      category: e.target.value as ManageDemoCategory,
                     }))
                   }
                   className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-11 text-sm font-semibold tracking-wide text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 appearance-none cursor-pointer dark:border-white/10 dark:bg-[#111c36] dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_18px_rgba(2,6,23,0.3)]"
@@ -1215,6 +1241,12 @@ const ManageDemo: React.FC = () => {
                   >
                     Display
                   </option>
+                  <option
+                    value="Video"
+                    className="bg-white text-slate-900 dark:bg-[#0b1730] dark:text-white"
+                  >
+                    Video
+                  </option>
                 </select>
               </div>
             </div>
@@ -1229,12 +1261,12 @@ const ManageDemo: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {canUseFileActionButtons && (
+                {canManageDemoMkdir && (
                   <Button
                     type="button"
                     onClick={() => {
                       if (
-                        !canUseFileActionButtons ||
+                        !canManageDemoMkdir ||
                         creatingFolder ||
                         listBusy
                       )
@@ -1423,7 +1455,7 @@ const ManageDemo: React.FC = () => {
                             </div>
                             <div className="col-span-1 flex items-center justify-end gap-1">
                               {!isDir &&
-                                canUseFileActionButtons &&
+                                canManageDemoWriteFile &&
                                 isEditableFileName(item.name) && (
                                   <Button
                                     type="button"
@@ -1438,7 +1470,7 @@ const ManageDemo: React.FC = () => {
                                     <PencilSquareIcon className="w-3.5 h-3.5" />
                                   </Button>
                                 )}
-                              {canUseFileActionButtons && (
+                              {canManageDemoRename && (
                                 <Button
                                   type="button"
                                   onClick={(e) => {
@@ -1446,7 +1478,7 @@ const ManageDemo: React.FC = () => {
                                     requestRenamePath(fullPath, item.name);
                                   }}
                                   disabled={renamingPath === fullPath}
-                                  variant="iconSuccess"
+                                  variant="violet"
                                   size="icon"
                                   className="disabled:opacity-50"
                                   title={
@@ -1456,7 +1488,7 @@ const ManageDemo: React.FC = () => {
                                   <PencilIcon className="w-3.5 h-3.5" />
                                 </Button>
                               )}
-                              {canUseFileActionButtons && (
+                              {canManageDemoDelete && (
                                 <Button
                                   type="button"
                                   onClick={(e) => {
@@ -1483,7 +1515,7 @@ const ManageDemo: React.FC = () => {
                 </div>
               </div>
             </div>
-            {editorPath && canUseFileActionButtons && (
+            {editorPath && canManageDemoWriteFile && (
               <div className="space-y-2.5 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-md dark:border-slate-800 dark:bg-gradient-to-b dark:from-[#030a1a] dark:to-[#020617] dark:shadow-[0_14px_34px_rgba(2,6,23,0.42)]">
                 <div className="flex items-center justify-between gap-2">
                   <div className="truncate font-mono text-xs text-slate-800 dark:text-[#e5e7eb]">
@@ -1583,9 +1615,7 @@ const ManageDemo: React.FC = () => {
             : "Delete file on SFTP?"
         }
         description={
-          deleteConfirm
-            ? displayRemotePath(deleteConfirm.fullPath)
-            : undefined
+          deleteConfirm ? displayRemotePath(deleteConfirm.fullPath) : undefined
         }
         variant="danger"
         confirmLabel="Delete"
@@ -1608,12 +1638,7 @@ const ManageDemo: React.FC = () => {
         initialValue={renameTarget?.currentName ?? ""}
         validate={(v) => {
           if (!v.trim()) return "Enter a name.";
-          if (
-            v.includes("/") ||
-            v.includes("\\") ||
-            v === "." ||
-            v === ".."
-          )
+          if (v.includes("/") || v.includes("\\") || v === "." || v === "..")
             return "Invalid name.";
           return null;
         }}
@@ -1634,12 +1659,7 @@ const ManageDemo: React.FC = () => {
         initialValue=""
         validate={(v) => {
           if (!v.trim()) return "Enter a folder name.";
-          if (
-            v.includes("/") ||
-            v.includes("\\") ||
-            v === "." ||
-            v === ".."
-          )
+          if (v.includes("/") || v.includes("\\") || v === "." || v === "..")
             return "Invalid folder name.";
           return null;
         }}

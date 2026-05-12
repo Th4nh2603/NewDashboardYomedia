@@ -18,9 +18,21 @@ import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
+import { createSftpClient } from "../lib/sftpClient";
 import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
 import JSZip from "jszip";
+import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
+
+type BuildDemoRolePermissions = Record<
+  string,
+  {
+    manageDemo?: {
+      canSftpUploadBinary?: boolean;
+      canSftpWriteFile?: boolean;
+    };
+  }
+>;
 
 /** Default manifest entry: replace file path with inlined PNG (s_on). */
 const S_ON_DATA_URL =
@@ -214,11 +226,121 @@ interface DemoTitleOption {
   id: string;
   title: string;
   size: string | string[];
+  /** Display / Video / Mobile — drives idpc vs idvd vs idmb preview. */
+  category?: string;
+  /** From creative-demos.json (e.g. HTML5, VIDEO). */
+  fileType?: string;
+  /** Preview `f=` for idvd/VAST flow (e.g. instream, outstream). */
+  value?: string;
 }
 
 interface OfflineGeneratedFile {
   name: string;
   blob: Blob;
+}
+
+interface OfflinePackagePopupPayload {
+  kind: "success" | "fallback";
+  summary: string;
+  uploadIssueSummary?: string;
+}
+
+interface SftpUploadPopupPayload {
+  kind: "full" | "partial";
+  targetPath: string;
+  remoteBase: string;
+  uploadedCount: number;
+  totalFiles: number;
+  videoLogs: string[];
+  failureDetails?: string;
+  meta: {
+    creativeDemo: string;
+    /** creative-demos.json `value` for demo.yomedia `f=` (video/idvd preview). */
+    demoValue: string;
+    /** Catalog category: idvd/VAST only when this is `Video`, not for Mobile in-page MP4. */
+    demoCategory: string;
+    brand: string;
+    productCate: string;
+    demoFormat: string;
+    year: string;
+    month: string;
+  };
+}
+
+/** Safe segment for download filenames (Banner zip, etc.). */
+function sanitizeFilenameSegment(value: string): string {
+  return value
+    .trim()
+    .replace(/[<>:"|?*/\\]/g, "_")
+    .replace(/\s+/g, "_");
+}
+
+/** Demo format Video: luôn ghi file dưới thư mục demo với đường dẫn cố định này (SFTP + ZIP offline). */
+const VIDEO_DEMO_FIXED_REL_PATH = "tvc.mp4";
+
+const DEMO_PUBLIC_VIDEO_ORIGIN = "https://demo.yomedia.vn";
+
+/** VAST 2.0 for make-vast.xml; `targetDemoPath` is the public path segment (e.g. 2026/04/brand/.../tvc). */
+function buildVideoMakeVastXml(targetDemoPath: string): string {
+  const dir = targetDemoPath
+    .trim()
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .join("/");
+  const mediaUrl = `${DEMO_PUBLIC_VIDEO_ORIGIN}/${dir}/${VIDEO_DEMO_FIXED_REL_PATH}`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="2.0">
+    <Ad id="239e6a5992e5442c836c1980894e8dc0">
+        <InLine>
+            <AdSystem>Yomedia</AdSystem>
+            <AdTitle></AdTitle>
+            <Description/>
+            <Survey/>
+            <Error></Error>
+            <Impression><![CDATA[]]></Impression>
+            <Creatives>
+                <Creative sequence="1" AdID="">
+                    <Linear skipoffset="00:00:07">
+                        <Duration>00:00:15</Duration>
+                        <TrackingEvents>
+                            <Tracking event="start"><![CDATA[]]></Tracking>
+                            <Tracking event="firstQuartile"><![CDATA[]]></Tracking>
+                            <Tracking event="midpoint"><![CDATA[]]></Tracking>
+                            <Tracking event="thirdQuartile"><![CDATA[]]></Tracking>
+                            <Tracking event="complete"><![CDATA[]]></Tracking>
+                            <Tracking event="mute"><![CDATA[]]></Tracking>
+                            <Tracking event="unmute"><![CDATA[]]></Tracking>
+                            <Tracking event="pause"><![CDATA[]]></Tracking>
+                            <Tracking event="resume"><![CDATA[]]></Tracking>
+                        </TrackingEvents>
+                        <VideoClicks>
+                            <ClickThrough><![CDATA[https://www.yomedia.vn/]]></ClickThrough>
+                        </VideoClicks>
+                        <MediaFiles>
+                            <MediaFile bitrate="" delivery="progressive" height="" width="" maintainAspectRatio="true" scalable="true" type="video/mp4" minSuggestedDuration="Ads By Yomedia"><![CDATA[${mediaUrl}]]></MediaFile>
+                        </MediaFiles>
+                    </Linear>
+                </Creative>
+            </Creatives>
+        </InLine>
+    </Ad>
+</VAST>
+`;
+}
+
+/** Unique basenames at zip root (avoid collisions when flattening paths). */
+function uniquifyZipEntryNames(wanted: string[]): string[] {
+  const seen = new Map<string, number>();
+  return wanted.map((name) => {
+    const leaf = name.split(/[/\\]/).pop() ?? name;
+    const n = seen.get(leaf.toLowerCase()) ?? 0;
+    seen.set(leaf.toLowerCase(), n + 1);
+    if (n === 0) return leaf;
+    const ext = leaf.includes(".") ? `.${leaf.split(".").pop()}` : "";
+    const base = ext ? leaf.slice(0, -ext.length) : leaf;
+    return `${base}_${n + 1}${ext}`;
+  });
 }
 
 /** Read every DirectoryReader batch (Chrome yields up to ~100 entries per batch). */
@@ -314,6 +436,7 @@ function mergeDroppedFiles(list: File[]): File[] {
 }
 
 const BuildDemo: React.FC = () => {
+  const { enabled: adminOfflineMode } = useAdminOfflineMode();
   const { user } = useAuth();
   const normalizedRole = (user?.role || "").toLowerCase();
   const brands = (demoConfig as any).ListBrands ?? [];
@@ -349,18 +472,14 @@ const BuildDemo: React.FC = () => {
       ),
     );
   };
-  const seasons = ["Spring", "Summer", "Autumn", "Winter"];
+  const demoFormats = ["HTML", "Video"] as const;
+  const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+  const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
+  const TEXT_EXTS = [".html", ".htm", ".js", ".mjs"];
 
   const now = new Date();
   const currentYearLabel = String(now.getFullYear());
   const currentMonthLabel = String(now.getMonth() + 1).padStart(2, "0");
-  const getSeasonByMonth = (monthValue: string) => {
-    const month = Number.parseInt(monthValue, 10);
-    if (month >= 3 && month <= 5) return "Spring";
-    if (month >= 6 && month <= 8) return "Summer";
-    if (month >= 9 && month <= 11) return "Autumn";
-    return "Winter";
-  };
 
   const currentYearId =
     years.find(
@@ -375,7 +494,6 @@ const BuildDemo: React.FC = () => {
     )?.id ??
     months[0]?.id ??
     "standard";
-  const currentSeason = getSeasonByMonth(currentMonthLabel);
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -388,26 +506,43 @@ const BuildDemo: React.FC = () => {
     content: string;
     mode: "view" | "edit";
   } | null>(null);
-  const [config, setConfig] = useState({
+  const [config, setConfig] = useState<{
+    model: string;
+    quality: string;
+    mode: string;
+    productCate: string;
+    demoFormat: (typeof demoFormats)[number];
+  }>({
     model: "",
     quality: currentYearId,
     mode: currentMonthId,
     productCate: productCates[0]?.id ?? "",
-    season: currentSeason,
+    demoFormat: demoFormats[0],
   });
   const [sourceUrl, setSourceUrl] = useState("");
   const [directoryExists, setDirectoryExists] = useState(false);
   const [checkingDirectory, setCheckingDirectory] = useState(false);
   const [replacementName, setReplacementName] = useState("");
+  /** Video, no replacement folder: last path segment rotates `video`, `video-1`, … until SFTP is free. */
+  const [videoAutoDirSegment, setVideoAutoDirSegment] = useState("video");
   const [error, setError] = useState<ErrorState | null>(null);
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "recent">("all");
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendingToSftp, setSendingToSftp] = useState(false);
-  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [buildProgressText, setBuildProgressText] = useState<string | null>(
+    null,
+  );
   const [offlineGeneratedFiles, setOfflineGeneratedFiles] = useState<
     OfflineGeneratedFile[]
   >([]);
+  const [offlinePackagePayload, setOfflinePackagePayload] =
+    useState<OfflinePackagePopupPayload | null>(null);
+  const [offlinePackageDialogOpen, setOfflinePackageDialogOpen] =
+    useState(false);
+  const [sftpUploadPopupPayload, setSftpUploadPopupPayload] =
+    useState<SftpUploadPopupPayload | null>(null);
+  const [sftpUploadDialogOpen, setSftpUploadDialogOpen] = useState(false);
   const [preparingOfflineFiles, setPreparingOfflineFiles] = useState(false);
   const [downloadingOfflineZip, setDownloadingOfflineZip] = useState(false);
   const [openingDemoVideo, setOpeningDemoVideo] = useState(false);
@@ -415,6 +550,7 @@ const BuildDemo: React.FC = () => {
     [],
   );
   const [selectedDemoTitle, setSelectedDemoTitle] = useState("");
+  const prevDemoFormatRef = useRef<(typeof demoFormats)[number] | null>(null);
   const [metrics, setMetrics] = useState({
     gpu: 12,
     ram: 2.4,
@@ -423,9 +559,51 @@ const BuildDemo: React.FC = () => {
   });
   const productCateOptions = getProductCateOptionsByBrand(config.model);
   const baseUrl = serverApiOrigin();
-  const sftpRoleHeaders = normalizedRole
-    ? { "x-user-role": normalizedRole }
-    : undefined;
+  const sftpClient = React.useMemo(
+    () =>
+      createSftpClient({
+        roleHeader: normalizedRole || undefined,
+      }),
+    [normalizedRole],
+  );
+
+  const [buildDemoPermissions, setBuildDemoPermissions] =
+    useState<BuildDemoRolePermissions>({
+      default: {
+        manageDemo: {
+          canSftpUploadBinary: false,
+          canSftpWriteFile: false,
+        },
+      },
+    });
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          permissions?: BuildDemoRolePermissions;
+        }>(`${baseUrl}/api/permissions`);
+        if (!cancelled && data.permissions) {
+          setBuildDemoPermissions(data.permissions);
+        }
+      } catch {
+        // keep default false
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl]);
+
+  const bdSftp =
+    buildDemoPermissions[normalizedRole]?.manageDemo ??
+    buildDemoPermissions.default?.manageDemo;
+  const canBuildDemoSftpPut =
+    bdSftp?.canSftpUploadBinary === true &&
+    bdSftp?.canSftpWriteFile === true;
+  const buildBusy = buildProgressText !== null;
 
   const getItemLabelById = (list: any[], id: string) => {
     const found = list.find((item: any) => item.id === id);
@@ -441,6 +619,12 @@ const BuildDemo: React.FC = () => {
       .replace(/\.[^.]+$/, "")
       .toLowerCase();
 
+  const fileExtLower = (f: UploadedFile) =>
+    `.${f.file.name.split(".").pop() ?? ""}`.toLowerCase();
+
+  const isUploadedVideoFile = (f: UploadedFile) =>
+    VIDEO_EXTS.includes(fileExtLower(f));
+
   const getUploadedNameToken = () => {
     const firstHtml = files.find((f) =>
       ["text/html", "application/xhtml+xml"].includes(f.file.type),
@@ -448,21 +632,31 @@ const BuildDemo: React.FC = () => {
     const firstJs = files.find((f) =>
       ["application/javascript", "text/javascript"].includes(f.file.type),
     );
-    const picked = firstHtml ?? firstJs ?? files[0];
+    const firstVideo = files.find((f) => isUploadedVideoFile(f));
+    const picked = firstHtml ?? firstJs ?? firstVideo ?? files[0];
     if (!picked) return "";
     return normalizePathToken(picked.file.name.replace(/\.[^.]+$/, ""));
   };
 
-  const autoUploadNameToken = getUploadedNameToken();
-  const effectiveUploadNameToken = replacementName.trim()
+  const normalizedReplacementName = replacementName.trim()
     ? normalizePathToken(replacementName.trim())
-    : autoUploadNameToken;
+    : "";
+  const autoUploadNameToken =
+    config.demoFormat === "Video" ? "" : getUploadedNameToken();
+  const effectiveUploadNameToken =
+    normalizedReplacementName || autoUploadNameToken;
   /** Final path segment must be > 5 characters (minimum 6). */
-  const uploadNameValid = effectiveUploadNameToken.length > 5;
+  const uploadNameValid =
+    config.demoFormat === "Video"
+      ? normalizedReplacementName.length === 0 ||
+        normalizedReplacementName.length > 5
+      : effectiveUploadNameToken.length > 5;
   const showUploadNameInput =
     directoryExists ||
     (files.length > 0 &&
-      (autoUploadNameToken.length === 0 || autoUploadNameToken.length <= 5));
+      (config.demoFormat === "Video" ||
+        autoUploadNameToken.length === 0 ||
+        autoUploadNameToken.length <= 5));
 
   const fileNameTokens = React.useMemo(() => {
     const out = new Set<string>();
@@ -495,6 +689,11 @@ const BuildDemo: React.FC = () => {
   };
 
   const buildRemoteSourcePath = () => {
+    const demoFormatSeg = normalizePathToken(config.demoFormat.toLowerCase());
+    const formatDirSeg =
+      config.demoFormat === "Video" && !replacementName.trim()
+        ? videoAutoDirSegment || demoFormatSeg
+        : demoFormatSeg;
     const year = getItemLabelById(years, config.quality);
     const month = getItemLabelById(months, config.mode).padStart(2, "0");
     const brand = normalizePathToken(
@@ -503,12 +702,13 @@ const BuildDemo: React.FC = () => {
     const productCate = normalizePathToken(
       getItemLabelById(productCates, config.productCate).toLowerCase(),
     );
-    const season = normalizePathToken(config.season.toLowerCase());
     const uploadName = replacementName.trim()
       ? normalizePathToken(replacementName.trim())
-      : getUploadedNameToken();
+      : config.demoFormat === "Video"
+        ? ""
+        : getUploadedNameToken();
 
-    const segments = [year, month, brand, productCate];
+    const segments = [year, month, brand, productCate, formatDirSeg];
     if (uploadName) segments.push(uploadName);
 
     return segments.filter(Boolean).join("/");
@@ -517,7 +717,92 @@ const BuildDemo: React.FC = () => {
   useEffect(() => {
     setSourceUrl(buildRemoteSourcePath());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, files, replacementName]);
+  }, [config, files, replacementName, videoAutoDirSegment]);
+
+  useEffect(() => {
+    const isVideoAutoRemote =
+      files.length > 0 &&
+      config.demoFormat === "Video" &&
+      !replacementName.trim();
+
+    if (!isVideoAutoRemote) {
+      setVideoAutoDirSegment(
+        normalizePathToken(config.demoFormat.toLowerCase()),
+      );
+      return;
+    }
+
+    let cancelled = false;
+    const resolveVideoDir = async () => {
+      setCheckingDirectory(true);
+      setDirectoryExists(false);
+      try {
+        const year = getItemLabelById(years, config.quality);
+        const month = getItemLabelById(months, config.mode).padStart(2, "0");
+        const brand = normalizePathToken(
+          getItemLabelById(brands, config.model).toLowerCase(),
+        );
+        const productCate = normalizePathToken(
+          getItemLabelById(productCates, config.productCate).toLowerCase(),
+        );
+        const baseSeg = normalizePathToken(config.demoFormat.toLowerCase());
+        setVideoAutoDirSegment(baseSeg);
+        const MAX_TRIES = 500;
+        let counter = 0;
+        let seg = baseSeg;
+
+        while (!cancelled && counter < MAX_TRIES) {
+          const rel = [year, month, brand, productCate, seg]
+            .filter(Boolean)
+            .join("/");
+          const data = await sftpClient.exists(`/script/demo/${rel}`, "demo");
+          if (cancelled) return;
+
+          const exists = Boolean(
+            data?.ok &&
+              data?.exists &&
+              (data?.kind === "directory" ||
+                data?.kind === "file" ||
+                data?.kind === "symlink"),
+          );
+          if (!exists) {
+            setVideoAutoDirSegment(seg);
+            setDirectoryExists(false);
+            setCheckingDirectory(false);
+            return;
+          }
+          counter += 1;
+          seg = `${baseSeg}-${counter}`;
+        }
+
+        if (!cancelled) {
+          setDirectoryExists(true);
+          setCheckingDirectory(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setDirectoryExists(false);
+          setCheckingDirectory(false);
+        }
+      }
+    };
+
+    void resolveVideoDir();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally omit sourceUrl / videoAutoDirSegment: avoid re-resolving after each pick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    files.length,
+    replacementName,
+    config.demoFormat,
+    config.model,
+    config.quality,
+    config.mode,
+    config.productCate,
+    sftpClient,
+  ]);
 
   useEffect(() => {
     const targetPath = sourceUrl.trim();
@@ -527,18 +812,17 @@ const BuildDemo: React.FC = () => {
       return;
     }
 
+    const isVideoAutoRemote =
+      config.demoFormat === "Video" && !replacementName.trim();
+    if (isVideoAutoRemote) {
+      return;
+    }
+
     let cancelled = false;
     const checkDirectory = async () => {
       setCheckingDirectory(true);
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          exists?: boolean;
-          kind?: string;
-        }>(
-          `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(`/script/demo/${targetPath}`)}`,
-          { headers: sftpRoleHeaders },
-        );
+        const data = await sftpClient.exists(`/script/demo/${targetPath}`, "demo");
         if (!cancelled) {
           const exists = Boolean(
             data?.ok &&
@@ -564,7 +848,7 @@ const BuildDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [sourceUrl, files.length, baseUrl]);
+  }, [sourceUrl, files.length, config.demoFormat, replacementName, sftpClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -583,6 +867,15 @@ const BuildDemo: React.FC = () => {
               .map((item) => ({
                 id: String(item?.id ?? "").trim(),
                 title: String(item?.title ?? "").trim(),
+                category: String(
+                  (item as { category?: string })?.category ?? "",
+                ).trim(),
+                fileType: String(
+                  (item as { fileType?: string })?.fileType ?? "",
+                ).trim(),
+                value: String(
+                  (item as { value?: string })?.value ?? "",
+                ).trim(),
                 size: Array.isArray(item?.size)
                   ? item.size
                   : String(item?.size ?? "").trim(),
@@ -606,6 +899,36 @@ const BuildDemo: React.FC = () => {
 
   useEffect(() => {
     if (
+      prevDemoFormatRef.current !== null &&
+      prevDemoFormatRef.current !== config.demoFormat
+    ) {
+      setFiles((prev) => {
+        for (const f of prev) {
+          if (f.preview) URL.revokeObjectURL(f.preview);
+        }
+        return [];
+      });
+      setSelectedDemoTitle("");
+      setReplacementName("");
+      setError(null);
+      setSendError(null);
+      setSelectedImage(null);
+      setSelectedTextFile(null);
+      setOfflineGeneratedFiles([]);
+      setOfflinePackagePayload(null);
+      setOfflinePackageDialogOpen(false);
+      setSftpUploadPopupPayload(null);
+      setSftpUploadDialogOpen(false);
+      setDirectoryExists(false);
+      setVideoAutoDirSegment(
+        normalizePathToken(config.demoFormat.toLowerCase()),
+      );
+    }
+    prevDemoFormatRef.current = config.demoFormat;
+  }, [config.demoFormat]);
+
+  useEffect(() => {
+    if (
       selectedDemoTitle &&
       !demoTitleOptions.some((item) => item.title === selectedDemoTitle)
     ) {
@@ -614,6 +937,11 @@ const BuildDemo: React.FC = () => {
   }, [demoTitleOptions, selectedDemoTitle]);
 
   const filteredDemoTitleOptions = React.useMemo(() => {
+    if (config.demoFormat === "Video") {
+      return demoTitleOptions.filter(
+        (item) => String(item.fileType ?? "").toUpperCase() === "VIDEO",
+      );
+    }
     return demoTitleOptions.filter((item) => {
       const sizesRaw = Array.isArray(item.size) ? item.size : [item.size];
       return sizesRaw.some((s) => {
@@ -621,7 +949,7 @@ const BuildDemo: React.FC = () => {
         return token && fileNameTokens.has(token);
       });
     });
-  }, [demoTitleOptions, fileNameTokens]);
+  }, [demoTitleOptions, fileNameTokens, config.demoFormat]);
 
   useEffect(() => {
     if (
@@ -631,15 +959,6 @@ const BuildDemo: React.FC = () => {
       setSelectedDemoTitle("");
     }
   }, [filteredDemoTitleOptions, selectedDemoTitle]);
-
-  useEffect(() => {
-    const monthLabel = getItemLabelById(months, config.mode).padStart(2, "0");
-    const seasonByMonth = getSeasonByMonth(monthLabel);
-    setConfig((prev) =>
-      prev.season === seasonByMonth ? prev : { ...prev, season: seasonByMonth },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.mode]);
 
   useEffect(() => {
     if (
@@ -718,9 +1037,6 @@ const BuildDemo: React.FC = () => {
       img.src = objectUrl;
     });
 
-  const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
-  const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
-  const TEXT_EXTS = [".html", ".htm", ".js", ".mjs"];
   const formatBytes = (value: number) => {
     if (!Number.isFinite(value) || value <= 0) return "0 B";
     const units = ["B", "KB", "MB", "GB"];
@@ -757,6 +1073,15 @@ const BuildDemo: React.FC = () => {
           "text/javascript",
           "text/jsx",
         ].includes(file.type);
+
+      if (config.demoFormat === "Video") {
+        if (!isVideoExt && !file.type.startsWith("video/")) {
+          validationErrors.push(
+            `${file.name}: Video flow accepts MP4 / WebM / MOV only.`,
+          );
+          return;
+        }
+      }
 
       const maxSize = isVideoExt ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
       if (file.size > maxSize) {
@@ -824,6 +1149,38 @@ const BuildDemo: React.FC = () => {
     const allSkipped = [...validationErrors, ...processingErrors];
     const guidelinesAction = () => setGuidelinesOpen(true);
 
+    if (config.demoFormat === "Video" && fileArray.length > 0) {
+      const pickedVideos = fileArray.filter((entry) =>
+        VIDEO_EXTS.includes(fileExtLower(entry)),
+      );
+      if (pickedVideos.length > 1) {
+        setError({
+          type: "validation",
+          message: `Video flow: drag or choose exactly one MP4/WebM/MOV (found ${pickedVideos.length}).`,
+          actionLabel: "View Guidelines",
+          action: guidelinesAction,
+        });
+        return;
+      }
+      if (pickedVideos.length === 1) {
+        if (allSkipped.length > 0) {
+          setError({
+            type: "partial",
+            message: `Added one video file. Skipped ${allSkipped.length}:\n${allSkipped.join("\n")}`,
+            actionLabel: "View Guidelines",
+            action: guidelinesAction,
+          });
+        }
+        setFiles((prev) => {
+          for (const f of prev) {
+            if (f.preview) URL.revokeObjectURL(f.preview);
+          }
+          return [pickedVideos[0]!];
+        });
+        return;
+      }
+    }
+
     if (allSkipped.length > 0) {
       if (fileArray.length > 0) {
         setError({
@@ -846,6 +1203,9 @@ const BuildDemo: React.FC = () => {
 
     setFiles((prev) => [...prev, ...fileArray]);
   };
+
+  const handleFilesRef = useRef(handleFiles);
+  handleFilesRef.current = handleFiles;
 
   const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
@@ -908,7 +1268,7 @@ const BuildDemo: React.FC = () => {
 
     const dt = new DataTransfer();
     merged.forEach((file) => dt.items.add(file));
-    void handleFiles(dt.files);
+    void handleFilesRef.current(dt.files);
   }, []);
 
   const removeFile = (id: string) => {
@@ -987,38 +1347,40 @@ const BuildDemo: React.FC = () => {
   };
 
   const normalizeRelativePath = (item: UploadedFile) =>
-    (item.relativePath || item.file.name).replace(/\\+/g, "/").replace(/^\/+/, "");
+    (item.relativePath || item.file.name)
+      .replace(/\\+/g, "/")
+      .replace(/^\/+/, "");
 
+  /**
+   * Offline download: flat zip (no remote SFTP-style paths).
+   * HTML + JS always; uploaded videos included when present.
+   * First HTML becomes `index.html`; basenames uniquified on clashes across text + video.
+   */
   const buildOfflineGeneratedFiles = async (
     textFiles: UploadedFile[],
     videoFiles: UploadedFile[],
-    remoteBase: string,
+    fixedVideoDesiredPath?: string,
   ): Promise<OfflineGeneratedFile[]> => {
-    const generated: OfflineGeneratedFile[] = [];
+    const entries: { desiredName: string; blob: Blob }[] = [];
     let indexHtmlUsed = false;
 
     for (const item of textFiles) {
+      const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      if (!TEXT_EXTS.includes(ext)) continue;
+
       const rawContent = await item.file.text();
       const convertedContent = replaceImagesToBase64(rawContent);
-      const ext = item.file.name.split(".").pop()?.toLowerCase();
-      const isHtml = ext === "html" || ext === "htm";
+      const extLower = ext.slice(1);
+      const isHtml = extLower === "html" || extLower === "htm";
       const relativePath = normalizeRelativePath(item);
-      const relativeSegments = relativePath.split("/").filter(Boolean);
-      const remoteFileName =
-        relativeSegments[relativeSegments.length - 1] || item.file.name;
-      const remoteDir = relativeSegments.slice(0, -1).join("/");
-      const finalName = isHtml && !indexHtmlUsed ? "index.html" : remoteFileName;
+      const leaf =
+        relativePath.split("/").filter(Boolean).pop() ?? item.file.name;
+      const safeLeaf = leaf.replace(/[<>:"|?*]/g, "_");
+      const desiredName = isHtml && !indexHtmlUsed ? "index.html" : safeLeaf;
       if (isHtml && !indexHtmlUsed) indexHtmlUsed = true;
-      const downloadPath =
-        `${remoteBase}/${remoteDir ? `${remoteDir}/` : ""}${finalName}`.replace(
-          /\/{2,}/g,
-          "/",
-        );
-      const safeName = downloadPath
-        .replace(/^\/+/, "")
-        .replace(/[<>:"|?*]/g, "_");
-      generated.push({
-        name: safeName,
+
+      entries.push({
+        desiredName,
         blob: new Blob([convertedContent], {
           type: "text/plain;charset=utf-8",
         }),
@@ -1026,15 +1388,37 @@ const BuildDemo: React.FC = () => {
     }
 
     for (const item of videoFiles) {
-      const downloadPath =
-        `${remoteBase}/${normalizeRelativePath(item)}`.replace(/\/{2,}/g, "/");
-      const safeName = downloadPath
-        .replace(/^\/+/, "")
-        .replace(/[<>:"|?*]/g, "_");
-      generated.push({ name: safeName, blob: item.file });
+      const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+      if (!VIDEO_EXTS.includes(ext)) continue;
+      const relativePath = normalizeRelativePath(item);
+      const leaf =
+        relativePath.split("/").filter(Boolean).pop() ?? item.file.name;
+      const safeLeaf = leaf.replace(/[<>:"|?*]/g, "_");
+      const desiredName = fixedVideoDesiredPath?.trim() || safeLeaf;
+      entries.push({
+        desiredName,
+        blob: item.file,
+      });
     }
 
-    return generated;
+    const finalNames = uniquifyZipEntryNames(entries.map((e) => e.desiredName));
+    return entries.map((e, i) => ({
+      name: finalNames[i]!,
+      blob: e.blob,
+    }));
+  };
+
+  const buildBannerOfflineZipDownloadName = () => {
+    const d = new Date();
+    const month = getItemLabelById(months, config.mode).padStart(2, "0");
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const offsetMin = -d.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? "+" : "-";
+    const abs = Math.abs(offsetMin);
+    const oh = String(Math.floor(abs / 60)).padStart(2, "0");
+    const om = String(abs % 60).padStart(2, "0");
+    const tzPart = sanitizeFilenameSegment(`GMT${sign}${oh}${om}`);
+    return `${sanitizeFilenameSegment(`Banner-${month}-${date}-${tzPart}`)}.zip`;
   };
 
   const downloadOfflineGeneratedFiles = async () => {
@@ -1046,11 +1430,10 @@ const BuildDemo: React.FC = () => {
         zip.file(entry.name, entry.blob);
       });
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       const url = URL.createObjectURL(zipBlob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `offline-demo-${stamp}.zip`;
+      anchor.download = buildBannerOfflineZipDownloadName();
       anchor.rel = "noopener";
       document.body.appendChild(anchor);
       anchor.click();
@@ -1067,52 +1450,63 @@ const BuildDemo: React.FC = () => {
     }
   };
 
-  const handleOpenBuildDemoVideo = useCallback(async () => {
-    const path = sourceUrl.trim();
-    if (!path) {
-      setSendError(
-        "Missing Remote Source URL — enter the demo path on SFTP (e.g. 2026/03/brand/.../384x683) to open preview.",
-      );
-      return;
-    }
-    setSendError(null);
-    setOpeningDemoVideo(true);
-    try {
-      await openYomediaDemoPreview({
-        remotePath: path,
-        serverApiUrl: baseUrl,
-      });
-    } catch (err) {
-      setSendError(
-        err instanceof Error ? err.message : "Could not open demo video preview.",
-      );
-    } finally {
-      setOpeningDemoVideo(false);
-    }
-  }, [sourceUrl, baseUrl]);
+  const openDemoPreviewAtPath = useCallback(
+    async (
+      remotePath: string,
+      opts?: { instreamVideo?: boolean; formatValue?: string },
+    ) => {
+      const path = remotePath.trim();
+      if (!path) {
+        setSendError(
+          "Missing demo path — check Remote Source URL (e.g. 2026/03/brand/.../384x683).",
+        );
+        return;
+      }
+      if (opts?.instreamVideo) {
+        const fv = opts.formatValue?.trim();
+        if (!fv) {
+          setSendError(
+            "Creative demo has no preview format (value). Pick a demo with value set (e.g. instream, outstream).",
+          );
+          return;
+        }
+      }
+      setSendError(null);
+      setOpeningDemoVideo(true);
+      try {
+        await openYomediaDemoPreview({
+          remotePath: path,
+          serverApiUrl: baseUrl,
+          instreamVideo: opts?.instreamVideo === true,
+          formatValue: opts?.formatValue?.trim(),
+        });
+      } catch (err) {
+        setSendError(
+          err instanceof Error
+            ? err.message
+            : "Could not open demo video preview.",
+        );
+      } finally {
+        setOpeningDemoVideo(false);
+      }
+    },
+    [baseUrl],
+  );
 
   const handleReplaceBase64AndUploadSftp = async () => {
     setSendError(null);
-    setSendSuccess(null);
     setOfflineGeneratedFiles([]);
+    setOfflinePackagePayload(null);
+    setOfflinePackageDialogOpen(false);
+    setSftpUploadPopupPayload(null);
+    setSftpUploadDialogOpen(false);
 
-    const targetPath = sourceUrl.trim();
-    if (!targetPath) {
-      setSendError("Missing remote source path.");
-      return;
-    }
-    if (!config.model?.trim()) {
-      setSendError("Please select a brand before uploading to SFTP.");
-      return;
-    }
-    if (!selectedDemoTitle.trim()) {
-      setSendError(
-        "Please select a Creative Demo before replacing base64 and uploading to SFTP.",
-      );
-      return;
-    }
     if (files.length === 0) {
-      setSendError("Please upload files before sending to SFTP.");
+      setSendError(
+        adminOfflineMode
+          ? "Please upload files before converting."
+          : "Please upload files before sending to SFTP.",
+      );
       return;
     }
 
@@ -1125,33 +1519,118 @@ const BuildDemo: React.FC = () => {
       return VIDEO_EXTS.includes(ext);
     });
 
+    if (config.demoFormat === "Video") {
+      if (videoFiles.length !== 1 || files.length !== 1) {
+        setSendError(
+          "Video format: upload exactly one MP4/WebM/MOV file (no other assets).",
+        );
+        return;
+      }
+    }
+
     if (textFiles.length === 0 && videoFiles.length === 0) {
-      setSendError("No HTML/JS/video files found to upload.");
+      setSendError(
+        adminOfflineMode
+          ? "No HTML/JS/video files found to convert."
+          : "No HTML/JS/video files found to upload.",
+      );
       return;
     }
 
+    if (adminOfflineMode) {
+      setBuildProgressText("Preparing offline package...");
+      setPreparingOfflineFiles(true);
+      try {
+        const generated = await buildOfflineGeneratedFiles(
+          textFiles,
+          videoFiles,
+          config.demoFormat === "Video" ? VIDEO_DEMO_FIXED_REL_PATH : undefined,
+        );
+        setOfflineGeneratedFiles(generated);
+        const summaryParts = [
+          textFiles.length > 0 ? "HTML + JS" : null,
+          videoFiles.length > 0
+            ? config.demoFormat === "Video"
+              ? `video as ${VIDEO_DEMO_FIXED_REL_PATH}`
+              : `${videoFiles.length} video`
+            : null,
+        ].filter(Boolean);
+        setOfflinePackagePayload({
+          kind: "success",
+          summary: `Converted ${generated.length} file${generated.length === 1 ? "" : "s"} (${summaryParts.join(", ")}).`,
+        });
+        setOfflinePackageDialogOpen(true);
+      } catch (err) {
+        setSendError(
+          err instanceof Error ? err.message : "Cannot prepare offline files.",
+        );
+      } finally {
+        setPreparingOfflineFiles(false);
+        setBuildProgressText(null);
+      }
+      return;
+    }
+
+    const targetPath = sourceUrl.trim();
+    if (!targetPath) {
+      setSendError("Missing remote source path.");
+      return;
+    }
+    if (!config.model?.trim()) {
+      setSendError("Please select a brand before uploading to SFTP.");
+      return;
+    }
+    if (!selectedDemoTitle.trim()) {
+      setSendError(
+        config.demoFormat === "Video"
+          ? "Please select a video Creative Demo (fileType VIDEO) before uploading."
+          : "Please select a Creative Demo before replacing base64 and uploading to SFTP.",
+      );
+      return;
+    }
+
+    const isVideoPathFormat = config.demoFormat === "Video";
     const nameToken = replacementName.trim()
       ? normalizePathToken(replacementName.trim())
-      : getUploadedNameToken();
-    if (!nameToken || nameToken.length <= 5) {
+      : isVideoPathFormat
+        ? ""
+        : getUploadedNameToken();
+    if (
+      (!isVideoPathFormat && (!nameToken || nameToken.length <= 5)) ||
+      (isVideoPathFormat && !!replacementName.trim() && nameToken.length <= 5)
+    ) {
       setSendError(
-        "Demo folder name (final path segment) must be longer than 5 characters — enter a new name below or rename the HTML/JS file.",
+        isVideoPathFormat
+          ? "Replacement folder name must be longer than 5 characters."
+          : "Demo folder name (final path segment) must be longer than 5 characters — enter a new name below or rename the HTML/JS file.",
       );
       return;
     }
 
     const remoteBase = `/script/demo/${targetPath}`.replace(/\/{2,}/g, "/");
     const prepareOfflineFallback = async (reason: string) => {
+      setBuildProgressText("Preparing fallback ZIP package...");
       setPreparingOfflineFiles(true);
       try {
         const generated = await buildOfflineGeneratedFiles(
           textFiles,
           videoFiles,
-          remoteBase,
+          config.demoFormat === "Video" ? VIDEO_DEMO_FIXED_REL_PATH : undefined,
         );
         setOfflineGeneratedFiles(generated);
+        const issueLine =
+          reason
+            .split(/\n/)
+            .find((ln) => ln.trim())
+            ?.trim() ?? reason.trim();
+        setOfflinePackagePayload({
+          kind: "fallback",
+          summary: `${generated.length} file(s) bundled for local ZIP download.`,
+          uploadIssueSummary: issueLine.slice(0, 280),
+        });
+        setOfflinePackageDialogOpen(true);
         setSendError(
-          `${reason}\nOffline mode ready: you can download ${generated.length} converted file(s) below.`,
+          `${reason}\nOffline ZIP is ready — use the dialog to download.`,
         );
       } catch (err) {
         setSendError(
@@ -1164,134 +1643,117 @@ const BuildDemo: React.FC = () => {
       }
     };
 
+    setBuildProgressText("Checking remote path on SFTP...");
     try {
-      const checkData = await fetchJsonOrThrow<{
-        ok?: boolean;
-        exists?: boolean;
-        error?: string;
-      }>(
-        `${baseUrl}/api/sftp/exists?scope=demo&path=${encodeURIComponent(remoteBase)}`,
-        { headers: sftpRoleHeaders },
-      );
-      if (!checkData?.ok) {
+      if (!canBuildDemoSftpPut) {
+        const need: string[] = [];
+        if (bdSftp?.canSftpUploadBinary !== true)
+          need.push("canSftpUploadBinary");
+        if (bdSftp?.canSftpWriteFile !== true) need.push("canSftpWriteFile");
         await prepareOfflineFallback(
-          checkData?.error ||
-            "Cannot verify remote path on SFTP. Check server connection.",
+          need.length > 0
+            ? `SFTP upload requires: ${need.join(", ")} — enable in Admin → Permissions.`
+            : "SFTP upload is not allowed for your role.",
         );
         return;
       }
-      if (checkData.exists) {
-        if (!replacementName.trim()) {
-          setSendError(
-            "Remote folder already exists on SFTP. Enter a replacement name above, then upload again.",
+
+      try {
+        const checkData = await sftpClient.exists(remoteBase, "demo");
+        if (!checkData?.ok) {
+          await prepareOfflineFallback(
+            checkData?.error ||
+              "Cannot verify remote path on SFTP. Check server connection.",
           );
           return;
         }
-        setSendError(
-          "Target path still exists on SFTP. Choose a different replacement name.",
+        if (checkData.exists) {
+          if (!replacementName.trim()) {
+            setSendError(
+              config.demoFormat === "Video"
+                ? "That video folder was just taken on SFTP — click upload again to allocate the next free name (video-1, video-2, …) or add a replacement folder name."
+                : "Remote folder already exists on SFTP. Enter a replacement name above, then upload again.",
+            );
+            return;
+          }
+          setSendError(
+            "Target path still exists on SFTP. Choose a different replacement name.",
+          );
+          return;
+        }
+      } catch {
+        await prepareOfflineFallback(
+          "Cannot verify remote path on SFTP (network error).",
         );
         return;
       }
-    } catch {
-      await prepareOfflineFallback(
-        "Cannot verify remote path on SFTP (network error).",
-      );
-      return;
-    }
 
-    setSendingToSftp(true);
-    try {
+      setBuildProgressText("Building demo and uploading to SFTP...");
+      setSendingToSftp(true);
+      try {
       // If multiple HTML uploads (.html/.htm), only rename the first to index.html
       // to avoid overwriting others.
       let indexHtmlUploaded = false;
       const sftpErrors: string[] = [];
       const videoCompressionLogs: string[] = [];
       let uploadedCount = 0;
-      for (const item of textFiles) {
-        try {
-          const rawContent = await item.file.text();
-          const convertedContent = replaceImagesToBase64(rawContent);
+      const isVideoFmt = config.demoFormat === "Video";
 
-          const ext = item.file.name.split(".").pop()?.toLowerCase();
-          const isHtml = ext === "html" || ext === "htm";
-          const relativePath = normalizeRelativePath(item);
-          const relativeSegments = relativePath.split("/").filter(Boolean);
-          const remoteFileName =
-            relativeSegments[relativeSegments.length - 1] || item.file.name;
-          const remoteDir = relativeSegments.slice(0, -1).join("/");
-          const finalName =
-            isHtml && !indexHtmlUploaded ? "index.html" : remoteFileName;
-          if (isHtml && !indexHtmlUploaded) indexHtmlUploaded = true;
+      if (!isVideoFmt) {
+        for (const item of textFiles) {
+          try {
+            const rawContent = await item.file.text();
+            const convertedContent = replaceImagesToBase64(rawContent);
 
-          const remoteFilePath =
-            `${remoteBase}/${remoteDir ? `${remoteDir}/` : ""}${finalName}`.replace(
-              /\/{2,}/g,
-              "/",
-            );
+            const ext = item.file.name.split(".").pop()?.toLowerCase();
+            const isHtml = ext === "html" || ext === "htm";
+            const relativePath = normalizeRelativePath(item);
+            const relativeSegments = relativePath.split("/").filter(Boolean);
+            const remoteFileName =
+              relativeSegments[relativeSegments.length - 1] || item.file.name;
+            const remoteDir = relativeSegments.slice(0, -1).join("/");
+            const finalName =
+              isHtml && !indexHtmlUploaded ? "index.html" : remoteFileName;
+            if (isHtml && !indexHtmlUploaded) indexHtmlUploaded = true;
 
-          const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-            `${baseUrl}/api/sftp/write`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(sftpRoleHeaders ?? {}),
-              },
-              body: JSON.stringify({
-                path: remoteFilePath,
-                content: convertedContent,
-              }),
-            },
-          );
-          if (!data?.ok) {
+            const remoteFilePath =
+              `${remoteBase}/${remoteDir ? `${remoteDir}/` : ""}${finalName}`.replace(
+                /\/{2,}/g,
+                "/",
+              );
+
+            const data = await sftpClient.write({
+              path: remoteFilePath,
+              content: convertedContent,
+            });
+            if (!data?.ok) {
+              sftpErrors.push(
+                `${item.file.name}: ${data?.error || "upload failed"}`,
+              );
+              continue;
+            }
+            uploadedCount++;
+          } catch (err) {
             sftpErrors.push(
-              `${item.file.name}: ${data?.error || "upload failed"}`,
+              `${item.file.name}: ${
+                err instanceof Error ? err.message : "upload failed"
+              }`,
             );
-            continue;
           }
-          uploadedCount++;
-        } catch (err) {
-          sftpErrors.push(
-            `${item.file.name}: ${
-              err instanceof Error ? err.message : "upload failed"
-            }`,
-          );
         }
       }
 
       for (const item of videoFiles) {
         try {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result ?? ""));
-            reader.onerror = () => reject(new Error("read failed"));
-            reader.readAsDataURL(item.file);
-          });
-          const remoteFilePath =
-            `${remoteBase}/${normalizeRelativePath(item)}`.replace(
-              /\/{2,}/g,
-              "/",
-            );
-          const data = await fetchJsonOrThrow<{
-            ok?: boolean;
-            error?: string;
-            video?: {
-              originalBytes?: number;
-              compressedBytes?: number;
-              videoCompressed?: boolean;
-            };
-          }>(`${baseUrl}/api/sftp/write`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(sftpRoleHeaders ?? {}),
-            },
-            body: JSON.stringify({
-              path: remoteFilePath,
-              content: base64,
-              encoding: "base64",
-            }),
-          });
+          const remoteFilePath = (
+            isVideoFmt
+              ? `${remoteBase}/${VIDEO_DEMO_FIXED_REL_PATH}`
+              : `${remoteBase}/${normalizeRelativePath(item)}`
+          ).replace(/\/{2,}/g, "/");
+          const data = await sftpClient.writeBinary(
+            remoteFilePath,
+            await item.file.arrayBuffer(),
+          );
           if (!data?.ok) {
             sftpErrors.push(
               `${item.file.name}: ${data?.error || "video upload failed"}`,
@@ -1336,6 +1798,34 @@ const BuildDemo: React.FC = () => {
         }
       }
 
+      if (isVideoFmt) {
+        const xmlLeaf = "make-vast.xml";
+        const xmlRemotePath = `${remoteBase}/${xmlLeaf}`.replace(
+          /\/{2,}/g,
+          "/",
+        );
+        const xmlBody = buildVideoMakeVastXml(targetPath);
+        try {
+          const data = await sftpClient.write({
+            path: xmlRemotePath,
+            content: xmlBody,
+          });
+          if (!data?.ok) {
+            sftpErrors.push(
+              `${xmlLeaf}: ${data?.error || "XML upload failed"}`,
+            );
+          } else {
+            uploadedCount++;
+          }
+        } catch (err) {
+          sftpErrors.push(
+            `${xmlLeaf}: ${
+              err instanceof Error ? err.message : "XML upload failed"
+            }`,
+          );
+        }
+      }
+
       if (uploadedCount === 0) {
         await prepareOfflineFallback(
           sftpErrors.length > 0
@@ -1343,33 +1833,59 @@ const BuildDemo: React.FC = () => {
             : "Upload to SFTP failed.",
         );
       } else {
-        const compressionNote =
-          videoCompressionLogs.length > 0
-            ? `\nVideo processing:\n${videoCompressionLogs.join("\n")}`
-            : "";
+        const pickedDemo = demoTitleOptions.find(
+          (d) => d.title === selectedDemoTitle.trim(),
+        );
+        const metaSnapshot: SftpUploadPopupPayload["meta"] = {
+          creativeDemo: selectedDemoTitle.trim() || "—",
+          demoValue: pickedDemo?.value?.trim() ?? "",
+          demoCategory: pickedDemo?.category?.trim() ?? "",
+          brand: getItemLabelById(brands, config.model),
+          productCate: getItemLabelById(productCates, config.productCate),
+          demoFormat: config.demoFormat,
+          year: getItemLabelById(years, config.quality),
+          month: getItemLabelById(months, config.mode).padStart(2, "0"),
+        };
+        const totalFiles = isVideoFmt
+          ? videoFiles.length + 1
+          : textFiles.length + videoFiles.length;
         if (sftpErrors.length > 0) {
-          setSendSuccess(
-            `Uploaded ${uploadedCount} of ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 applied where applicable).${compressionNote}`,
-          );
-          setSendError(`Failed:\n${sftpErrors.join("\n")}`);
+          setSftpUploadPopupPayload({
+            kind: "partial",
+            targetPath,
+            remoteBase,
+            uploadedCount,
+            totalFiles,
+            videoLogs: videoCompressionLogs,
+            failureDetails: sftpErrors.join("\n"),
+            meta: metaSnapshot,
+          });
+          setSftpUploadDialogOpen(true);
         } else {
-          setSendSuccess(
-            `Uploaded ${textFiles.length + videoFiles.length} file(s) to ${remoteBase} (base64 replacement + video upload).${compressionNote}`,
-          );
+          setSftpUploadPopupPayload({
+            kind: "full",
+            targetPath,
+            remoteBase,
+            uploadedCount: totalFiles,
+            totalFiles,
+            videoLogs: videoCompressionLogs,
+            meta: metaSnapshot,
+          });
+          setSftpUploadDialogOpen(true);
           setOfflineGeneratedFiles([]);
+          setOfflinePackagePayload(null);
+          setOfflinePackageDialogOpen(false);
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await openYomediaDemoPreview({
-          remotePath: targetPath,
-          serverApiUrl: baseUrl,
-        });
       }
-    } catch (err) {
-      await prepareOfflineFallback(
-        err instanceof Error ? err.message : "Upload to SFTP failed.",
-      );
+      } catch (err) {
+        await prepareOfflineFallback(
+          err instanceof Error ? err.message : "Upload to SFTP failed.",
+        );
+      } finally {
+        setSendingToSftp(false);
+      }
     } finally {
-      setSendingToSftp(false);
+      setBuildProgressText(null);
     }
   };
 
@@ -1528,29 +2044,35 @@ const BuildDemo: React.FC = () => {
             <input
               ref={fileInputRef}
               type="file"
-              multiple
-              accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.webm,.mov,.html,.htm,.js,.mjs"
+              multiple={config.demoFormat !== "Video"}
+              accept={
+                config.demoFormat === "Video"
+                  ? ".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime"
+                  : ".png,.jpg,.jpeg,.webp,.gif,.svg,.mp4,.webm,.mov,.html,.htm,.js,.mjs"
+              }
               className="sr-only"
               tabIndex={-1}
               onChange={(e) => {
-                void handleFiles(e.target.files);
+                void handleFilesRef.current(e.target.files);
                 e.target.value = "";
               }}
             />
-            <input
-              ref={folderInputRef}
-              type="file"
-              // @ts-expect-error non-standard; enables folder picker in Chromium
-              webkitdirectory=""
-              directory=""
-              multiple
-              className="sr-only"
-              tabIndex={-1}
-              onChange={(e) => {
-                void handleFiles(e.target.files);
-                e.target.value = "";
-              }}
-            />
+            {config.demoFormat !== "Video" ? (
+              <input
+                ref={folderInputRef}
+                type="file"
+                // @ts-expect-error non-standard; enables folder picker in Chromium
+                webkitdirectory=""
+                directory=""
+                multiple
+                className="sr-only"
+                tabIndex={-1}
+                onChange={(e) => {
+                  void handleFilesRef.current(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            ) : null}
 
             {/* Scanning Line Animation */}
             {isDragging && (
@@ -1588,24 +2110,30 @@ const BuildDemo: React.FC = () => {
               </span>
               <br />
               <span className="mt-1 block text-slate-600 dark:text-inherit dark:opacity-60">
-                Drag and drop files or a whole folder (images + HTML/JS)
+                {config.demoFormat === "Video"
+                  ? "Upload one demo video — brand, VIDEO creative demo, then upload to SFTP."
+                  : "Drag and drop files or a whole folder (images + HTML/JS)"}
               </span>
               <span className="mt-1 block text-slate-500 dark:text-inherit dark:opacity-60">
-                PNG • JPG • WEBP • GIF • SVG • HTML • JS • MAX 10MB
+                {config.demoFormat === "Video"
+                  ? "MP4 • WEBM • MOV • MAX 500MB — server targets ≤4 MB when larger"
+                  : "PNG • JPG • WEBP • GIF • SVG • HTML • JS • MAX 10MB"}
               </span>
             </p>
             <div
               className="relative z-10 mt-4 flex flex-wrap items-center justify-center gap-3"
               onClick={(e) => e.stopPropagation()}
             >
-              <Button
-                type="button"
-                onClick={() => folderInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-2xl border border-teal-600/35 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-teal-800 shadow-sm transition-colors hover:border-[#4cceac]/60 hover:bg-teal-50 dark:border-[#4cceac]/35 dark:bg-[#141b2d]/80 dark:text-[#4cceac] dark:shadow-none dark:hover:bg-[#4cceac]/10"
-              >
-                <FolderOpenIcon className="h-4 w-4" />
-                Choose folder
-              </Button>
+              {config.demoFormat !== "Video" ? (
+                <Button
+                  type="button"
+                  onClick={() => folderInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-teal-600/35 bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-teal-800 shadow-sm transition-colors hover:border-[#4cceac]/60 hover:bg-teal-50 dark:border-[#4cceac]/35 dark:bg-[#141b2d]/80 dark:text-[#4cceac] dark:shadow-none dark:hover:bg-[#4cceac]/10"
+                >
+                  <FolderOpenIcon className="h-4 w-4" />
+                  Choose folder
+                </Button>
+              ) : null}
             </div>
 
             {/* Background decorative elements */}
@@ -1622,14 +2150,43 @@ const BuildDemo: React.FC = () => {
                 Remote Source URL (Optional)
               </label>
             </div>
-            <div className="group relative">
-              <input
-                type="text"
-                value={sourceUrl}
-                readOnly
-                placeholder="2026/03/romano/Laundry/winter/384x683"
-                className="w-full rounded-2xl border border-slate-200 bg-white py-5 px-6 text-sm font-medium text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl dark:placeholder-white/10"
-              />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="group relative flex-1">
+                <input
+                  type="text"
+                  value={sourceUrl}
+                  readOnly
+                  placeholder="2026/03/bbhh/all/video/demo-folder-name"
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-5 px-6 text-sm font-medium text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl dark:placeholder-white/10"
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={() => {
+                  setFiles([]);
+                  setSourceUrl("");
+                  setError(null);
+                  setSendError(null);
+                  setSelectedImage(null);
+                  setSelectedTextFile(null);
+                  setFilterType("all");
+                  setReplacementName("");
+                  setDirectoryExists(false);
+                  setCheckingDirectory(false);
+                  setVideoAutoDirSegment(
+                    normalizePathToken(config.demoFormat.toLowerCase()),
+                  );
+                  setOfflineGeneratedFiles([]);
+                  setOfflinePackagePayload(null);
+                  setOfflinePackageDialogOpen(false);
+                  setSftpUploadPopupPayload(null);
+                  setSftpUploadDialogOpen(false);
+                }}
+                disabled={files.length === 0 && !sourceUrl}
+                className="flex min-h-[64px] min-w-[120px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-8 py-4 text-[10px] font-black uppercase italic tracking-widest text-slate-800 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none dark:hover:bg-white/10"
+              >
+                Reset
+              </Button>
             </div>
           </div>
           {showUploadNameInput && (
@@ -1641,7 +2198,9 @@ const BuildDemo: React.FC = () => {
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                   {directoryExists
                     ? "Directory Exists — Replacement Name"
-                    : "Name the demo folder (required)"}
+                    : config.demoFormat === "Video"
+                      ? "Override demo folder name (optional)"
+                      : "Name the demo folder (required)"}
                 </label>
               </div>
               <div className="relative group">
@@ -1663,7 +2222,9 @@ const BuildDemo: React.FC = () => {
               >
                 {directoryExists
                   ? "Path already exists on SFTP — enter a new name (longer than 5 characters) to avoid overwriting."
-                  : "Name from HTML/JS is ≤ 5 characters — enter a demo folder name of at least 6 characters."}
+                  : config.demoFormat === "Video"
+                    ? "Video: the remote folder is `…/video`; if that path exists, the app uses `video-1`, `video-2`, … automatically. Add an optional subfolder name below only when you want `…/video/your-name`."
+                    : "Name from HTML/JS is ≤ 5 characters — enter a demo folder name of at least 6 characters."}
                 {checkingDirectory ? " Checking..." : ""}
                 {!uploadNameValid && replacementName.trim().length > 0 ? (
                   <span className="mt-1 block text-rose-700 dark:text-rose-300/90">
@@ -1692,6 +2253,34 @@ const BuildDemo: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
+                    Demo format
+                  </label>
+                </div>
+                <div className="relative group">
+                  <select
+                    value={config.demoFormat}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        demoFormat: e.target
+                          .value as (typeof demoFormats)[number],
+                      })
+                    }
+                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
+                  >
+                    {demoFormats.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                   <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Creative Demo
@@ -1705,8 +2294,12 @@ const BuildDemo: React.FC = () => {
                   >
                     <option value="">
                       {filteredDemoTitleOptions.length > 0
-                        ? "Select creative demo..."
-                        : "No matched demo title"}
+                        ? config.demoFormat === "Video"
+                          ? "Select video creative demo..."
+                          : "Select creative demo..."
+                        : config.demoFormat === "Video"
+                          ? "No VIDEO demos in catalog"
+                          : "No matched demo title"}
                     </option>
                     {filteredDemoTitleOptions.map((item) => (
                       <option key={item.id} value={item.title}>
@@ -1792,31 +2385,6 @@ const BuildDemo: React.FC = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 ml-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
-                    Season
-                  </label>
-                </div>
-                <div className="relative group">
-                  <select
-                    value={config.season}
-                    onChange={(e) =>
-                      setConfig({ ...config, season: e.target.value })
-                    }
-                    disabled
-                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-100 py-3 px-4 text-xs font-bold text-slate-700 outline-none transition-all dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
-                  >
-                    {seasons.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 ml-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                   <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                     Year
@@ -1872,78 +2440,72 @@ const BuildDemo: React.FC = () => {
               type="button"
               onClick={handleReplaceBase64AndUploadSftp}
               disabled={
-                !selectedDemoTitle.trim() ||
-                !config.model?.trim() ||
-                !uploadNameValid ||
-                !sourceUrl.trim() ||
-                files.length === 0 ||
-                sendingToSftp ||
-                checkingDirectory ||
-                openingDemoVideo ||
-                (showUploadNameInput && !replacementName.trim())
+                adminOfflineMode
+                  ? files.length === 0 ||
+                    preparingOfflineFiles ||
+                    sendingToSftp ||
+                    buildBusy
+                  : config.demoFormat === "Video"
+                    ? !selectedDemoTitle.trim() ||
+                      !config.model?.trim() ||
+                      !uploadNameValid ||
+                      !sourceUrl.trim() ||
+                      files.length !== 1 ||
+                      !isUploadedVideoFile(files[0]!) ||
+                      buildBusy ||
+                      sendingToSftp ||
+                      checkingDirectory ||
+                      (directoryExists && !replacementName.trim())
+                    : !selectedDemoTitle.trim() ||
+                      !config.model?.trim() ||
+                      !uploadNameValid ||
+                      !sourceUrl.trim() ||
+                      files.length === 0 ||
+                      buildBusy ||
+                      sendingToSftp ||
+                      checkingDirectory ||
+                      (showUploadNameInput && !replacementName.trim())
               }
               className="px-8 py-4 min-w-[120px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-white font-black border border-white/10 shadow-[0_8px_24px_rgba(139,92,246,0.25)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
             >
-              {sendingToSftp ? "Uploading..." : "Convert and Upload"}
+              {adminOfflineMode
+                ? buildBusy || preparingOfflineFiles
+                  ? "Converting..."
+                  : "Convert"
+                : buildBusy || sendingToSftp
+                  ? "Building..."
+                  : "Convert and Upload"}
             </Button>
-            <Button
-              type="button"
-              onClick={() => void handleOpenBuildDemoVideo()}
-              disabled={!sourceUrl.trim() || openingDemoVideo || sendingToSftp}
-              className="px-8 py-4 min-w-[120px] rounded-2xl bg-gradient-to-r from-emerald-600 to-[#4cceac] hover:from-emerald-500 hover:to-teal-300 disabled:from-[#3d465d] disabled:to-[#3d465d] disabled:opacity-60 text-[#0b1220] font-black border border-white/10 shadow-[0_8px_24px_rgba(76,206,172,0.35)] transition-all uppercase tracking-widest text-[10px] italic flex items-center justify-center gap-2"
-            >
-              <VideoCameraIcon className="w-4 h-4 shrink-0" />
-              {openingDemoVideo ? "Opening..." : "Build demo video"}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setFiles([]);
-                setSourceUrl("");
-                setError(null);
-                setSendError(null);
-                setSelectedImage(null);
-                setSelectedTextFile(null);
-                setFilterType("all");
-                setReplacementName("");
-                setDirectoryExists(false);
-                setCheckingDirectory(false);
-                setSendSuccess(null);
-                setOfflineGeneratedFiles([]);
-              }}
-              disabled={files.length === 0 && !sourceUrl}
-              className="flex min-w-[120px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-8 py-4 text-[10px] font-black uppercase italic tracking-widest text-slate-800 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-none dark:hover:bg-white/10"
-            >
-              Reset
-            </Button>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-4">
+              {sftpUploadPopupPayload && !sftpUploadDialogOpen && (
+                <Button
+                  type="button"
+                  onClick={() => setSftpUploadDialogOpen(true)}
+                  className="flex min-w-[120px] items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-500/15 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-emerald-800 transition-all hover:bg-emerald-500/25 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                >
+                  Open upload result
+                </Button>
+              )}
+            </div>
           </div>
           {sendError && (
             <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">
               {sendError}
             </p>
           )}
-          {sendSuccess && (
-            <p className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              {sendSuccess}
-            </p>
-          )}
-          {offlineGeneratedFiles.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                onClick={downloadOfflineGeneratedFiles}
-                disabled={downloadingOfflineZip}
-                className="rounded-xl border border-amber-400/40 bg-amber-100 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-amber-900 hover:bg-amber-200/80 dark:border-amber-300/30 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
-              >
-                {downloadingOfflineZip
-                  ? "Creating ZIP..."
-                  : `Download Offline ZIP (${offlineGeneratedFiles.length})`}
-              </Button>
-              <span className="text-[11px] text-amber-800 dark:text-amber-200/90">
-                Files are converted with base64 and bundled in one zip.
-              </span>
-            </div>
-          )}
+          {offlinePackagePayload &&
+            offlineGeneratedFiles.length > 0 &&
+            !offlinePackageDialogOpen && (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  onClick={() => setOfflinePackageDialogOpen(true)}
+                  className="rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-amber-800 hover:bg-amber-500/25 dark:border-amber-300/30 dark:text-amber-200 dark:hover:bg-amber-500/25"
+                >
+                  Open offline ZIP dialog
+                </Button>
+              </div>
+            )}
           {preparingOfflineFiles && (
             <p className="mt-2 text-xs text-amber-800 dark:text-amber-200/90">
               Preparing offline package...
@@ -2201,6 +2763,246 @@ const BuildDemo: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {buildBusy ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/72 px-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="w-full max-w-md rounded-[2rem] border border-white/10 bg-[#0f172a]/95 p-8 text-center shadow-[0_28px_90px_rgba(15,23,42,0.65)]"
+            >
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/10">
+                <ArrowPathIcon
+                  className="h-8 w-8 animate-spin text-violet-200"
+                  aria-hidden
+                />
+              </div>
+              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.35em] text-violet-200/80">
+                Build Demo
+              </p>
+              <h3 className="mt-3 text-2xl font-black tracking-tight text-white">
+                Please wait
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                {buildProgressText}
+              </p>
+              <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-full w-1/2 rounded-full bg-gradient-to-r from-[#4cceac] via-violet-400 to-fuchsia-400"
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{
+                    duration: 1.1,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <NoticePopup
+        open={offlinePackageDialogOpen && offlinePackagePayload !== null}
+        onClose={() => setOfflinePackageDialogOpen(false)}
+        title={
+          offlinePackagePayload?.kind === "fallback"
+            ? "Offline ZIP ready"
+            : "Offline package ready"
+        }
+        variant={
+          offlinePackagePayload?.kind === "fallback" ? "warning" : "success"
+        }
+        confirmLabel="Close"
+      >
+        {offlinePackagePayload ? (
+          <div className="space-y-4 text-left">
+            {offlinePackagePayload.uploadIssueSummary ? (
+              <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-xs font-medium leading-relaxed text-amber-100">
+                {offlinePackagePayload.uploadIssueSummary}
+              </p>
+            ) : null}
+            <p className="text-sm text-[#cbd5e1]">
+              {offlinePackagePayload.summary}
+            </p>
+            <ul className="space-y-2 border-t border-white/[0.06] pt-4 text-xs text-[#94a3b8]">
+              <li className="flex gap-2">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#4cceac]"
+                  aria-hidden
+                />
+                <span>
+                  <span className="font-semibold text-white/90">
+                    {offlineGeneratedFiles.length} file(s)
+                  </span>{" "}
+                  in the ZIP (flat folder; no SFTP path).
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#4cceac]"
+                  aria-hidden
+                />
+                <span>
+                  Videos are included when you uploaded them. File name:{" "}
+                  <span className="font-semibold text-white/90">
+                    Banner + month + date + timezone
+                  </span>
+                  .
+                </span>
+              </li>
+            </ul>
+            <Button
+              type="button"
+              onClick={() => void downloadOfflineGeneratedFiles()}
+              disabled={
+                offlineGeneratedFiles.length === 0 || downloadingOfflineZip
+              }
+              className="w-full rounded-xl border border-amber-400/40 bg-amber-500/20 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-amber-100 ring-1 ring-amber-400/20 transition hover:bg-amber-500/30 disabled:opacity-50"
+            >
+              {downloadingOfflineZip
+                ? "Creating ZIP..."
+                : `Download ZIP (${offlineGeneratedFiles.length})`}
+            </Button>
+          </div>
+        ) : null}
+      </NoticePopup>
+
+      <NoticePopup
+        open={sftpUploadDialogOpen && sftpUploadPopupPayload !== null}
+        onClose={() => setSftpUploadDialogOpen(false)}
+        title={
+          sftpUploadPopupPayload?.kind === "partial"
+            ? "Upload partially failed"
+            : "Uploaded to SFTP"
+        }
+        variant={
+          sftpUploadPopupPayload?.kind === "partial" ? "warning" : "success"
+        }
+        confirmLabel="Close"
+      >
+        {sftpUploadPopupPayload ? (
+          <div className="space-y-4 text-left">
+            <p className="text-xs leading-relaxed text-[#94a3b8]">
+              Remote path starts with Year, Month, Brand, and Product Category,
+              then Demo format (html or video), plus the demo folder name (from
+              your HTML/JS or replacement name). Values below are what was used
+              for this upload.
+            </p>
+            <dl className="grid grid-cols-[minmax(0,auto)_1fr] gap-x-3 gap-y-1.5 text-xs text-[#cbd5e1]">
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Demo format
+              </dt>
+              <dd className="font-semibold text-white/95">
+                {sftpUploadPopupPayload.meta.demoFormat}
+              </dd>
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Demo
+              </dt>
+              <dd className="font-semibold text-white/95">
+                {sftpUploadPopupPayload.meta.creativeDemo}
+              </dd>
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Brand
+              </dt>
+              <dd className="font-semibold text-white/95">
+                {sftpUploadPopupPayload.meta.brand}
+              </dd>
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Category
+              </dt>
+              <dd className="font-semibold text-white/95">
+                {sftpUploadPopupPayload.meta.productCate}
+              </dd>
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Year
+              </dt>
+              <dd>{sftpUploadPopupPayload.meta.year}</dd>
+              <dt className="font-black uppercase tracking-wider text-[#64748b]">
+                Month
+              </dt>
+              <dd>{sftpUploadPopupPayload.meta.month}</dd>
+            </dl>
+            <div>
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-[#64748b]">
+                Remote path
+              </p>
+              <div className="break-all rounded-xl border border-cyan-500/25 bg-black/35 px-3 py-2.5 font-mono text-[11px] leading-snug text-cyan-100/95">
+                {sftpUploadPopupPayload.remoteBase.replace(
+                  /^\/script\/demo\/?/i,
+                  "",
+                )}
+              </div>
+              <p className="mt-1.5 text-[10px] text-[#64748b]">
+                Relative:{" "}
+                <span className="font-mono text-[#94a3b8]">
+                  {sftpUploadPopupPayload.targetPath}
+                </span>
+              </p>
+            </div>
+            <p className="text-sm text-[#cbd5e1]">
+              {sftpUploadPopupPayload.kind === "full"
+                ? `All ${sftpUploadPopupPayload.totalFiles} file(s) uploaded. Images inlined as base64 in HTML/JS; videos sent as uploads.`
+                : `Uploaded ${sftpUploadPopupPayload.uploadedCount} of ${sftpUploadPopupPayload.totalFiles} file(s). Base64 applied where the file succeeded.`}
+            </p>
+            {sftpUploadPopupPayload.videoLogs.length > 0 ? (
+              <div className="border-t border-white/[0.06] pt-4">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#64748b]">
+                  Video processing
+                </p>
+                <pre className="max-h-36 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-[#cbd5e1]">
+                  {sftpUploadPopupPayload.videoLogs.join("\n")}
+                </pre>
+              </div>
+            ) : null}
+            {sftpUploadPopupPayload.failureDetails ? (
+              <div className="border-t border-white/[0.06] pt-4">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-rose-300/90">
+                  Failed
+                </p>
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-rose-500/25 bg-rose-950/35 p-3 text-xs leading-relaxed text-rose-100">
+                  {sftpUploadPopupPayload.failureDetails}
+                </pre>
+              </div>
+            ) : null}
+            <div className="border-t border-white/[0.06] pt-4 space-y-3">
+              <p className="text-[11px] leading-relaxed text-[#94a3b8]">
+                Open the creative demo preview when you want — optional (uses
+                the relative path above).
+              </p>
+              <Button
+                type="button"
+                onClick={() =>
+                  void openDemoPreviewAtPath(sftpUploadPopupPayload.targetPath, {
+                    instreamVideo:
+                      sftpUploadPopupPayload.meta.demoFormat === "Video" &&
+                      sftpUploadPopupPayload.meta.demoCategory === "Video",
+                    formatValue: sftpUploadPopupPayload.meta.demoValue,
+                  })
+                }
+                disabled={
+                  openingDemoVideo ||
+                  !String(sftpUploadPopupPayload.targetPath ?? "").trim() ||
+                  (sftpUploadPopupPayload.meta.demoFormat === "Video" &&
+                    !String(sftpUploadPopupPayload.meta.demoValue ?? "").trim())
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-500/20 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-emerald-100 ring-1 ring-emerald-400/20 transition hover:bg-emerald-500/30 disabled:opacity-45"
+              >
+                <VideoCameraIcon className="h-4 w-4 shrink-0" aria-hidden />
+                {openingDemoVideo ? "Opening..." : "Open demo preview"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </NoticePopup>
 
       <NoticePopup
         open={guidelinesOpen}

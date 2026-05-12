@@ -2,7 +2,12 @@
   "default": {
     "manageDemo": {
       "canUseFileActionButtons": false,
-      "canSwitchSftpHost": false
+      "canSwitchSftpHost": false,
+      "canSftpUploadBinary": false,
+      "canSftpWriteFile": false,
+      "canSftpDelete": false,
+      "canSftpRename": false,
+      "canSftpMkdir": false
     },
     "routeAccess": {
       "allowedRoutes": [
@@ -10,7 +15,7 @@
         "/chat",
         "/vision",
         "/image-generator",
-        "/creative-showcase",
+        "/creative",
         "/document",
         "/documentation",
         "/manage-demo",
@@ -28,7 +33,12 @@
   "admin": {
     "manageDemo": {
       "canUseFileActionButtons": true,
-      "canSwitchSftpHost": true
+      "canSwitchSftpHost": true,
+      "canSftpUploadBinary": true,
+      "canSftpWriteFile": true,
+      "canSftpDelete": true,
+      "canSftpRename": true,
+      "canSftpMkdir": true
     },
     "routeAccess": {
       "allowedRoutes": [
@@ -36,7 +46,7 @@
         "/chat",
         "/vision",
         "/image-generator",
-        "/creative-showcase",
+        "/creative",
         "/document",
         "/documentation",
         "/manage-demo",
@@ -46,6 +56,7 @@
         "/history",
         "/ai-gmail",
         "/test-data",
+        "/creative-demos-edit",
         "/build-demo",
         "/upload",
         "/manage-sftp",
@@ -60,25 +71,38 @@
   "manager": {
     "manageDemo": {
       "canUseFileActionButtons": false,
-      "canSwitchSftpHost": false
+      "canSwitchSftpHost": false,
+      "canSftpUploadBinary": true,
+      "canSftpWriteFile": true,
+      "canSftpDelete": false,
+      "canSftpRename": false,
+      "canSftpMkdir": true
     },
     "routeAccess": {
       "allowedRoutes": [
         "/",
-        "/creative-showcase",
+        "/creative",
         "/document",
         "/documentation",
-        "/manage-demo"
+        "/manage-demo",
+        "/chat",
+        "/build-demo",
+        "/upload"
       ]
     },
     "creativeShowcase": {
-      "canDownload": false
+      "canDownload": true
     }
   },
   "media": {
     "manageDemo": {
       "canUseFileActionButtons": false,
-      "canSwitchSftpHost": false
+      "canSwitchSftpHost": false,
+      "canSftpUploadBinary": true,
+      "canSftpWriteFile": true,
+      "canSftpDelete": false,
+      "canSftpRename": false,
+      "canSftpMkdir": true
     },
     "routeAccess": {
       "allowedRoutes": [
@@ -86,7 +110,7 @@
         "/chat",
         "/vision",
         "/image-generator",
-        "/creative-showcase",
+        "/creative",
         "/document",
         "/documentation",
         "/manage-demo",
@@ -95,7 +119,7 @@
         "/live",
         "/history",
         "/ai-gmail",
-        "/test-data"
+        "/build-demo"
       ]
     },
     "creativeShowcase": {
@@ -105,7 +129,12 @@
   "design": {
     "manageDemo": {
       "canUseFileActionButtons": false,
-      "canSwitchSftpHost": false
+      "canSwitchSftpHost": false,
+      "canSftpUploadBinary": true,
+      "canSftpWriteFile": true,
+      "canSftpDelete": false,
+      "canSftpRename": false,
+      "canSftpMkdir": true
     },
     "routeAccess": {
       "allowedRoutes": [
@@ -113,7 +142,7 @@
         "/chat",
         "/vision",
         "/image-generator",
-        "/creative-showcase",
+        "/creative",
         "/document",
         "/documentation",
         "/manage-demo",
@@ -133,12 +162,17 @@
   "guest": {
     "manageDemo": {
       "canUseFileActionButtons": false,
-      "canSwitchSftpHost": false
+      "canSwitchSftpHost": false,
+      "canSftpUploadBinary": false,
+      "canSftpWriteFile": false,
+      "canSftpDelete": false,
+      "canSftpRename": false,
+      "canSftpMkdir": false
     },
     "routeAccess": {
       "allowedRoutes": [
         "/",
-        "/creative-showcase"
+        "/creative"
       ]
     },
     "creativeShowcase": {
