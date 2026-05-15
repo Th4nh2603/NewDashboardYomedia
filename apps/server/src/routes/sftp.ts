@@ -17,6 +17,7 @@ import {
   uploadSftpBuffer,
   renameSftpPath,
   downloadSftpDirectoryAsZip,
+  copySftpPathBetweenConfigs,
   configForManageSftpScope,
   mapRemotePathForManageScope,
   type ManageSftpScope,
@@ -25,7 +26,10 @@ import {
   isCompressibleVideoFilename,
   maybeCompressVideoUpload,
 } from "../lib/media/videoCompress.js";
-import { isManageDemoMediaSftpAllowed } from "../lib/auth/manageDemoMediaSftp.js";
+import {
+  isBuildDemoMediaSetupAllowed,
+  isManageDemoMediaSftpAllowed,
+} from "../lib/auth/manageDemoMediaSftp.js";
 import { assertCreativeShowcaseDownloadAllowed } from "../lib/auth/creativeShowcaseDownload.js";
 import {
   assertSftpDeleteAllowed,
@@ -73,6 +77,13 @@ function assertMediaManageSftpAllowed(req: Request, scope: ManageSftpScope) {
       { code: "FORBIDDEN_MEDIA_SFTP" },
     );
   }
+}
+
+function assertBuildDemoMediaSetupAllowed(req: Request) {
+  if (isBuildDemoMediaSetupAllowed(req)) return;
+  throw new HttpError(403, "Forbidden: setup to media requires permission.", {
+    code: "FORBIDDEN_MEDIA_SETUP",
+  });
 }
 
 sftpRouter.post(
@@ -437,6 +448,35 @@ sftpRouter.post(
     const remotePath = mapRemotePathForManageScope(body.path, scope);
     const result = await createSftpDirectory(remotePath, cfg);
     res.json({ ...result, path: body.path });
+  }),
+);
+
+sftpRouter.post(
+  "/setup-demo-media",
+  asyncHandler(async (req: Request, res: Response) => {
+    assertBuildDemoMediaSetupAllowed(req);
+
+    const body = req.body as { path?: string };
+    const logicalPath = typeof body?.path === "string" ? body.path.trim() : "";
+    if (!logicalPath) {
+      throw new HttpError(400, "Missing 'path' field in body", {
+        code: "BAD_REQUEST",
+      });
+    }
+
+    const sourcePath = mapRemotePathForManageScope(logicalPath, "demo");
+    const targetPath = mapRemotePathForManageScope(logicalPath, "media");
+
+    const result = await copySftpPathBetweenConfigs(sourcePath, targetPath, {
+      sourceConfig: configForManageSftpScope("demo"),
+      targetConfig: configForManageSftpScope("media"),
+    });
+
+    res.json({
+      ok: true,
+      logicalPath,
+      ...result,
+    });
   }),
 );
 

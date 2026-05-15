@@ -14,6 +14,7 @@ import { sftpRouter } from "./routes/sftp.js";
 import { ragRouter } from "./routes/rag.js";
 import { uploadRouter } from "./routes/upload.js";
 import { fileUploadRouter } from "./routes/fileUpload.js";
+import { activityLogRouter } from "./routes/activityLog.js";
 import { testDataRouter } from "./routes/testData.js";
 import { userRouter } from "./routes/user.js";
 import { smtpRouter, legacySendEmailHandler } from "./routes/smtp.js";
@@ -105,6 +106,7 @@ app.use("/api/sftp", sftpRouter);
 app.use("/api/rag", ragRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/file-upload", fileUploadRouter);
+app.use("/api/activity-log", activityLogRouter);
 app.use("/api/test-data", testDataRouter);
 app.use("/api/user", userRouter);
 app.use("/api/smtp", smtpRouter);
@@ -138,6 +140,8 @@ type RolePermissionConfig = Record<
       canUseFileActionButtons?: boolean;
       /** Admin only: switch Manage Demo between demo / media SFTP host. */
       canSwitchSftpHost?: boolean;
+      /** Build Demo: copy converted upload from demo SFTP to media SFTP. */
+      canSetupMediaSftp?: boolean;
       /** @deprecated Loaded for backward compat; not written by normalize. */
       canEditDeleteSftp?: boolean;
       canSftpUploadBinary?: boolean;
@@ -171,13 +175,13 @@ const BASE_ALLOWED_ROUTES = [
   "/bar",
   "/cinema",
   "/live",
-  "/history",
   "/ai-gmail",
 ];
 const ADMIN_EXTRA_ROUTES = [
   "/manage-sftp",
   "/admin/users",
   "/creative-demos-edit",
+  "/history",
 ];
 const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
 const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
@@ -224,7 +228,12 @@ function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): string[] {
     routes.add("/test-data");
     routes.add("/smtp-mail");
   }
-  if (role === "admin" || role === "design" || role === "media") {
+  if (
+    role === "admin" ||
+    role === "design" ||
+    role === "media" ||
+    role === "manager"
+  ) {
     routes.add("/build-demo");
   }
   if (role === "admin" || role === "design") {
@@ -234,6 +243,7 @@ function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): string[] {
     routes.add("/manage-sftp");
     routes.add("/admin/users");
     routes.add("/creative-demos-edit");
+    routes.add("/history");
   }
 
   return Array.from(routes);
@@ -483,6 +493,8 @@ function normalizeRolePermissions(
       manageDemo: {
         canUseFileActionButtons: normalizedDefault,
         canSwitchSftpHost: false,
+        canSetupMediaSftp:
+          safeInput.default?.manageDemo?.canSetupMediaSftp === true,
         canSftpUploadBinary: resolveSftpAclField(
           safeInput.default?.manageDemo,
           "canSftpUploadBinary",
@@ -530,6 +542,7 @@ function normalizeRolePermissions(
           r === "admin"
             ? config?.manageDemo?.canSwitchSftpHost === true
             : false,
+        canSetupMediaSftp: config?.manageDemo?.canSetupMediaSftp === true,
         canSftpUploadBinary: resolveSftpAclField(
           config?.manageDemo,
           "canSftpUploadBinary",
@@ -791,6 +804,7 @@ app.put("/api/admin/permissions/:role", (req, res) => {
     manageDemo?: {
       canUseFileActionButtons?: unknown;
       canSwitchSftpHost?: unknown;
+      canSetupMediaSftp?: unknown;
       canSftpUploadBinary?: unknown;
       canSftpWriteFile?: unknown;
       canSftpDelete?: unknown;
@@ -804,6 +818,7 @@ app.put("/api/admin/permissions/:role", (req, res) => {
     payload?.manageDemo?.canUseFileActionButtons === true;
   const canSwitchSftpHost =
     role === "admin" && payload?.manageDemo?.canSwitchSftpHost === true;
+  const canSetupMediaSftp = payload?.manageDemo?.canSetupMediaSftp === true;
   const md = payload?.manageDemo;
   const canSftpUploadBinary = md?.canSftpUploadBinary === true;
   const canSftpWriteFile = md?.canSftpWriteFile === true;
@@ -831,6 +846,7 @@ app.put("/api/admin/permissions/:role", (req, res) => {
         ...currentPermissions[role]?.manageDemo,
         canUseFileActionButtons,
         canSwitchSftpHost,
+        canSetupMediaSftp,
         canSftpUploadBinary,
         canSftpWriteFile,
         canSftpDelete,

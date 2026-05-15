@@ -1,23 +1,22 @@
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
+import brandColors from "../data/brandColors.json";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
 import {
   FolderIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  DocumentIcon,
+  DocumentTextIcon,
+  CodeBracketIcon,
+  GlobeAltIcon,
+  PencilSquareIcon,
+  TrashIcon,
   ArrowPathIcon,
   ArrowDownTrayIcon,
   EyeIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  ServerStackIcon,
-  ChevronUpIcon,
+  SignalIcon,
 } from "@heroicons/react/24/outline";
 import {
   fetchSftpList,
@@ -91,6 +90,25 @@ function getDownloadNameFromDisposition(header: string | null): string | null {
   return plainMatch?.[1]?.trim() || null;
 }
 
+function getBrandColorClass(name: string) {
+  const lower = name.toLowerCase();
+  const match = (
+    brandColors as {
+      keyword: string;
+      className: string;
+      match?: "start" | "any";
+    }[]
+  ).find((item) => {
+    const kw = item.keyword.toLowerCase();
+    if (!kw) return false;
+    if (item.match === "start") {
+      return lower.startsWith(kw);
+    }
+    return lower.includes(kw);
+  });
+  return match?.className || "text-[#e5e7eb]";
+}
+
 const ManageSftp: React.FC = () => {
   const { user } = useAuth();
   const normalizedRole = (user?.role || "").toLowerCase();
@@ -160,6 +178,11 @@ const ManageSftp: React.FC = () => {
 
   const isEditableFileName = React.useCallback((name: string) => {
     return /\.(html?|js|mjs|ts|css|json|txt|xml)$/i.test(name.toLowerCase());
+  }, []);
+
+  const formatSizeInMb = React.useCallback((bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }, []);
 
   const refreshFileQueries = React.useCallback(() => {
@@ -350,7 +373,6 @@ const ManageSftp: React.FC = () => {
   const listError = listQuery.error;
   const searchError = searchQuery.error;
 
-  // Filter names at current depth until recursive search kicks in (< 2 chars after debounce).
   const flatFiltered = React.useMemo(() => {
     const q = filterQuery.trim().toLowerCase();
     if (!q) return listEntries;
@@ -358,231 +380,71 @@ const ManageSftp: React.FC = () => {
   }, [listEntries, filterQuery]);
 
   const parentPath = getParentPath(sftpPath);
+  const listBusy = loadingList;
 
   const openDirectory = (name: string) => {
-    if (loadingList) return;
+    if (listBusy) return;
     const next = joinPath(sftpPath, name);
     setSftpPath(next);
     setPathDraft(next);
   };
 
   const openPath = (fullPath: string) => {
-    if (loadingList) return;
+    if (listBusy) return;
     setSftpPath(fullPath);
     setPathDraft(fullPath);
   };
 
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const shell = isDark
-    ? "border-white/[0.08] bg-[#1a2336]/75 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"
-    : "border-slate-200/90 bg-white/80 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.12)]";
-  const muted = isDark ? "text-[#94a3b8]" : "text-slate-500";
-  const heading = isDark ? "text-white" : "text-slate-900";
-  const subCard = isDark
-    ? "border-white/[0.06] bg-[#151d2f]/90"
-    : "border-slate-200/80 bg-slate-50/90";
-  const field = isDark
-    ? "border-white/10 bg-[#0b1220]/90 text-white placeholder:text-slate-500 focus:border-[#4cceac]/40 focus:ring-2 focus:ring-[#4cceac]/15"
-    : "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/15";
-  const iconBoxRing = isDark ? "ring-white/10" : "ring-black/[0.04]";
-  const iconBoxBg = isDark ? "bg-[#4cceac]/15" : "bg-emerald-500/12";
-  const dividerVia = isDark ? "via-white/10" : "via-slate-200";
-  const tableSurface = isDark
-    ? "border-white/[0.06] bg-[#050b14]/80"
-    : "border-slate-200/90 bg-slate-50/90";
-  const theadRow = isDark
-    ? "border-b border-white/10 bg-gradient-to-b from-[#0f172a] to-[#0b1220]"
-    : "border-b border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50";
-  const thAccent = isDark ? "text-[#6ee7c5]" : "text-emerald-700";
-  const rowHover = isDark
-    ? "odd:bg-white/[0.015] hover:bg-white/[0.04]"
-    : "odd:bg-slate-50/60 hover:bg-slate-100/90";
-  const trHoverSearch = isDark
-    ? "hover:bg-white/[0.04]"
-    : "hover:bg-slate-100/90";
-  const monoStrong = isDark ? "text-[#e5e7eb]" : "text-slate-800";
-  const monoSub = isDark ? "text-[#64748b]" : "text-slate-500";
-  const cellSize = isDark ? "text-[#a3a3a3]" : "text-slate-500";
-  const linkDir = isDark
-    ? "text-[#7dd3fc] hover:underline"
-    : "text-sky-700 hover:underline";
-  const fileName = isDark ? "text-[#e5e7eb]" : "text-slate-800";
-  const codeChip = isDark
-    ? "rounded-md border border-white/10 bg-black/30 px-1.5 py-0.5 text-[12px] text-[#7dd3fc]"
-    : "rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] text-sky-700";
-  const btnSecondary = isDark
-    ? "border border-white/10 bg-[#0b1220]/90 text-slate-200 hover:bg-white/[0.06] hover:border-white/15"
-    : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50";
-  const badgeDemo = isDark
-    ? "border-[#4cceac]/35 bg-[#4cceac]/10 text-[#4cceac]"
-    : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  const accentWord = isDark ? "text-[#4cceac]" : "text-emerald-600";
-  const modalShell = shell;
-  const modalHeaderBg = isDark
-    ? "border-white/10 bg-[#0a1628]/50"
-    : "border-slate-200/80 bg-slate-50/90";
-  const modalTextarea = isDark
-    ? "border-white/10 bg-[#0b1220] text-[#e5e7eb] focus:border-[#4cceac]/40 read-only:focus:border-white/10"
-    : "border-slate-200 bg-white text-slate-900 focus:border-emerald-500/50 read-only:focus:border-slate-200";
-  const modalPathBox = isDark
-    ? "border-white/[0.06] bg-black/20 text-slate-400"
-    : "border-slate-200/80 bg-slate-100/80 text-slate-600";
-  const errBanner = isDark
-    ? "border-rose-500/25 bg-rose-500/[0.08] text-rose-100"
-    : "border-rose-200 bg-rose-50 text-rose-800";
-  const okBanner = isDark
-    ? "border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-100"
-    : "border-emerald-200 bg-emerald-50 text-emerald-900";
-  const warnBanner = isDark
-    ? "border-amber-500/25 bg-amber-500/[0.08] text-amber-100"
-    : "border-amber-200 bg-amber-50 text-amber-900";
-  const chipRecursive = isDark
-    ? "border-[#4cceac]/20 bg-[#4cceac]/5 text-[#7ee8cf]"
-    : "border-emerald-200 bg-emerald-50 text-emerald-800";
-  const chipFilter = isDark
-    ? "border-sky-500/20 bg-sky-500/5 text-sky-200/90"
-    : "border-sky-200 bg-sky-50 text-sky-800";
-  const hintIdle = isDark ? "text-slate-600" : "text-slate-400";
-  const openFolderBtn = isDark
-    ? "border-sky-500/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 hover:border-sky-400/30"
-    : "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100";
-  const labelUpper = isDark ? "text-slate-500" : "text-slate-500";
-  const divideRows = isDark ? "divide-white/[0.04]" : "divide-slate-200/60";
-  const badgeFolder = isDark
-    ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90"
-    : "border-amber-200 bg-amber-50 text-amber-900";
-  const badgeFile = isDark
-    ? "border-slate-500/25 bg-slate-500/10 text-slate-300"
-    : "border-slate-200 bg-slate-100 text-slate-700";
-  const spinIcon = isDark ? "text-[#4cceac]/50" : "text-emerald-600/60";
-  const readBtn = isDark
-    ? "border-white/10 bg-white/5 text-[#7dd3fc] hover:bg-white/10"
-    : "border-slate-200 bg-slate-50 text-sky-700 hover:bg-slate-100";
-  const editBtn = isDark
-    ? "border-[#4cceac]/25 bg-[#4cceac]/10 text-[#9ff3de] hover:bg-[#4cceac]/20"
-    : "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100";
-  const delBtn = isDark
-    ? "border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
-    : "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100";
-  const downloadBtn = isDark
-    ? "border-sky-500/30 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20"
-    : "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100";
-  const listBtn = isDark
-    ? "shrink-0 rounded-xl bg-[#4cceac]/20 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-[#c6fff0] border border-[#4cceac]/35 hover:bg-[#4cceac]/28 hover:border-[#4cceac]/45"
-    : "shrink-0 rounded-xl bg-emerald-100 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-emerald-900 border border-emerald-300 hover:bg-emerald-200 hover:border-emerald-400";
-  const modalSwitchEdit = isDark
-    ? "rounded-xl border border-[#4cceac]/30 bg-[#4cceac]/15 px-4 py-2 text-xs font-semibold text-[#9ff3de] hover:bg-[#4cceac]/25"
-    : "rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100";
-  const modalSave = isDark
-    ? "rounded-xl bg-[#4cceac]/25 px-4 py-2 text-xs font-bold text-[#0f172a] hover:bg-[#4cceac]/40"
-    : "rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500";
-  const modalClose = `rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50 ${btnSecondary}`;
-  const docIconMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const applyPathFromDraft = React.useCallback(() => {
+    const nextPath = pathDraft.trim() || DEFAULT_SFTP_PATH;
+    setSftpPath(nextPath);
+    setPathDraft(nextPath);
+  }, [pathDraft]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 pt-5 pb-8 sm:px-6 sm:pt-6">
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className={`relative overflow-hidden rounded-3xl border p-5 md:p-6 ${shell}`}
-      >
-        <div
-          className="pointer-events-none absolute -top-20 -right-20 h-52 w-52 rounded-full blur-3xl opacity-50 bg-gradient-to-br from-[#4cceac]/30 to-indigo-600/25"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-16 -left-12 h-48 w-48 rounded-full blur-3xl opacity-35 bg-gradient-to-tr from-indigo-500/20 to-fuchsia-500/15"
-          aria-hidden
-        />
-        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl space-y-2">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${badgeDemo}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4cceac] animate-pulse" />
-              Demo server
-            </span>
-            <h1
-              className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${heading}`}
-            >
-              SFTP{" "}
-              <span className="bg-gradient-to-r from-[#4cceac] via-teal-300 to-indigo-400 bg-clip-text text-transparent">
-                browser
-              </span>
+    <div className="w-full px-4 sm:px-5 space-y-4 sm:space-y-5">
+      <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730] dark:via-[#0b1730]/95 dark:to-[#102449] dark:shadow-[0_18px_36px_rgba(2,6,23,0.42)]">
+        <div className="pointer-events-none absolute -right-16 -top-14 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-indigo-400/10 blur-3xl" />
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-5">
+          <div className="min-w-0 space-y-1.5 sm:max-w-xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-700 dark:text-cyan-300/80">
+              SFTP tools
+            </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight dark:text-[#e0e0e0]">
+              Manage SFTP
             </h1>
-            <p className={`text-sm leading-6 ${muted}`}>
-              Browse, search, view, edit, delete, and download folders from SFTP.
-              Demo preview shortcuts apply under{" "}
-              <code className={codeChip}>{DEFAULT_SFTP_PATH}</code>.
+            <p className="text-xs text-slate-600 dark:text-slate-300/80">
+              Browse any path, filter or search folders recursively, then read,
+              edit, delete, or download ZIPs — same layout as Manage Demo, without
+              live preview.
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={() => {
-              void listQuery.refetch();
-              if (useRecursiveSearch) void searchQuery.refetch();
-              refreshFileQueries();
-            }}
-            disabled={loadingList}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4cceac] to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-[#4cceac]/20 transition-all hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
-          >
-            Reload
-            <ArrowPathIcon
-              className={`h-4 w-4 opacity-90 ${loadingList ? "animate-spin" : ""}`}
-            />
-          </Button>
-        </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.05 }}
-        className={`relative overflow-hidden rounded-2xl border p-4 md:p-5 space-y-4 ${shell}`}
-      >
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#4cceac]/90 to-teal-600/90 opacity-90"
-          aria-hidden
-        />
-        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start">
-          <div
-            className={`shrink-0 rounded-xl p-2.5 ${iconBoxBg} ring-1 ${iconBoxRing}`}
-          >
-            <ServerStackIcon
-              className={`h-6 w-6 ${isDark ? "text-[#4cceac]" : "text-emerald-600"}`}
-              aria-hidden
-            />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <h2 className={`text-lg font-black tracking-tight ${heading}`}>
-              SFTP browser
-            </h2>
-            <p className={`text-[13px] leading-5 ${muted}`}>
-              Search from the current path. Enter{" "}
-              <span
-                className={`font-semibold ${isDark ? "text-slate-300" : "text-slate-800"}`}
-              >
-                2+ characters
-              </span>{" "}
-              for <span className={`${accentWord} font-semibold`}>recursive</span>{" "}
-              folder search; shorter text only filters the current level.
-            </p>
+          <div className="w-full sm:w-auto sm:shrink-0">
+            <div className="grid grid-cols-1 gap-2.5 sm:gap-3 sm:min-w-[10.5rem]">
+              <div className="flex min-w-0 flex-col justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-3 py-2.5 text-left shadow-inner shadow-slate-200/60 dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  Default root
+                </p>
+                <p className="font-mono text-[11px] font-semibold text-slate-800 break-all dark:text-white/90">
+                  {DEFAULT_SFTP_PATH}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className={`h-px bg-gradient-to-r from-transparent ${dividerVia} to-transparent`} />
-
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)_auto]">
-          <div className="space-y-1.5">
-            <label
-              className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${labelUpper}`}
-            >
-              <span className="inline-block h-1 w-1 rounded-full bg-[#4cceac]" />
-              SFTP path
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730]/80 dark:to-[#0e203f]/75 dark:shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
+            <div className="flex items-center gap-2 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
+                SFTP path
+              </label>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <input
                 type="text"
                 value={pathDraft}
@@ -590,466 +452,423 @@ const ManageSftp: React.FC = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    const nextPath = pathDraft.trim() || DEFAULT_SFTP_PATH;
-                    setSftpPath(nextPath);
-                    setPathDraft(nextPath);
+                    applyPathFromDraft();
                   }
                 }}
                 placeholder="/script/demo/..."
                 spellCheck={false}
-                className={`min-w-0 flex-1 rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-shadow ${field}`}
+                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 dark:border-white/10 dark:bg-[#111c36] dark:text-white"
               />
               <Button
                 type="button"
-                onClick={() => {
-                  const nextPath = pathDraft.trim() || DEFAULT_SFTP_PATH;
-                  setSftpPath(nextPath);
-                  setPathDraft(nextPath);
-                }}
-                disabled={loadingList}
-                className={`disabled:opacity-50 transition-colors ${listBtn}`}
+                onClick={applyPathFromDraft}
+                disabled={listBusy}
+                variant="primary"
+                size="md"
+                className="shrink-0 sm:self-stretch"
               >
                 List
               </Button>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label
-              className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${labelUpper}`}
-            >
-              <FunnelIcon className="h-3.5 w-3.5 text-[#4cceac]" />
-              Find folder
-            </label>
+
+          <div className="space-y-2 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730]/80 dark:to-[#13284b]/75 dark:shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
+            <div className="flex items-center gap-2 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
+                Find folder
+              </label>
+            </div>
             <div className="relative group">
-              <MagnifyingGlassIcon
-                className={`pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors ${
-                  isDark
-                    ? "text-slate-500 group-focus-within:text-[#4cceac]/80"
-                    : "text-slate-400 group-focus-within:text-emerald-600"
-                }`}
-              />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-[#4cceac] dark:text-slate-500 dark:group-focus-within:text-[#4cceac]/80" />
               <input
                 type="search"
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                placeholder="e.g. maxkleen (2+ chars = recursive)"
-                className={`w-full rounded-xl border py-2.5 pl-11 pr-4 text-sm outline-none transition-shadow ${field}`}
+                placeholder="2+ chars = recursive folder search"
+                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/60 focus:ring-2 focus:ring-[#4cceac]/20 dark:border-white/10 dark:bg-[#111c36] dark:text-white"
               />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none rounded-lg border border-rose-400/20 bg-rose-500/10 p-1.5">
+                <SignalIcon className="w-3.5 h-3.5 text-rose-300" />
+              </div>
             </div>
+            <p className="ml-1 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+              Shorter query only filters names in the current directory.
+            </p>
           </div>
-          {(parentPath != null || canDownloadFolders) && (
-            <div className="flex flex-col gap-2 xl:justify-end">
-              {canDownloadFolders ? (
+        </div>
+
+        <div className="space-y-2.5 pb-4 sm:pb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
+                {useRecursiveSearch ? "Search results" : "SFTP folder"}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {canDownloadFolders && (
                 <Button
                   type="button"
                   onClick={() => void handleDownloadDirectory(sftpPath)}
-                  disabled={loadingList || downloadingPath !== null}
-                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-[11px] font-semibold transition-colors disabled:opacity-50 xl:w-auto ${downloadBtn}`}
+                  disabled={listBusy || downloadingPath !== null}
+                  variant="secondary"
+                  size="md"
+                  className="inline-flex items-center gap-1.5"
                 >
                   <ArrowDownTrayIcon className="h-4 w-4" />
-                  {downloadingPath === sftpPath
-                    ? "Downloading…"
-                    : "Download current"}
+                  {downloadingPath === sftpPath ? "Downloading…" : "Download ZIP"}
                 </Button>
-              ) : null}
-              {parentPath != null ? (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setSftpPath(parentPath);
-                    setPathDraft(parentPath);
-                  }}
-                  disabled={loadingList}
-                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-[11px] font-semibold transition-colors disabled:opacity-50 xl:w-auto ${btnSecondary}`}
-                >
-                  <ChevronUpIcon
-                    className={`h-4 w-4 ${isDark ? "text-slate-400" : "text-slate-500"}`}
-                  />
-                  Up to parent
-                </Button>
-              ) : null}
+              )}
+              <Button
+                type="button"
+                onClick={() => {
+                  void listQuery.refetch();
+                  if (useRecursiveSearch) void searchQuery.refetch();
+                  refreshFileQueries();
+                }}
+                disabled={listBusy}
+                variant="secondary"
+                size="md"
+                className="inline-flex items-center gap-1.5"
+              >
+                <ArrowPathIcon
+                  className={`h-4 w-4 ${listBusy ? "animate-spin" : ""}`}
+                />
+                Reload
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (parentPath == null) return;
+                  setSftpPath(parentPath);
+                  setPathDraft(parentPath);
+                }}
+                disabled={parentPath == null || listBusy}
+                variant="secondary"
+                size="md"
+              >
+                Back
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div
-          className={`flex flex-col gap-1.5 rounded-xl border px-3 py-2 sm:flex-row sm:items-center sm:justify-between ${subCard}`}
-        >
-          <p className={`min-w-0 break-all font-mono text-[11px] ${muted}`}>
-            <span className={`mr-1.5 ${muted}`}>Viewing</span>
-            <span className={monoStrong}>{sftpPath}</span>
+          <p className="text-xs font-mono text-slate-600 break-all px-1 dark:text-[#64748b]">
+            {sftpPath}
           </p>
-          <div className="shrink-0 text-[10px] font-medium">
-            {useRecursiveSearch ? (
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 ${chipRecursive}`}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#4cceac] animate-pulse" />
-                Recursive &quot;{debouncedQ}&quot;
-                {searchLoading ? "…" : ` · ${searchMatches.length} folder(s)`}
-              </span>
-            ) : filterQuery.trim() ? (
-              <span
-                className={`inline-flex items-center rounded-lg border px-2 py-1 ${chipFilter}`}
-              >
-                Level filter · {flatFiltered.length}/{listEntries.length}
-              </span>
-            ) : (
-              <span className={`hidden sm:inline ${hintIdle}`}>
-                Type to filter or search
-              </span>
-            )}
-          </div>
-        </div>
 
-        {listError && (
-          <div className={`rounded-xl border px-3 py-2.5 text-xs ${errBanner}`}>
-            {listError instanceof Error ? listError.message : "SFTP list failed"}
-          </div>
-        )}
-        {searchError && useRecursiveSearch && (
-          <div className={`rounded-xl border px-3 py-2.5 text-xs ${errBanner}`}>
-            {searchError instanceof Error ? searchError.message : "Folder search failed"}
-          </div>
-        )}
-        {panelError && !filePanel && (
-          <div className={`rounded-xl border px-3 py-2.5 text-xs ${errBanner}`}>
-            {panelError}
-          </div>
-        )}
-        {actionBanner && (
-          <div
-            className={`rounded-xl border px-3 py-2.5 text-xs ${
-              actionBanner === "File saved." ||
-              actionBanner === "Deleted." ||
-              actionBanner === "Folder ZIP ready."
-                ? okBanner
-                : warnBanner
-            }`}
-          >
-            {actionBanner}
-          </div>
-        )}
+          {useRecursiveSearch && (
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300/80 px-1">
+              Recursive &quot;{debouncedQ}&quot;
+              {searchLoading ? "…" : ` · ${searchMatches.length} folder(s)`}
+            </p>
+          )}
 
-        <div
-          className={`overflow-hidden rounded-xl border shadow-inner ${tableSurface}`}
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-[13px]">
-            <thead>
-              <tr className={theadRow}>
-                {useRecursiveSearch ? (
-                  <>
-                    <th
-                      className={`px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider ${thAccent}`}
-                    >
-                      Path (from root)
-                    </th>
-                    <th
-                      className={`w-32 px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider ${thAccent}`}
-                    >
-                      Open
-                    </th>
-                  </>
-                ) : (
-                  <>
-                    <th
-                      className={`px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider ${thAccent}`}
-                    >
-                      Name
-                    </th>
-                    <th
-                      className={`w-24 px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider ${thAccent}`}
-                    >
-                      Type
-                    </th>
-                    <th
-                      className={`w-28 px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right ${thAccent}`}
-                    >
-                      Size
-                    </th>
-                    <th
-                      className={`w-52 px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right ${thAccent}`}
-                    >
-                      Actions
-                    </th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${divideRows}`}>
+          {listError && (
+            <p className="text-sm text-amber-400/90 px-1">
+              {listError instanceof Error ? listError.message : "SFTP list failed"}
+            </p>
+          )}
+          {searchError && useRecursiveSearch && (
+            <p className="text-sm text-amber-400/90 px-1">
+              {searchError instanceof Error ? searchError.message : "Folder search failed"}
+            </p>
+          )}
+          {panelError && !filePanel && (
+            <p className="text-sm text-amber-400/90 px-1">{panelError}</p>
+          )}
+          {actionBanner && (
+            <p
+              className={`text-xs px-1 ${
+                actionBanner === "File saved." ||
+                actionBanner === "Deleted." ||
+                actionBanner === "Folder ZIP ready."
+                  ? "text-emerald-300/90"
+                  : "text-amber-300/90"
+              }`}
+            >
+              {actionBanner}
+            </p>
+          )}
+
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md dark:border-slate-800/90 dark:bg-gradient-to-b dark:from-[#030a1a] dark:via-[#020617] dark:to-[#020617] dark:shadow-[0_14px_32px_rgba(2,6,23,0.5)]">
+            <div className="overflow-x-auto">
               {useRecursiveSearch ? (
-                searchLoading && searchMatches.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={2}
-                      className="px-3 py-10 text-center"
-                    >
-                      <span
-                        className={`inline-flex flex-col items-center gap-2 text-xs ${muted}`}
-                      >
-                        <ArrowPathIcon
-                          className={`h-7 w-7 animate-spin ${spinIcon}`}
-                        />
+                <div className="min-w-[560px]">
+                  <div className="sticky top-0 z-10 grid grid-cols-12 border-b border-slate-200 bg-slate-50/95 px-4 py-2.5 text-[11px] font-semibold text-slate-600 backdrop-blur dark:border-slate-800 dark:bg-[#020617]/95 dark:text-slate-300">
+                    <div className="col-span-10">Path</div>
+                    <div className="col-span-2 text-right">Open</div>
+                  </div>
+                  <div className="max-h-[20rem] overflow-y-auto text-[12px] text-slate-800 sm:max-h-[24rem] dark:text-[#e5e7eb]">
+                    {searchLoading && searchMatches.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-slate-500">
                         Searching folder tree…
-                      </span>
-                    </td>
-                  </tr>
-                ) : !searchLoading && searchMatches.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={2}
-                      className={`px-3 py-10 text-center text-xs ${muted}`}
-                    >
-                      No folders match this search.
-                    </td>
-                  </tr>
-                ) : (
-                  searchMatches.map((m) => (
-                    <tr
-                      key={m.fullPath}
-                      className={`transition-colors ${trHoverSearch}`}
-                    >
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-start gap-2">
-                          <FolderIcon className="h-4 w-4 shrink-0 text-amber-400/90 mt-0.5" />
-                          <div className="min-w-0">
-                            <p
-                              className={`break-all font-mono text-[12px] ${monoStrong}`}
-                            >
-                              {m.relativePath || m.matchedName}
-                            </p>
-                            <p
-                              className={`mt-0.5 break-all font-mono text-[10px] ${monoSub}`}
-                            >
-                              {m.fullPath}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 align-top">
-                        <Button
-                          type="button"
-                          onClick={() => openPath(m.fullPath)}
-                          disabled={loadingList}
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${openFolderBtn}`}
-                        >
-                          Open folder
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )
-              ) : loadingList && listEntries.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-3 py-10 text-center"
-                  >
-                    <span
-                      className={`inline-flex flex-col items-center gap-2 text-xs ${muted}`}
-                    >
-                      <ArrowPathIcon
-                        className={`h-7 w-7 animate-spin ${spinIcon}`}
-                      />
-                      Loading list…
-                    </span>
-                  </td>
-                </tr>
-              ) : flatFiltered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className={`px-3 py-10 text-center text-xs ${muted}`}
-                  >
-                    {listEntries.length === 0
-                      ? "No items yet or failed to load."
-                      : "No items match this filter."}
-                  </td>
-                </tr>
-              ) : (
-                flatFiltered.map((entry) => {
-                  const isDir = entry.type === "d";
-                  const fullPath = joinPath(sftpPath, entry.name);
-                  const busyThis = panelLoadingPath === fullPath;
-                  const deletingThis = deletingPath === fullPath;
-                  const downloadingThis = downloadingPath === fullPath;
-                  const canEdit = !isDir && isEditableFileName(entry.name);
-                  return (
-                    <tr
-                      key={`${entry.type}-${entry.name}`}
-                      className={`transition-colors ${rowHover}`}
-                    >
-                      <td className="px-3 py-2.5">
-                        <Button
-                          type="button"
-                          disabled={!isDir || loadingList}
-                          onClick={() => isDir && openDirectory(entry.name)}
-                          className={`inline-flex items-center gap-2 text-left ${
-                            isDir
-                              ? `${linkDir} cursor-pointer`
-                              : `${fileName} cursor-default`
-                          } disabled:opacity-60`}
-                        >
-                          {isDir ? (
-                            <FolderIcon className="h-4 w-4 shrink-0 text-amber-400/90" />
-                          ) : (
-                            <DocumentIcon
-                              className={`h-4 w-4 shrink-0 ${docIconMuted}`}
-                            />
-                          )}
-                          <span className="break-all font-mono text-[12px]">
-                            {entry.name}
-                          </span>
-                        </Button>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={`inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                            isDir ? badgeFolder : badgeFile
+                      </div>
+                    ) : !searchLoading && searchMatches.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-slate-600 dark:text-slate-400">
+                        No folders match this search.
+                      </div>
+                    ) : (
+                      searchMatches.map((m, index) => (
+                        <div
+                          key={m.fullPath}
+                          className={`grid grid-cols-12 border-t border-slate-100 px-4 py-2.5 transition-colors hover:bg-slate-50 dark:border-[#0f172a] dark:hover:bg-white/[0.04] ${
+                            index % 2 === 0
+                              ? "bg-transparent"
+                              : "bg-slate-50/60 dark:bg-white/[0.015]"
                           }`}
                         >
-                          {isDir ? "Folder" : "File"}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-3 py-2.5 text-right font-mono text-[11px] ${cellSize}`}
-                      >
-                        {isDir ? "—" : entry.size.toLocaleString()}
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          {isDir && canDownloadFolders ? (
+                          <div className="col-span-10 min-w-0 pr-2">
+                            <div className="flex items-start gap-2">
+                              <FolderIcon className="h-4 w-4 shrink-0 text-amber-400/90 mt-0.5" />
+                              <div className="min-w-0">
+                                <p className="break-all font-mono text-[12px] text-slate-900 dark:text-[#e5e7eb]">
+                                  {m.relativePath || m.matchedName}
+                                </p>
+                                <p className="mt-0.5 break-all font-mono text-[10px] text-slate-500 dark:text-[#64748b]">
+                                  {m.fullPath}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="col-span-2 flex items-start justify-end">
                             <Button
                               type="button"
-                              title="Download folder as ZIP"
-                              disabled={
-                                loadingList || downloadingPath !== null || deletingThis
-                              }
-                              onClick={() => void handleDownloadDirectory(fullPath)}
-                              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${downloadBtn}`}
+                              onClick={() => openPath(m.fullPath)}
+                              disabled={listBusy}
+                              variant="secondary"
+                              size="sm"
                             >
-                              <ArrowDownTrayIcon className="h-3.5 w-3.5" />
-                              {downloadingThis ? "Downloading…" : "Download"}
+                              Open
                             </Button>
-                          ) : null}
-                          {!isDir ? (
-                            <>
-                              <Button
-                                type="button"
-                                title="Read file contents"
-                                disabled={loadingList || busyThis}
-                                onClick={() => void openReadOrEdit(fullPath, "read")}
-                                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${readBtn}`}
-                              >
-                                <EyeIcon className="h-3.5 w-3.5" />
-                                Read
-                              </Button>
-                              {canEdit && canSftpWriteFile ? (
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="min-w-[760px]">
+                  <div className="sticky top-0 z-10 grid grid-cols-12 border-b border-slate-200 bg-slate-50/95 px-4 py-2.5 text-[11px] font-semibold text-slate-600 backdrop-blur dark:border-slate-800 dark:bg-[#020617]/95 dark:text-slate-300">
+                    <div className="col-span-5">Name</div>
+                    <div className="col-span-2 text-center">Type</div>
+                    <div className="col-span-2 text-right">Size</div>
+                    <div className="col-span-2 text-right">Modified</div>
+                    <div className="col-span-1 text-right">Actions</div>
+                  </div>
+                  <div className="max-h-[20rem] overflow-y-auto text-[12px] text-slate-800 sm:max-h-[24rem] dark:text-[#e5e7eb]">
+                    {listBusy && listEntries.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-slate-500">
+                        Loading…
+                      </div>
+                    ) : flatFiltered.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-slate-600 dark:text-slate-400">
+                        <p className="text-sm">
+                          {listEntries.length === 0
+                            ? "No entries in this directory."
+                            : "No items match this filter."}
+                        </p>
+                      </div>
+                    ) : (
+                      flatFiltered.map((item, index) => {
+                        const isDir = item.type === "d";
+                        const fullPath = joinPath(sftpPath, item.name);
+                        const ext = isDir
+                          ? ""
+                          : (item.name.split(".").pop()?.toLowerCase() ?? "");
+                        const busyThis = panelLoadingPath === fullPath;
+                        const deletingThis = deletingPath === fullPath;
+                        const downloadingThis = downloadingPath === fullPath;
+
+                        return (
+                          <div
+                            key={`${item.type}-${item.name}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              if (isDir) openDirectory(item.name);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter" && e.key !== " ") return;
+                              e.preventDefault();
+                              if (isDir) openDirectory(item.name);
+                            }}
+                            className={`grid grid-cols-12 border-t border-slate-100 px-4 py-2 transition-colors hover:bg-slate-50 dark:border-[#0f172a] dark:hover:bg-white/[0.04] ${
+                              index % 2 === 0
+                                ? "bg-transparent"
+                                : "bg-slate-50/60 dark:bg-white/[0.015]"
+                            } ${
+                              isDir ? "cursor-pointer" : "cursor-default"
+                            } ${listBusy ? "pointer-events-none opacity-80" : ""}`}
+                          >
+                            <div
+                              className={`col-span-5 truncate pr-2 ${getBrandColorClass(item.name)}`}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="truncate">{item.name}</span>
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex items-center justify-center text-slate-500 dark:text-[#9ca3af]">
+                              {isDir ? (
+                                <FolderIcon className="w-4 h-4" />
+                              ) : ext === "html" || ext === "htm" ? (
+                                <GlobeAltIcon className="w-4 h-4" />
+                              ) : ext === "js" || ext === "ts" ? (
+                                <CodeBracketIcon className="w-4 h-4" />
+                              ) : (
+                                <DocumentTextIcon className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="col-span-2 text-right text-slate-500 dark:text-[#9ca3af]">
+                              {isDir ? "—" : formatSizeInMb(item.size)}
+                            </div>
+                            <div className="col-span-2 text-right text-slate-500 dark:text-[#6b7280]">
+                              {item.modifyTime
+                                ? new Date(item.modifyTime).toLocaleDateString(
+                                    undefined,
+                                    { day: "2-digit", month: "2-digit" },
+                                  )
+                                : "—"}
+                            </div>
+                            <div className="col-span-1 flex flex-wrap items-center justify-end gap-1">
+                              {isDir && canDownloadFolders && (
                                 <Button
                                   type="button"
-                                  title="Edit file (text)"
-                                  disabled={loadingList || busyThis}
-                                  onClick={() =>
-                                    void openReadOrEdit(fullPath, "edit")
+                                  title="Download folder as ZIP"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleDownloadDirectory(fullPath);
+                                  }}
+                                  disabled={
+                                    listBusy ||
+                                    downloadingPath !== null ||
+                                    deletingThis
                                   }
-                                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${editBtn}`}
+                                  variant="secondary"
+                                  size="icon"
+                                  className="shrink-0"
                                 >
-                                  <PencilSquareIcon className="h-3.5 w-3.5" />
-                                  Edit
+                                  <ArrowDownTrayIcon className="w-3.5 h-3.5" />
                                 </Button>
-                              ) : null}
-                            </>
-                          ) : null}
-                          {canSftpDelete ? (
-                          <Button
-                            type="button"
-                            title={
-                              isDir ? "Delete folder" : "Delete file"
-                            }
-                            disabled={
-                              loadingList || busyThis || deletingThis || downloadingThis
-                            }
-                            onClick={() =>
-                              requestDeletePath(fullPath, isDir)
-                            }
-                            className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold disabled:opacity-50 ${delBtn}`}
-                          >
-                            <TrashIcon className="h-3.5 w-3.5" />
-                            Delete
-                          </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                              )}
+                              {!isDir && (
+                                <>
+                                  <Button
+                                    type="button"
+                                    title="Read file"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void openReadOrEdit(fullPath, "read");
+                                    }}
+                                    disabled={listBusy || busyThis}
+                                    variant="secondary"
+                                    size="icon"
+                                  >
+                                    <EyeIcon className="w-3.5 h-3.5" />
+                                  </Button>
+                                  {canSftpWriteFile &&
+                                    isEditableFileName(item.name) && (
+                                      <Button
+                                        type="button"
+                                        title="Edit file"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          void openReadOrEdit(fullPath, "edit");
+                                        }}
+                                        disabled={listBusy || busyThis}
+                                        variant="iconSuccess"
+                                        size="icon"
+                                      >
+                                        <PencilSquareIcon className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
+                                </>
+                              )}
+                              {canSftpDelete && (
+                                <Button
+                                  type="button"
+                                  title={isDir ? "Delete folder" : "Delete file"}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    requestDeletePath(fullPath, isDir);
+                                  }}
+                                  disabled={
+                                    listBusy ||
+                                    busyThis ||
+                                    deletingThis ||
+                                    downloadingThis
+                                  }
+                                  variant="iconDanger"
+                                  size="icon"
+                                  className="disabled:opacity-50"
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
               )}
-            </tbody>
-            </table>
-          </div>
-        </div>
-      </motion.section>
-
-      {filePanel ? (
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] p-4 ${
-            isDark ? "bg-black/75" : "bg-slate-900/45"
-          }`}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="manage-sftp-file-panel-title"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label="Close"
-            onClick={() => {
-              if (!savingFile) setFilePanel(null);
-            }}
-          />
-          <div
-            className={`relative z-10 flex max-h-[min(90vh,880px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl ring-1 ${
-              isDark
-                ? "shadow-black/70 ring-white/[0.05]"
-                : "shadow-slate-900/15 ring-slate-200/60"
-            } ${modalShell}`}
-          >
-            <div className="h-1 w-full bg-gradient-to-r from-[#4cceac] via-cyan-400/90 to-violet-500/80 shrink-0" />
-            <div className={`border-b px-5 py-4 ${modalHeaderBg}`}>
-              <div className="flex items-center gap-2">
-                {filePanel.mode === "edit" ? (
-                  <PencilSquareIcon
-                    className={`h-5 w-5 ${isDark ? "text-[#4cceac]" : "text-emerald-600"}`}
-                    aria-hidden
-                  />
-                ) : (
-                  <EyeIcon
-                    className={`h-5 w-5 ${isDark ? "text-sky-400" : "text-sky-600"}`}
-                    aria-hidden
-                  />
-                )}
-                <h2
-                  id="manage-sftp-file-panel-title"
-                  className={`text-sm font-semibold tracking-tight ${heading}`}
-                >
-                  {filePanel.mode === "edit" ? "Edit file" : "Read file"}
-                </h2>
-              </div>
-              <p
-                className={`mt-2 break-all rounded-lg border px-2.5 py-1.5 font-mono text-[11px] ${modalPathBox}`}
-              >
-                {filePanel.path}
-              </p>
             </div>
-            {panelError ? (
-              <div
-                className={`mx-5 mt-3 rounded-lg border px-3 py-2 text-xs ${errBanner}`}
-              >
-                {panelError}
+          </div>
+
+          {filePanel && (
+            <div className="space-y-2.5 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-md dark:border-slate-800 dark:bg-gradient-to-b dark:from-[#030a1a] dark:to-[#020617] dark:shadow-[0_14px_34px_rgba(2,6,23,0.42)]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 truncate font-mono text-xs text-slate-800 dark:text-[#e5e7eb]">
+                  {filePanel.path}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {filePanel.mode === "read" &&
+                    canSftpWriteFile &&
+                    isEditableFileName(
+                      filePanel.path.split("/").pop() || filePanel.path,
+                    ) && (
+                      <Button
+                        type="button"
+                        disabled={savingFile}
+                        onClick={() =>
+                          setFilePanel({ ...filePanel, mode: "edit" })
+                        }
+                        variant="secondary"
+                        size="sm"
+                      >
+                        Switch to edit
+                      </Button>
+                    )}
+                  {filePanel.mode === "edit" && canSftpWriteFile && (
+                    <Button
+                      type="button"
+                      onClick={() => void handleSaveEditor()}
+                      disabled={savingFile}
+                      variant="primary"
+                      size="sm"
+                      className="disabled:opacity-50"
+                    >
+                      {savingFile ? "Saving..." : "Save"}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    disabled={savingFile}
+                    onClick={() => {
+                      setFilePanel(null);
+                      setPanelError(null);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Close
+                  </Button>
+                </div>
               </div>
-            ) : null}
-            <div className="min-h-0 flex-1 px-5 py-3">
+              {panelError ? (
+                <p className="text-sm text-amber-400/90">{panelError}</p>
+              ) : null}
               <textarea
                 value={filePanel.content}
                 readOnly={filePanel.mode === "read"}
@@ -1061,55 +880,12 @@ const ManageSftp: React.FC = () => {
                   })
                 }
                 spellCheck={false}
-                className={`h-[min(60vh,520px)] w-full resize-y rounded-xl border p-3 font-mono text-xs leading-relaxed outline-none ${modalTextarea}`}
+                className="min-h-[200px] w-full resize-vertical rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-xs text-slate-800 outline-none focus:border-[#4cceac]/60 dark:border-slate-800 dark:bg-[#01050f] dark:text-[#e5e7eb]"
               />
             </div>
-            <div
-              className={`flex flex-wrap items-center justify-end gap-2 border-t px-5 py-4 ${
-                isDark ? "border-white/10" : "border-slate-200/80"
-              }`}
-            >
-              {filePanel.mode === "read" &&
-              canSftpWriteFile &&
-              isEditableFileName(
-                filePanel.path.split("/").pop() || filePanel.path,
-              ) ? (
-                <Button
-                  type="button"
-                  disabled={savingFile}
-                  onClick={() =>
-                    setFilePanel({ ...filePanel, mode: "edit" })
-                  }
-                  className={modalSwitchEdit}
-                >
-                  Switch to edit
-                </Button>
-              ) : null}
-              {filePanel.mode === "edit" && canSftpWriteFile ? (
-                <Button
-                  type="button"
-                  disabled={savingFile}
-                  onClick={() => void handleSaveEditor()}
-                  className={`${modalSave} disabled:opacity-50`}
-                >
-                  {savingFile ? "Saving…" : "Save"}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                disabled={savingFile}
-                onClick={() => {
-                  setFilePanel(null);
-                  setPanelError(null);
-                }}
-                className={modalClose}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
-      ) : null}
+      </div>
 
       <NoticePopup
         open={deleteConfirm !== null}

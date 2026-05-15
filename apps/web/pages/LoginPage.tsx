@@ -8,11 +8,14 @@ import {
   SignUpButton,
   UserButton,
   useAuth,
+  useUser,
 } from "@clerk/react";
+import { recordActivity } from "../lib/activityLog";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { isSignedIn, getToken } = useAuth();
+  const { user: clerkUser } = useUser();
   const hasLoggedJwtRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -31,6 +34,31 @@ const Login: React.FC = () => {
 
     void logJwt();
   }, [isSignedIn, getToken]);
+
+  React.useEffect(() => {
+    if (!isSignedIn || !clerkUser) return;
+    const userEmail = clerkUser.primaryEmailAddress?.emailAddress || "";
+    const userName =
+      clerkUser.fullName || clerkUser.firstName || clerkUser.username || "";
+    const sessionKey = `yomedia-login-activity:${userEmail || userName}`;
+    try {
+      if (sessionStorage.getItem(sessionKey) === "1") return;
+      sessionStorage.setItem(sessionKey, "1");
+    } catch {
+      // ignore sessionStorage errors
+    }
+    void recordActivity({
+      user: {
+        name: userName,
+        email: userEmail,
+        role: "guest",
+      },
+      action: "login",
+      area: "Auth",
+      description: "Signed in",
+      target: "/login",
+    });
+  }, [clerkUser, isSignedIn]);
 
   return (
     <div className="min-h-screen bg-[#141b2d] flex items-center justify-center p-6 font-sans">

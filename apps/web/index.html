@@ -28,22 +28,25 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ["Inter", "sans-serif"],
+              sans: [
+                "ui-sans-serif",
+                "system-ui",
+                "Segoe UI",
+                "Roboto",
+                "Helvetica Neue",
+                "Arial",
+                "sans-serif",
+              ],
             },
           },
         },
       };
     </script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
     <script type="importmap">
       {
         "imports": {
           "react/": "https://esm.sh/react@^19.2.4/",
           "react": "https://esm.sh/react@^19.2.4",
-          "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
           "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
           "@heroicons/react/24/outline": "https://esm.sh/@heroicons/react@2.2.0/24/outline",
           "react-dom/": "https://esm.sh/react-dom@^19.2.4/",

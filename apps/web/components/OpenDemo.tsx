@@ -32,13 +32,19 @@ export type OpenYomediaDemoPreviewParams = {
    */
   remotePath: string;
   /**
-   * Video / VAST on idvd: `.../idvd/index.html?f=<creative value>&b=.../make-vast.xml&l=null&c=demo`.
+   * Video / VAST preview: `.../idvd/...` by default; with `previewHostTemplate: "tuoitre"` uses `.../ttvd/...`.
    * `f=` must be passed via `formatValue` (creative-demos `value`, e.g. instream, outstream) — no default.
    */
   instreamVideo?: boolean;
   bannerPath?: string;
   formatValue?: string;
   forceDevice?: "pc" | "mb";
+  /**
+   * Banner HTML preview host under `…/app/template/site/`.
+   * `eva` maps Display → `evapc`, Mobile → `evamb`.
+   * `tuoitre` maps Display → `ttpc`, Mobile → `ttmb`, video / VAST → `ttvd`.
+   */
+  previewHostTemplate?: "default" | "eva" | "tuoitre";
   baseRemotePath?: string;
   /** Server base URL with `/api/creative-demos` (same default as the Demo button). */
   serverApiUrl?: string;
@@ -265,8 +271,7 @@ async function getFormatFromData(
   const deviceByCategory = inferDeviceByCategory(foundBySize?.category);
   const device = format.includes("-pc") ? "pc" : deviceByCategory;
   const previewSite = inferPreviewSiteByCategory(foundBySize?.category);
-  const entryFile =
-    (foundBySize?.file ?? "").trim() || "index.html";
+  const entryFile = (foundBySize?.file ?? "").trim() || "index.html";
   return {
     format,
     device: device as "mb" | "pc",
@@ -340,26 +345,36 @@ export async function getYomediaDemoPreviewUrl(
           : `${relative.replace(/\/+$/, "")}/${entryFile}`
       : entryFile;
 
+  const tmpl = params.previewHostTemplate ?? "default";
   const shouldUseVideoSite =
     params.instreamVideo || previewSite === "idvd" || category === "Video";
   if (shouldUseVideoSite) {
     const vastRel = params.bannerPath?.trim()
       ? params.bannerPath.trim().replace(/^\/+/, "")
-      : fileName !== null &&
-          /\.(xml|xaml)$/i.test(fileName)
+      : fileName !== null && /\.(xml|xaml)$/i.test(fileName)
         ? relative.replace(/\/+$/, "")
         : `${relative.replace(/\/+$/, "")}/make-vast.xml`;
-    const previewBase =
-      "https://demo.yomedia.vn/yomedia/site/idvd/index.html";
+    const videoSite = tmpl === "tuoitre" ? "ttvd" : "idvd";
+    const previewBase = `https://demo.yomedia.vn/yomedia/app/template/site/${videoSite}/index.html`;
     return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(vastRel)}&l=${encodeURIComponent("null")}&c=demo`;
   }
 
   const effectiveDevice = params.forceDevice ?? device;
   const isPcFormat = effectiveDevice === "pc";
-  /** PC: …/idpc/index.html — Mobile: …/idmb/index.html. */
-  const previewBase = isPcFormat
-    ? "https://demo.yomedia.vn/yomedia/app/template/site/idpc/index.html"
-    : "https://demo.yomedia.vn/yomedia/app/template/site/idmb/index.html";
+  const siteSegment =
+    tmpl === "eva"
+      ? isPcFormat
+        ? "evapc"
+        : "evamb"
+      : tmpl === "tuoitre"
+        ? isPcFormat
+          ? "ttpc"
+          : "ttmb"
+        : isPcFormat
+          ? "idpc"
+          : "idmb";
+  /** PC/Mobile segment under `…/app/template/site/` per template. */
+  const previewBase = `https://demo.yomedia.vn/yomedia/app/template/site/${siteSegment}/index.html`;
   return `${previewBase}?f=${encodeURIComponent(formatParam)}&b=${encodeURIComponent(computedBannerPath)}&l=lt&c=demo`;
 }
 
@@ -393,6 +408,7 @@ type OpenDemoButtonProps = {
   formatValue?: string;
   /** Force preview site: `pc` -> idpc, `mb` -> idmb */
   forceDevice?: "pc" | "mb";
+  previewHostTemplate?: "default" | "eva" | "tuoitre";
   baseRemotePath?: string;
   className?: string;
   label?: string;
@@ -405,6 +421,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
   bannerPath,
   formatValue,
   forceDevice,
+  previewHostTemplate,
   baseRemotePath = "/script/demo",
   className = "px-4 py-2.5 rounded-2xl bg-[#4cceac] text-[#020617] text-xs font-semibold uppercase tracking-widest hover:bg-[#6ee7c7] disabled:opacity-60 disabled:cursor-not-allowed",
   label = "demo",
@@ -422,6 +439,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
       bannerPath,
       formatValue,
       forceDevice,
+      previewHostTemplate,
       baseRemotePath,
       serverApiUrl,
     });
@@ -430,6 +448,7 @@ const OpenDemoButton: React.FC<OpenDemoButtonProps> = ({
     bannerPath,
     instreamVideo,
     forceDevice,
+    previewHostTemplate,
     formatValue,
     remotePath,
     baseRemotePath,

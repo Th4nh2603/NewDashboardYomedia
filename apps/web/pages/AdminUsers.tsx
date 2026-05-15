@@ -20,6 +20,7 @@ type RolePermissionConfig = Record<
     manageDemo?: {
       canUseFileActionButtons?: boolean;
       canSwitchSftpHost?: boolean;
+      canSetupMediaSftp?: boolean;
       canSftpUploadBinary?: boolean;
       canSftpWriteFile?: boolean;
       canSftpDelete?: boolean;
@@ -50,6 +51,7 @@ const WEB_MANAGE_DEMO = "/manage-demo";
 const WEB_BUILD_DEMO = "/build-demo";
 const WEB_MANAGE_SFTP = "/manage-sftp";
 const WEB_CREATIVE = "/creative";
+const WEB_BUILD_DEMO_SETUP = "/build-demo";
 
 const SFTP_ACL_FIELDS: {
   key:
@@ -340,6 +342,19 @@ const AdminUsers: React.FC = () => {
     }));
   };
 
+  const updateCanSetupMediaSftp = (role: string, enabled: boolean) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [role]: {
+        ...(prev[role] || {}),
+        manageDemo: {
+          ...(prev[role]?.manageDemo || {}),
+          canSetupMediaSftp: enabled,
+        },
+      },
+    }));
+  };
+
   const updateSftpAcl = (
     role: string,
     field: (typeof SFTP_ACL_FIELDS)[number]["key"],
@@ -398,6 +413,8 @@ const AdminUsers: React.FC = () => {
       const canSwitchSftpHost =
         role === "admin" &&
         permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+      const canSetupMediaSftp =
+        permissions[role]?.manageDemo?.canSetupMediaSftp === true;
       const canSftpUploadBinary =
         permissions[role]?.manageDemo?.canSftpUploadBinary === true;
       const canSftpWriteFile =
@@ -423,6 +440,7 @@ const AdminUsers: React.FC = () => {
               role === "admin"
                 ? canSwitchSftpHost
                 : false,
+            canSetupMediaSftp,
             canSftpUploadBinary,
             canSftpWriteFile,
             canSftpDelete,
@@ -482,6 +500,10 @@ const AdminUsers: React.FC = () => {
     const originalSwitch =
       role === "admin" &&
       initialPermissions[role]?.manageDemo?.canSwitchSftpHost === true;
+    const currentSetupMedia =
+      permissions[role]?.manageDemo?.canSetupMediaSftp === true;
+    const originalSetupMedia =
+      initialPermissions[role]?.manageDemo?.canSetupMediaSftp === true;
     const md = permissions[role]?.manageDemo;
     const imd = initialPermissions[role]?.manageDemo;
     const sftpDirty = SFTP_ACL_FIELDS.some(
@@ -501,6 +523,7 @@ const AdminUsers: React.FC = () => {
     return (
       currentCanUse !== originalCanUse ||
       currentSwitch !== originalSwitch ||
+      currentSetupMedia !== originalSetupMedia ||
       sftpDirty ||
       currentCreativeDownload !== originalCreativeDownload ||
       JSON.stringify(currentRoutes) !== JSON.stringify(originalRoutes)
@@ -723,6 +746,8 @@ const AdminUsers: React.FC = () => {
                       true;
                     const canSwitch =
                       permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+                    const canSetupMedia =
+                      permissions[role]?.manageDemo?.canSetupMediaSftp === true;
                     const canDownloadCreative =
                       permissions[role]?.creativeShowcase?.canDownload === true;
                     const selectedRoutes = new Set(
@@ -770,6 +795,17 @@ const AdminUsers: React.FC = () => {
                                 — admin only
                               </p>
                             )}
+                            <PermissionCheckboxRow
+                              checked={canSetupMedia}
+                              onChecked={(v) => updateCanSetupMediaSftp(role, v)}
+                              title={
+                                <span className="font-mono text-[12px] text-slate-700 dark:text-slate-200">
+                                  canSetupMediaSftp
+                                </span>
+                              }
+                              subtitle="Build Demo: copy converted upload from demo SFTP to media SFTP"
+                              paths={[WEB_BUILD_DEMO_SETUP]}
+                            />
                             <div className="flex flex-col gap-2 rounded-xl border border-[#4cceac]/25 bg-[#4cceac]/[0.08] p-2.5 dark:border-[#4cceac]/15 dark:bg-[#4cceac]/[0.04]">
                               <div className="px-1">
                                 <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-[#94a3b8]">

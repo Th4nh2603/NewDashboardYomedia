@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from '../components/Button';
 
@@ -99,6 +100,13 @@ const TestData: React.FC = () => {
         throw new Error(data.error || "Save failed");
       }
       setMessage("creative-demos.json saved.");
+      void recordActivity({
+        user,
+        action: "save_test_data",
+        area: "Test Data",
+        description: "Saved creative-demos.json",
+        target: "creative-demos.json",
+      });
       void load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");

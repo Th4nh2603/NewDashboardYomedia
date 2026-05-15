@@ -17,6 +17,7 @@ import {
 import Button from "../components/Button";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 
 /** Preview cell aspect ratio: tighter on mobile + laptop (lg); full phone ratio again from xl up. */
@@ -360,9 +361,11 @@ function Iphone16ProMaxShowcaseFrame({
 function ShowcaseIphonePreviewWithEmbed({
   item,
   serverApiUrl,
+  onPreviewOpen,
 }: {
   item: DemoItem;
   serverApiUrl: string;
+  onPreviewOpen?: (item: DemoItem) => void;
 }) {
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [urlResolving, setUrlResolving] = useState(true);
@@ -371,8 +374,9 @@ function ShowcaseIphonePreviewWithEmbed({
   const useDisplaySizePreview = item.category === "Display";
 
   const openDisplayLightbox = useCallback(() => {
+    onPreviewOpen?.(item);
     setDisplayLightboxOpen(true);
-  }, []);
+  }, [item, onPreviewOpen]);
 
   const closeDisplayLightbox = useCallback(() => {
     setDisplayLightboxOpen(false);
@@ -569,6 +573,24 @@ const CreativeShowcase: React.FC = () => {
     return resolveCreativeShowcaseDownload(rolePermissions, role);
   }, [rolePermissions, rolePermissionsLoaded, role]);
 
+  const handlePreviewOpen = useCallback(
+    (item: DemoItem) => {
+      void recordActivity({
+        user,
+        action: "preview_creative",
+        area: "Creative",
+        description: "Opened creative preview lightbox",
+        target: item.title,
+        metadata: {
+          demoId: item.id,
+          category: item.category,
+          source: item.source,
+        },
+      });
+    },
+    [user],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -614,6 +636,18 @@ const CreativeShowcase: React.FC = () => {
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
+        void recordActivity({
+          user,
+          action: "download_creative",
+          area: "Creative",
+          description: "Downloaded creative demo package",
+          target: item.title,
+          metadata: {
+            demoId: item.id,
+            category: item.category,
+            source: item.source,
+          },
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Download failed";
         setError(message);
@@ -621,7 +655,7 @@ const CreativeShowcase: React.FC = () => {
         setDownloadingId(null);
       }
     },
-    [baseUrl, downloadingId],
+    [baseUrl, canDownloadCreativeDemos, downloadingId, role, user],
   );
 
   const handleOpenDemo = useCallback(
@@ -634,13 +668,26 @@ const CreativeShowcase: React.FC = () => {
           forceDevice: item.category === "Display" ? "pc" : "mb",
           serverApiUrl: baseUrl,
         });
+        void recordActivity({
+          user,
+          action: "open_creative_demo",
+          area: "Creative",
+          description: "Opened creative demo preview",
+          target: item.title,
+          metadata: {
+            demoId: item.id,
+            category: item.category,
+            source: item.source,
+            forceDevice: item.category === "Display" ? "pc" : "mb",
+          },
+        });
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Unable to open demo";
         setError(message);
       }
     },
-    [baseUrl],
+    [baseUrl, user],
   );
 
   useEffect(() => {
@@ -808,6 +855,7 @@ const CreativeShowcase: React.FC = () => {
                       <ShowcaseIphonePreviewWithEmbed
                         item={item}
                         serverApiUrl={baseUrl}
+                        onPreviewOpen={handlePreviewOpen}
                       />
                     </div>
 

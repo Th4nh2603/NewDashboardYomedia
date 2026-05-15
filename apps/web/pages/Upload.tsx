@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
@@ -529,6 +530,21 @@ const Upload: React.FC = () => {
           ? `${baseMsg} ${extraMessages.join(" ")}`
           : baseMsg,
       );
+      void recordActivity({
+        user,
+        action: "upload_folder",
+        area: "Upload",
+        description: `Uploaded ${data.uploaded || payloadFiles.length} file(s) from folder`,
+        target: data.folderName || selectedFolderName,
+        metadata: {
+          demoId: selectedDemoId,
+          categoryFilter: selectedCategory,
+          fileCount: data.uploaded || payloadFiles.length,
+          folderName: data.folderName || selectedFolderName,
+          testJsonUpdated: data.testJsonUpdated === true,
+          creativeDemosUpdated: data.creativeDemosUpdated === true,
+        },
+      });
       await loadFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Folder upload failed");

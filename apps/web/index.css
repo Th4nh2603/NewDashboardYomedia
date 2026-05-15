@@ -140,3 +140,37 @@ html.light .dashboard-ambient-grid {
     linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
   mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, black 20%, transparent 72%);
 }
+
+/* Mobile (viewport < md): hide scrollbars; content stays scrollable */
+@media (max-width: 767px) {
+  html,
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  nav,
+  .custom-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  nav::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+}

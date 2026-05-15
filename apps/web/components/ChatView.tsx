@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useError } from "../contexts/ErrorContext";
+import { useAuth } from "../contexts/AuthContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from './Button';
 
@@ -269,11 +271,18 @@ function renderColoredContent(content: string) {
   );
 }
 
+function summarizePrompt(input: string): string {
+  const compact = input.replace(/\s+/g, " ").trim();
+  if (compact.length <= 120) return compact;
+  return `${compact.slice(0, 117)}...`;
+}
+
 const ChatView = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { handleApiError } = useError();
+  const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -347,6 +356,18 @@ const ChatView = () => {
           content,
         };
         setMessages((prev) => [...prev, extractedMsg]);
+        void recordActivity({
+          user,
+          action: "chat_check_sftp_path",
+          area: "AI Chat",
+          description: "Checked SFTP path from chat input",
+          target: displayDir,
+          metadata: {
+            inputPreview: summarizePrompt(trimmedInput),
+            sftpDirectory: sftpDir,
+            exists,
+          },
+        });
         setInput("");
         return;
       }
@@ -375,6 +396,17 @@ const ChatView = () => {
             content,
           },
         ]);
+        void recordActivity({
+          user,
+          action: "chat_generate_demo_link",
+          area: "AI Chat",
+          description: "Generated demo preview link from chat input",
+          target: demoPath,
+          metadata: {
+            inputPreview: summarizePrompt(trimmedInput),
+            previewUrl: url,
+          },
+        });
       } catch (err) {
         handleApiError(err, "Demo preview link");
         setMessages((prev) => [
@@ -420,6 +452,17 @@ const ChatView = () => {
         content: data.answer || "Sorry, I could not generate a response.",
       };
       setMessages((prev) => [...prev, modelMsg]);
+      void recordActivity({
+        user,
+        action: "chat_prompt",
+        area: "AI Chat",
+        description: "Sent AI chat prompt",
+        target: summarizePrompt(trimmedInput),
+        metadata: {
+          inputPreview: summarizePrompt(trimmedInput),
+          responseLength: String(data.answer || "").length,
+        },
+      });
     } catch (err) {
       handleApiError(err, "Chat Message");
       const msg =
@@ -451,7 +494,19 @@ const ChatView = () => {
           </h2>
         </div>
         <Button
-          onClick={() => setMessages([])}
+          onClick={() => {
+            if (messages.length > 0) {
+              void recordActivity({
+                user,
+                action: "chat_clear_history",
+                area: "AI Chat",
+                description: "Cleared chat conversation",
+                target: "conversation",
+                metadata: { clearedMessages: messages.length },
+              });
+            }
+            setMessages([]);
+          }}
           className="text-xs text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-slate-100 transition-colors"
         >
           Clear History

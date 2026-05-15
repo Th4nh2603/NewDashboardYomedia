@@ -77,22 +77,9 @@ const App: React.FC = () => {
                                 </RoleRoute>
                               }
                             />
-                            <Route
-                              path="/build-demo"
-                              element={
-                                <RoleRoute allow={["admin", "design", "media"]}>
-                                  <BuildDemo />
-                                </RoleRoute>
-                              }
-                            />
-                            <Route
-                              path="/upload"
-                              element={
-                                <RoleRoute allow={["admin", "design"]}>
-                                  <Upload />
-                                </RoleRoute>
-                              }
-                            />
+                            {/* build-demo & upload: no RoleRoute allow-list; PrivateRoute uses user.allowedRoutes (see role-permissions.json). */}
+                            <Route path="/build-demo" element={<BuildDemo />} />
+                            <Route path="/upload" element={<Upload />} />
                             <Route
                               path="/test-data"
                               element={

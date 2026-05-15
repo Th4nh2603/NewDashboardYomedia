@@ -2,20 +2,166 @@
 import React from 'react';
 import DataTable from '../components/DataTable';
 import Button from '../components/Button';
+import ConfirmPopup from '../components/ConfirmPopup';
 import { motion } from 'motion/react';
-import { ArchiveBoxIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { ArchiveBoxIcon, ArrowTrendingUpIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { interpolate, useLanguage } from '../contexts/LanguageContext';
+import { fetchJsonOrThrow } from '../lib/apiError';
+import { type ActivityLogEntry } from '../lib/activityLog';
+import { serverApiOrigin } from '../lib/serverApiOrigin';
+
+function formatActivityDate(value: string, locale: 'en' | 'vi'): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function targetHoverTitle(entry: ActivityLogEntry): string | undefined {
+  const direct = String(entry.target ?? '').trim();
+  if (direct) return direct;
+  const m = entry.metadata;
+  if (!m || typeof m !== 'object') return undefined;
+  for (const key of ['fullPath', 'remoteBase', 'previousPath'] as const) {
+    const v = m[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+}
 
 const History = () => {
   const { theme } = useTheme();
-  const { tHistory } = useLanguage();
+  const { user } = useAuth();
+  const { locale, tHistory } = useLanguage();
+  const baseUrl = serverApiOrigin();
+  const roleHeader = String(user?.role || '').trim().toLowerCase();
+  const isAdmin = roleHeader === 'admin';
+  const isManager = roleHeader === 'manager';
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [activityScope, setActivityScope] = React.useState<'all' | 'build_demo'>('all');
+  const [viewScope, setViewScope] = React.useState<'mine' | 'all'>('mine');
+  const [activities, setActivities] = React.useState<ActivityLogEntry[]>([]);
+  const [totalAvailable, setTotalAvailable] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [clearingHistory, setClearingHistory] = React.useState(false);
+  const [clearHistoryError, setClearHistoryError] = React.useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const isDark = theme === 'dark';
   const shell = isDark
     ? 'border-white/[0.08] bg-[#1a2336]/75 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]'
     : 'border-slate-200/90 bg-white/80 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.12)]';
   const muted = isDark ? 'text-[#94a3b8]' : 'text-slate-500';
   const heading = isDark ? 'text-white' : 'text-slate-900';
+  const currentUserName = user?.name?.trim() || user?.email?.trim() || '';
+  const currentUserEmail =
+    user?.email?.trim() && user.email.trim() !== currentUserName
+      ? user.email.trim()
+      : '';
+
+  React.useEffect(() => {
+    if (!isAdmin && viewScope !== 'mine') {
+      setViewScope('mine');
+    }
+  }, [isAdmin, viewScope]);
+
+  const historyApiHeaders = React.useMemo(
+    () => ({ 'x-user-role': roleHeader || 'guest' }) as const,
+    [roleHeader],
+  );
+
+  React.useEffect(() => {
+    const actorKey = user?.email?.trim() || user?.name?.trim();
+    if (!actorKey) {
+      setActivities([]);
+      setTotalAvailable(0);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadActivities = async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const params = new URLSearchParams({
+          limit:
+            isManager || (isAdmin && viewScope === 'all') ? '400' : '200',
+        });
+        if (isManager) {
+          params.set('special', 'manager-team');
+        } else if (viewScope !== 'all' && user?.email?.trim()) {
+          params.set('email', user.email.trim());
+        }
+        const data = await fetchJsonOrThrow<{
+          ok?: boolean;
+          records?: ActivityLogEntry[];
+          total?: number;
+        }>(`${baseUrl}/api/activity-log?${params.toString()}`, {
+          headers: historyApiHeaders,
+        });
+        if (!cancelled) {
+          setActivities(Array.isArray(data.records) ? data.records : []);
+          setTotalAvailable(
+            typeof data.total === 'number'
+              ? data.total
+              : Array.isArray(data.records)
+                ? data.records.length
+                : 0,
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : locale === 'vi'
+                ? 'Không thể tải lịch sử hoạt động.'
+                : 'Unable to load activity history.',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadActivities();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl, historyApiHeaders, isAdmin, isManager, locale, user?.email, user?.name, viewScope, refreshKey]);
+
+  const performDeleteAllHistory = React.useCallback(async () => {
+    if (!isAdmin) return;
+    setClearingHistory(true);
+    setClearHistoryError(null);
+    try {
+      await fetchJsonOrThrow<{ ok?: boolean }>(`${baseUrl}/api/activity-log`, {
+        method: 'DELETE',
+        headers: historyApiHeaders,
+      });
+      setDeleteConfirmOpen(false);
+      setRefreshKey((k) => k + 1);
+    } catch (error) {
+      setClearHistoryError(
+        error instanceof Error
+          ? error.message
+          : locale === 'vi'
+            ? 'Không thể xóa lịch sử.'
+            : 'Unable to delete history.',
+      );
+    } finally {
+      setClearingHistory(false);
+    }
+  }, [baseUrl, historyApiHeaders, isAdmin, locale]);
 
   const headers = React.useMemo(
     () =>
@@ -29,111 +175,146 @@ const History = () => {
     [tHistory],
   );
 
-  const historyData = React.useMemo(
-    () => [
-      {
-        id: '1',
-        type: tHistory('typeStrategy'),
-        prompt: 'Q3 Social Media Strategy for Eco-friendly SaaS',
-        model: 'Gemini 3 Pro',
-        date: '2024-05-20',
-        status: (
-          <span className="text-emerald-500 font-medium">
-            {tHistory('statusFinalized')}
-          </span>
-        ),
-      },
-      {
-        id: '2',
-        type: tHistory('typeGraphics'),
-        prompt: 'Instagram Story background: abstract gradients, purple/orange',
-        model: 'Gemini 2.5 Flash',
-        date: '2024-05-19',
-        status: (
-          <span className="text-emerald-500 font-medium">
-            {tHistory('statusRendered')}
-          </span>
-        ),
-      },
-      {
-        id: '3',
-        type: tHistory('typeVideoAd'),
-        prompt: 'Cinematic 15s teaser for Summer Flash Sale',
-        model: 'Veo-3.1',
-        date: '2024-05-18',
-        status: (
-          <span className="text-amber-500 font-medium">
-            {tHistory('statusProcessing')}
-          </span>
-        ),
-      },
-      {
-        id: '4',
-        type: tHistory('typeCopywriting'),
-        prompt: '5 Google Search Ad headlines for "YomediaAI Marketing Tools"',
-        model: 'Gemini 3 Pro',
-        date: '2024-05-18',
-        status: (
-          <span className="text-emerald-500 font-medium">
-            {tHistory('statusFinalized')}
-          </span>
-        ),
-      },
-      {
-        id: '5',
-        type: tHistory('typeGraphics'),
-        prompt: 'Ebook cover: "The Future of AI in Digital Marketing"',
-        model: 'Gemini 2.5 Flash',
-        date: '2024-05-17',
-        status: (
-          <span className="text-red-500 font-medium">
-            {tHistory('statusFailed')}
-          </span>
-        ),
-      },
-    ],
-    [tHistory],
+  const scopeFilteredActivities = React.useMemo(() => {
+    if (activityScope !== 'build_demo') return activities;
+    return activities.filter((a) => String(a.area || '').trim() === 'Build Demo');
+  }, [activities, activityScope]);
+
+  const filteredActivities = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return scopeFilteredActivities;
+    return scopeFilteredActivities.filter((activity) =>
+      [
+        activity.userName,
+        activity.userEmail,
+        activity.description,
+        activity.target,
+        activity.area,
+        activity.action,
+      ].some((value) => String(value || '').toLowerCase().includes(query)),
+    );
+  }, [scopeFilteredActivities, searchQuery]);
+
+  const activityListTotal = React.useMemo(() => {
+    if (searchQuery.trim() || activityScope === 'build_demo') {
+      return filteredActivities.length;
+    }
+    return totalAvailable;
+  }, [activityScope, filteredActivities.length, searchQuery, totalAvailable]);
+
+  const visibleActivities = React.useMemo(
+    () => filteredActivities.slice(0, 100),
+    [filteredActivities],
   );
 
   const mappedData = React.useMemo(
     () =>
-      historyData.map(({ type, prompt, model, date, status }) => ({
-        type,
-        prompt: (
-          <span className="truncate max-w-[200px] inline-block font-medium">
-            {prompt}
+      visibleActivities.map((activity) => ({
+        user: (
+          <div className="min-w-[180px]">
+            <p className="font-semibold text-[#e8e8e8]">
+              {activity.userName || activity.userEmail || 'User'}
+            </p>
+            <p className="text-xs text-slate-400">{activity.userEmail || '—'}</p>
+          </div>
+        ),
+        activity: (
+          <div className="min-w-[240px]">
+            <p className="font-medium text-[#e8e8e8]">{activity.description}</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">
+              {activity.action}
+            </p>
+          </div>
+        ),
+        target: (
+          <span
+            className="inline-block max-w-[220px] cursor-help truncate text-slate-300"
+            title={targetHoverTitle(activity)}
+          >
+            {activity.target?.trim() ? activity.target.trim() : '—'}
           </span>
         ),
-        model,
-        date,
-        status,
+        date: (
+          <span className="whitespace-nowrap">
+            {formatActivityDate(activity.createdAt, locale)}
+          </span>
+        ),
+        area: (
+          <span className="inline-flex rounded-full border border-[#4cceac]/25 bg-[#4cceac]/10 px-2.5 py-1 text-xs font-semibold text-[#7ce1c8]">
+            {activity.area || '—'}
+          </span>
+        ),
       })),
-    [historyData],
+    [locale, visibleActivities],
   );
 
-  const highlights = React.useMemo(
-    () => [
+  const highlights = React.useMemo(() => {
+    const now = Date.now();
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const todayCount = activities.filter((activity) => {
+      const time = new Date(activity.createdAt).getTime();
+      return Number.isFinite(time) && time >= dayStart.getTime();
+    }).length;
+    const weekCount = activities.filter((activity) => {
+      const time = new Date(activity.createdAt).getTime();
+      return Number.isFinite(time) && time >= weekAgo;
+    }).length;
+
+    const buildDemoCount = activities.filter(
+      (a) => String(a.area || '').trim() === 'Build Demo',
+    ).length;
+
+    return [
       {
         label: tHistory('highlightVault'),
-        value: '128',
+        value: String(activities.length),
         tone: 'from-[#4cceac]/30',
       },
       {
         label: tHistory('highlightWeek'),
-        value: '36',
+        value: String(weekCount),
         tone: 'from-indigo-400/28',
       },
       {
         label: tHistory('highlightProcessing'),
-        value: '3',
+        value: String(todayCount),
         tone: 'from-amber-400/25',
       },
-    ],
-    [tHistory],
-  );
+      {
+        label: tHistory('highlightBuildDemo'),
+        value: String(buildDemoCount),
+        tone: 'from-teal-500/28',
+      },
+    ];
+  }, [activities, tHistory]);
+
+  const emptyTitle =
+    locale === 'vi' ? 'Chưa có hoạt động nào được ghi nhận.' : 'No activity recorded yet.';
+  const emptyDescription = (() => {
+    if (activityScope === 'build_demo' && activities.length > 0 && scopeFilteredActivities.length === 0) {
+      return locale === 'vi'
+        ? 'Không có mục Build Demo trong danh sách đã tải. Thử "Mọi hoạt động" hoặc tải lại sau khi có upload/ZIP.'
+        : 'No Build Demo entries in the loaded list. Try "All activity" or reload after uploads or ZIP actions.';
+    }
+    if (locale === 'vi') {
+      return isManager
+        ? 'Chưa có hoạt động nào từ team Media / Design.'
+        : viewScope === 'all'
+          ? 'Chưa có hoạt động nào của người dùng trong hệ thống.'
+          : 'Khi user mở trang hoặc thực hiện thao tác quan trọng, lịch sử sẽ hiển thị tại đây.';
+    }
+    return isManager
+      ? 'No activity from the Media / Design team yet.'
+      : viewScope === 'all'
+        ? 'No user activity is available across the system yet.'
+        : 'Recent page visits and important user actions will appear here.';
+  })();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 w-full">
+    <>
+      <div className="max-w-full mx-auto space-y-8 w-full">
       <motion.header
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -152,8 +333,36 @@ const History = () => {
             <p className={`leading-relaxed ${muted}`}>
               {tHistory('description')}
             </p>
+            {currentUserName ? (
+              <div
+                className={`inline-flex max-w-full flex-col rounded-2xl border px-4 py-3 ${
+                  isDark
+                    ? 'border-white/10 bg-white/5'
+                    : 'border-slate-200 bg-slate-50/90'
+                }`}
+              >
+                <span className={`truncate text-sm font-semibold ${heading}`}>
+                  {currentUserName}
+                </span>
+                {currentUserEmail ? (
+                  <span className={`truncate text-xs ${muted}`}>{currentUserEmail}</span>
+                ) : null}
+                {isAdmin && viewScope === 'all' ? (
+                  <span className="mt-2 inline-flex w-fit rounded-full border border-[#4cceac]/25 bg-[#4cceac]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7ce1c8]">
+                    {locale === 'vi' ? 'Đang xem tất cả user' : 'Viewing all users'}
+                  </span>
+                ) : null}
+                {isManager ? (
+                  <span className="mt-2 inline-flex w-fit rounded-full border border-[#4cceac]/25 bg-[#4cceac]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7ce1c8]">
+                    {locale === 'vi'
+                      ? 'Media & Design (không gồm admin)'
+                      : 'Media & Design (excludes admin)'}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-3 shrink-0 w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0 w-full md:w-auto">
             {highlights.map((h) => (
               <div
                 key={h.label}
@@ -182,8 +391,74 @@ const History = () => {
             </h3>
           </div>
           <div className="flex flex-wrap gap-2">
+            <div
+              className={`inline-flex rounded-xl border p-1 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <Button
+                type="button"
+                onClick={() => setActivityScope('all')}
+                className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                  activityScope === 'all'
+                    ? 'bg-gradient-to-r from-[#4cceac] to-teal-600 text-white'
+                    : isDark
+                      ? 'text-[#e0e0e0] hover:bg-white/10'
+                      : 'text-slate-700 hover:bg-white'
+                }`}
+              >
+                {tHistory('buildDemoFilterAll')}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setActivityScope('build_demo')}
+                className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                  activityScope === 'build_demo'
+                    ? 'bg-gradient-to-r from-[#4cceac] to-teal-600 text-white'
+                    : isDark
+                      ? 'text-[#e0e0e0] hover:bg-white/10'
+                      : 'text-slate-700 hover:bg-white'
+                }`}
+              >
+                {tHistory('buildDemoFilterOnly')}
+              </Button>
+            </div>
+            {isAdmin ? (
+              <div className={`inline-flex rounded-xl border p-1 ${
+                isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'
+              }`}>
+                <Button
+                  type="button"
+                  onClick={() => setViewScope('mine')}
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                    viewScope === 'mine'
+                      ? 'bg-gradient-to-r from-[#4cceac] to-teal-600 text-white'
+                      : isDark
+                        ? 'text-[#e0e0e0] hover:bg-white/10'
+                        : 'text-slate-700 hover:bg-white'
+                  }`}
+                >
+                  {locale === 'vi' ? 'Của tôi' : 'My activity'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setViewScope('all')}
+                  className={`rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                    viewScope === 'all'
+                      ? 'bg-gradient-to-r from-[#4cceac] to-teal-600 text-white'
+                      : isDark
+                        ? 'text-[#e0e0e0] hover:bg-white/10'
+                        : 'text-slate-700 hover:bg-white'
+                  }`}
+                >
+                  {locale === 'vi' ? 'Tất cả user' : 'All users'}
+                </Button>
+              </div>
+            ) : null}
             <input
               type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={tHistory('searchPlaceholder')}
               className={`min-w-[200px] flex-1 rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4cceac]/40 ${
                 isDark
@@ -191,49 +466,93 @@ const History = () => {
                   : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
               }`}
             />
-            <Button className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${
-              isDark
-                ? 'bg-white/10 text-[#e0e0e0] hover:bg-white/15'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}>
+            <Button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-colors ${
+                isDark
+                  ? 'bg-white/10 text-[#e0e0e0] hover:bg-white/15'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
               {tHistory('filter')}
             </Button>
+            {isAdmin ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setClearHistoryError(null);
+                  setDeleteConfirmOpen(true);
+                }}
+                disabled={clearingHistory || loading}
+                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-50 disabled:pointer-events-none ${
+                  isDark
+                    ? 'border border-rose-500/35 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'
+                    : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                }`}
+              >
+                <TrashIcon className="h-4 w-4 shrink-0" aria-hidden />
+                {clearingHistory ? tHistory('deleteHistoryClearing') : tHistory('deleteHistoryButton')}
+              </Button>
+            ) : null}
           </div>
         </div>
 
         <div className="p-6">
-          <DataTable headers={headers} data={mappedData} />
+          {loading ? (
+            <div className={`rounded-2xl border px-4 py-5 text-sm ${muted} ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+              {locale === 'vi' ? 'Đang tải lịch sử hoạt động...' : 'Loading activity history...'}
+            </div>
+          ) : loadError ? (
+            <div className={`rounded-2xl border px-4 py-5 text-sm ${isDark ? 'border-rose-500/30 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+              {loadError}
+            </div>
+          ) : mappedData.length > 0 ? (
+            <DataTable headers={headers} data={mappedData} />
+          ) : (
+            <div className={`rounded-2xl border px-5 py-6 ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50/90'}`}>
+              <p className={`text-sm font-semibold ${heading}`}>{emptyTitle}</p>
+              <p className={`mt-1 text-sm ${muted}`}>{emptyDescription}</p>
+            </div>
+          )}
         </div>
 
         <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-6 py-5 text-sm border-t ${muted} ${isDark ? 'border-white/[0.06]' : 'border-slate-200/90'}`}>
           <span>
-            {interpolate(tHistory('pagination'), { shown: 5, total: 128 })}
+            {interpolate(tHistory('pagination'), {
+              shown: mappedData.length,
+              total: activityListTotal,
+            })}
           </span>
-          <div className="flex flex-wrap gap-1">
-            <Button className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              isDark
-                ? 'border border-white/10 hover:bg-white/10 text-[#e0e0e0]'
-                : 'border border-slate-200 hover:bg-slate-50 text-slate-800'
-            }`}>
-              {tHistory('prev')}
-            </Button>
-            <Button className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#4cceac] to-teal-600 text-white text-xs font-bold shadow-md shadow-[#4cceac]/15">1</Button>
-            <Button className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              isDark
-                ? 'border border-white/10 hover:bg-white/10 text-[#e0e0e0]'
-                : 'border border-slate-200 hover:bg-slate-50 text-slate-800'
-            }`}>2</Button>
-            <Button className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              isDark
-                ? 'border border-white/10 hover:bg-white/10 text-[#e0e0e0]'
-                : 'border border-slate-200 hover:bg-slate-50 text-slate-800'
-            }`}>
-              {tHistory('next')}
-            </Button>
+          <div className="text-xs">
+            {searchQuery.trim()
+              ? locale === 'vi'
+                ? `Đang lọc theo: ${searchQuery.trim()}`
+                : `Filtering by: ${searchQuery.trim()}`
+              : null}
           </div>
         </div>
       </motion.div>
-    </div>
+      </div>
+
+      <ConfirmPopup
+        open={deleteConfirmOpen}
+        onClose={() => {
+          if (clearingHistory) return;
+          setDeleteConfirmOpen(false);
+          setClearHistoryError(null);
+        }}
+        title={tHistory('deleteHistoryDialogTitle')}
+        message={tHistory('deleteHistoryConfirm')}
+        cancelLabel={tHistory('deleteHistoryDialogCancel')}
+        confirmLabel={tHistory('deleteHistoryDialogAction')}
+        confirmLoading={clearingHistory}
+        confirmLoadingLabel={tHistory('deleteHistoryClearing')}
+        error={clearHistoryError}
+        isDark={isDark}
+        onConfirm={performDeleteAllHistory}
+      />
+    </>
   );
 };
 

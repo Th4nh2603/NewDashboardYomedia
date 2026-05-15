@@ -1,9 +1,11 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import AdminOfflineFetchGate from "./AdminOfflineFetchGate";
 import Sidebar from "./Sidebar";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage, type AppLocale } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
+import { recordActivity } from "../lib/activityLog";
 import { motion } from "motion/react";
 import {
   MagnifyingGlassIcon,
@@ -24,9 +26,10 @@ const LANG_OPTIONS: { value: AppLocale; label: string }[] = [
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, tLayout } = useLanguage();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const settingsRef = React.useRef<HTMLDivElement>(null);
@@ -45,6 +48,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [settingsOpen]);
+
+  const handleLogout = React.useCallback(() => {
+    void recordActivity({
+      user,
+      action: "logout",
+      area: "Auth",
+      description: "Signed out",
+      target: location.pathname || "/",
+    });
+    logout();
+  }, [location.pathname, logout, user]);
 
   return (
     <div
@@ -243,7 +257,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                 backgroundColor: "rgba(255,255,255,0.05)",
               }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => logout()}
+              onClick={handleLogout}
               className="p-2.5 rounded-xl transition-colors relative cursor-pointer text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
             >
               <ArrowRightOnRectangleIcon className="w-5 h-5" />

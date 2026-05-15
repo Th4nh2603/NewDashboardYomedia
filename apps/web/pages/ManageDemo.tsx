@@ -14,16 +14,16 @@ import {
   TrashIcon,
   FolderPlusIcon,
   ArrowsRightLeftIcon,
+  ArrowUpTrayIcon,
 } from "@heroicons/react/24/outline";
-import {
-  buildDemoRemoteRelativePath,
-} from "../components/OpenDemo";
+import { buildDemoRemoteRelativePath } from "../components/OpenDemo";
 import { useDemoPreviewUrl } from "../hooks/useDemoPreviewUrl";
 import {
   loadActiveCreativeDemos,
   type CreativeDemoItem,
 } from "../data/creativeDemos";
 import { createSftpClient, type SftpEntry } from "../lib/sftpClient";
+import { recordActivity, type ActivityLogEntry } from "../lib/activityLog";
 import { fetchJsonOrThrow } from "../lib/apiError";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
@@ -36,7 +36,9 @@ function isCreativeDemoVideoFileType(demo: CreativeDemoItem): boolean {
 }
 
 function hasPortraitSize(input: string): boolean {
-  const match = String(input).trim().match(/^(\d{2,4})x(\d{2,4})$/i);
+  const match = String(input)
+    .trim()
+    .match(/^(\d{2,4})x(\d{2,4})$/i);
   if (!match) return false;
   const width = Number(match[1]);
   const height = Number(match[2]);
@@ -62,15 +64,52 @@ function isVerticalCreativeDemo(demo: CreativeDemoItem): boolean {
   return sizes.some((size) => hasPortraitSize(String(size)));
 }
 
+function uploadMetadataFileList(
+  metadata: Record<string, unknown> | undefined,
+): string[] {
+  if (!metadata) return [];
+  const raw = metadata.files;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((x) => String(x ?? "").trim()).filter(Boolean);
+}
+
+/** Activity row: file names (Manage Demo drop) or Build Demo summary. */
+function uploadAuditDetailText(row: ActivityLogEntry): string {
+  const fromFiles = uploadMetadataFileList(row.metadata);
+  if (fromFiles.length > 0) return fromFiles.join(", ");
+
+  const meta = row.metadata;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "—";
+  const m = meta as Record<string, unknown>;
+  const area = String(row.area ?? "").trim();
+  const action = String(row.action ?? "").toLowerCase();
+  if (
+    area === "Build Demo" &&
+    (action === "upload_demo_success" || action === "upload_demo_partial")
+  ) {
+    const demo = String(m.creativeDemo ?? "").trim();
+    const brand = String(m.brand ?? "").trim();
+    const total = m.totalFiles;
+    const parts: string[] = [];
+    if (demo) parts.push(demo);
+    if (brand) parts.push(brand);
+    const tf =
+      typeof total === "number" && Number.isFinite(total)
+        ? `${total} file(s)`
+        : "";
+    if (tf) parts.push(tf);
+    return parts.length > 0 ? parts.join(" · ") : "Build Demo upload";
+  }
+
+  return "—";
+}
+
 const BASE_REMOTE_PATH = "/script/demo";
 /** UI path when connected to media SFTP (mirrors server `mapRemotePathForManageScope`). */
 const MEDIA_UI_DISPLAY_ROOT = "/media";
 const MANAGE_DEMO_SFTP_SCOPE_STORAGE_KEY = "manageDemoSftpScope";
 
-function getItemLabelById(
-  list: { id?: string; label?: string }[],
-  id: string,
-) {
+function getItemLabelById(list: { id?: string; label?: string }[], id: string) {
   const found = list.find((item) => item.id === id);
   return String(found?.label ?? found?.id ?? id ?? "").trim();
 }
@@ -116,29 +155,22 @@ const ManageDemo: React.FC = () => {
     },
   });
   const md =
-    permissions[normalizedRole]?.manageDemo ??
-    permissions.default?.manageDemo;
-  const canUseFileActionButtons =
-    md?.canUseFileActionButtons === true;
+    permissions[normalizedRole]?.manageDemo ?? permissions.default?.manageDemo;
+  const canUseFileActionButtons = md?.canUseFileActionButtons === true;
   const canSftpUploadBinary = md?.canSftpUploadBinary === true;
   const canSftpWriteFile = md?.canSftpWriteFile === true;
   const canSftpDelete = md?.canSftpDelete === true;
   const canSftpRename = md?.canSftpRename === true;
   const canSftpMkdir = md?.canSftpMkdir === true;
-  const canManageDemoWriteFile =
-    canUseFileActionButtons && canSftpWriteFile;
-  const canManageDemoDelete =
-    canUseFileActionButtons && canSftpDelete;
-  const canManageDemoRename =
-    canUseFileActionButtons && canSftpRename;
-  const canManageDemoMkdir =
-    canUseFileActionButtons && canSftpMkdir;
+  const canManageDemoWriteFile = canUseFileActionButtons && canSftpWriteFile;
+  const canManageDemoDelete = canUseFileActionButtons && canSftpDelete;
+  const canManageDemoRename = canUseFileActionButtons && canSftpRename;
+  const canManageDemoMkdir = canUseFileActionButtons && canSftpMkdir;
   const canDropUpload =
-    canUseFileActionButtons &&
-    canSftpUploadBinary &&
-    canSftpWriteFile;
+    canUseFileActionButtons && canSftpUploadBinary && canSftpWriteFile;
+  const isAdminUser = normalizedRole === "admin";
   const canShowSftpHostSwitch =
-    normalizedRole === "admin" &&
+    isAdminUser &&
     (permissions[normalizedRole]?.manageDemo?.canSwitchSftpHost ?? false);
   const manageMonthOptions = Array.from({ length: 12 }, (_, i) => {
     const id = String(i + 1).padStart(2, "0");
@@ -193,6 +225,11 @@ const ManageDemo: React.FC = () => {
   const [uploadingDropFiles, setUploadingDropFiles] = React.useState(false);
   const [uploadSummary, setUploadSummary] = React.useState<string | null>(null);
   const [reloadTick, setReloadTick] = React.useState(0);
+  const [uploadAudit, setUploadAudit] = React.useState<ActivityLogEntry[]>([]);
+  const [uploadAuditLoading, setUploadAuditLoading] = React.useState(false);
+  const [uploadAuditError, setUploadAuditError] = React.useState<string | null>(
+    null,
+  );
   type ManageSftpTarget = "demo" | "media";
   const [manageSftpTarget, setManageSftpTarget] =
     React.useState<ManageSftpTarget>(() => {
@@ -314,6 +351,59 @@ const ManageDemo: React.FC = () => {
     };
   }, [baseUrl]);
 
+  React.useEffect(() => {
+    if (!isAdminUser) {
+      setUploadAudit([]);
+      setUploadAuditError(null);
+      setUploadAuditLoading(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      setUploadAuditLoading(true);
+      setUploadAuditError(null);
+      try {
+        const qs = new URLSearchParams({
+          special: "manage-demo-uploads",
+          limit: "120",
+          scope: sftpScope,
+        });
+        const data = await fetchJsonOrThrow<{
+          records?: ActivityLogEntry[];
+        }>(`${baseUrl}/api/activity-log?${qs}`, {
+          headers: { "x-user-role": "admin" },
+        });
+        if (!cancelled) {
+          setUploadAudit(Array.isArray(data.records) ? data.records : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setUploadAudit([]);
+          setUploadAuditError(
+            err instanceof Error ? err.message : "Unable to load upload log",
+          );
+        }
+      } finally {
+        if (!cancelled) setUploadAuditLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl, isAdminUser, sftpScope, reloadTick]);
+
+  const uploadAuditRows = React.useMemo(() => {
+    const base = currentPath.replace(/\/+$/, "") || "/";
+    const inTree = uploadAudit.filter((r) => {
+      const t = String(r.target ?? "").trim();
+      if (!t) return false;
+      return t === base || t.startsWith(`${base}/`);
+    });
+    const list = inTree.length > 0 ? inTree : uploadAudit;
+    const scopeNote = inTree.length > 0 ? "folder" : "host";
+    return { list: list.slice(0, 25), scopeNote };
+  }, [uploadAudit, currentPath]);
+
   const detectedSizes = React.useMemo(() => {
     const sizeRegex = /(\d{2,4})x(\d{2,4})/gi;
     const detected = new Set<string>();
@@ -331,8 +421,7 @@ const ManageDemo: React.FC = () => {
     () =>
       listEntries.some(
         (e) =>
-          e.type !== "d" &&
-          e.name.trim().toLowerCase() === "make-vast.xml",
+          e.type !== "d" && e.name.trim().toLowerCase() === "make-vast.xml",
       ),
     [listEntries],
   );
@@ -397,11 +486,7 @@ const ManageDemo: React.FC = () => {
     );
     options.sort((a, b) => a.label.localeCompare(b.label));
     return options;
-  }, [
-    activeDemos,
-    config.category,
-    demoMatchesDetectedSize,
-  ]);
+  }, [activeDemos, config.category, demoMatchesDetectedSize]);
 
   const autoDetectedCategory = React.useMemo<ManageDemoCategory | null>(() => {
     if (listingHasMakeVastXml) return "Video";
@@ -452,12 +537,7 @@ const ManageDemo: React.FC = () => {
     }
     if (matchedCategories.has(config.category)) return config.category;
     return null;
-  }, [
-    activeDemos,
-    detectedSizes,
-    config.category,
-    listingHasMakeVastXml,
-  ]);
+  }, [activeDemos, detectedSizes, config.category, listingHasMakeVastXml]);
 
   React.useEffect(() => {
     if (!autoDetectedCategory) return;
@@ -629,12 +709,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [
-    currentPath,
-    reloadTick,
-    sftpScope,
-    sftpClient,
-  ]);
+  }, [currentPath, reloadTick, sftpScope, sftpClient]);
 
   React.useEffect(() => {
     const dirs = listEntries.filter((entry) => entry.type === "d");
@@ -677,13 +752,7 @@ const ManageDemo: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [
-    listEntries,
-    currentPath,
-    buildEntryFullPath,
-    sftpScope,
-    sftpClient,
-  ]);
+  }, [listEntries, currentPath, buildEntryFullPath, sftpScope, sftpClient]);
 
   const listBusy = loadingList || isNavigating;
 
@@ -728,6 +797,14 @@ const ManageDemo: React.FC = () => {
         return;
       }
       setListError(null);
+      void recordActivity({
+        user,
+        action: "save_file",
+        area: "Manage Demo",
+        description: "Saved file content on SFTP",
+        target: editorPath,
+        metadata: { scope: sftpScope },
+      });
       setReloadTick((prev) => prev + 1);
     } catch (err) {
       setListError(
@@ -742,6 +819,7 @@ const ManageDemo: React.FC = () => {
     canManageDemoWriteFile,
     sftpClient,
     sftpScope,
+    user,
   ]);
 
   const requestDeletePath = React.useCallback(
@@ -768,6 +846,16 @@ const ManageDemo: React.FC = () => {
           ),
         );
         setListError(null);
+        void recordActivity({
+          user,
+          action: "delete_path",
+          area: "Manage Demo",
+          description: isDir
+            ? "Deleted folder from SFTP"
+            : "Deleted file from SFTP",
+          target: fullPath,
+          metadata: { scope: sftpScope, isDir },
+        });
       } catch (err) {
         setListError(
           err instanceof Error ? err.message : "Unknown network error",
@@ -783,6 +871,7 @@ const ManageDemo: React.FC = () => {
       sftpScope,
       buildEntryFullPath,
       currentPath,
+      user,
     ],
   );
 
@@ -809,6 +898,14 @@ const ManageDemo: React.FC = () => {
           return;
         }
         setListError(null);
+        void recordActivity({
+          user,
+          action: "rename_path",
+          area: "Manage Demo",
+          description: "Renamed item on SFTP",
+          target: targetPath,
+          metadata: { previousPath: fullPath, scope: sftpScope },
+        });
         setReloadTick((prev) => prev + 1);
       } catch (err) {
         setListError(
@@ -825,6 +922,7 @@ const ManageDemo: React.FC = () => {
       buildEntryFullPath,
       sftpClient,
       sftpScope,
+      user,
     ],
   );
 
@@ -844,6 +942,14 @@ const ManageDemo: React.FC = () => {
         }
 
         setListError(null);
+        void recordActivity({
+          user,
+          action: "create_folder",
+          area: "Manage Demo",
+          description: "Created folder on SFTP",
+          target: targetPath,
+          metadata: { scope: sftpScope },
+        });
         setReloadTick((prev) => prev + 1);
       } catch (err) {
         setListError(
@@ -860,6 +966,7 @@ const ManageDemo: React.FC = () => {
       currentPath,
       sftpClient,
       sftpScope,
+      user,
     ],
   );
 
@@ -954,7 +1061,6 @@ const ManageDemo: React.FC = () => {
           }
         }
 
-        setReloadTick((prev) => prev + 1);
         if (videoCompressionLogs.length > 0) {
           setUploadSummary(
             `Video processing (server compress before SFTP upload): ${videoCompressionLogs.join(" | ")}`,
@@ -964,6 +1070,19 @@ const ManageDemo: React.FC = () => {
             `Uploaded ${validFiles.length} file(s) to SFTP successfully.`,
           );
         }
+        await recordActivity({
+          user,
+          action: "upload_files",
+          area: "Manage Demo",
+          description: `Uploaded ${validFiles.length} file(s) to SFTP`,
+          target: currentPath,
+          metadata: {
+            scope: sftpScope,
+            fileCount: validFiles.length,
+            files: validFiles.map((file) => file.name),
+          },
+        });
+        setReloadTick((prev) => prev + 1);
       } catch (err) {
         setListError(
           err instanceof Error ? err.message : "Unknown network error",
@@ -982,6 +1101,7 @@ const ManageDemo: React.FC = () => {
       formatSizeInMb,
       sftpClient,
       sftpScope,
+      user,
     ],
   );
 
@@ -1265,11 +1385,7 @@ const ManageDemo: React.FC = () => {
                   <Button
                     type="button"
                     onClick={() => {
-                      if (
-                        !canManageDemoMkdir ||
-                        creatingFolder ||
-                        listBusy
-                      )
+                      if (!canManageDemoMkdir || creatingFolder || listBusy)
                         return;
                       setCreateFolderOpen(true);
                     }}
@@ -1605,7 +1721,129 @@ const ManageDemo: React.FC = () => {
           </div>
         </aside>
       </div>
-
+      {isAdminUser && (
+        <section className="rounded-3xl border border-amber-200/90 bg-gradient-to-br from-amber-50/90 via-white to-slate-50 p-4 shadow-sm dark:border-amber-500/25 dark:from-amber-950/30 dark:via-[#0b1730]/80 dark:to-[#081225]/90 dark:shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2.5">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-300/60 bg-amber-100/80 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-200">
+                <ArrowUpTrayIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-amber-800/90 dark:text-amber-200/90">
+                  Admin · SFTP uploads
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Who uploaded files
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {uploadAuditRows.scopeNote === "folder"
+                    ? "Entries under the folder you are browsing (and subfolders), newest first."
+                    : "No uploads logged under this path; showing latest uploads on this host instead."}{" "}
+                  Includes{" "}
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    Manage Demo
+                  </span>{" "}
+                  (drop upload) and{" "}
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    Build Demo
+                  </span>{" "}
+                  (wizard to SFTP). Host:{" "}
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {sftpScope === "media" ? "Media" : "Demo"}
+                  </span>
+                  .
+                </p>
+              </div>
+            </div>
+            {uploadAuditLoading && (
+              <span className="text-xs font-medium text-amber-900/80 dark:text-amber-100/80">
+                Loading…
+              </span>
+            )}
+          </div>
+          {uploadAuditError && (
+            <p className="mt-3 text-sm text-red-600 dark:text-red-400/90">
+              {uploadAuditError}
+            </p>
+          )}
+          {!uploadAuditLoading &&
+            !uploadAuditError &&
+            uploadAuditRows.list.length === 0 && (
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                No upload activity recorded yet for this SFTP scope.
+              </p>
+            )}
+          {!uploadAuditLoading &&
+            !uploadAuditError &&
+            uploadAuditRows.list.length > 0 && (
+              <div className="mt-3 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/80 dark:border-white/10 dark:bg-[#020617]/60">
+                <table className="min-w-full text-left text-[12px] text-slate-800 dark:text-[#e5e7eb]">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/90 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-800 dark:bg-[#020617]/90 dark:text-slate-400">
+                      <th className="whitespace-nowrap px-3 py-2">When</th>
+                      <th className="whitespace-nowrap px-3 py-2">User</th>
+                      <th className="whitespace-nowrap px-3 py-2">Source</th>
+                      <th className="min-w-[10rem] px-3 py-2">Folder</th>
+                      <th className="min-w-[12rem] px-3 py-2">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uploadAuditRows.list.map((row) => {
+                      const detail = uploadAuditDetailText(row);
+                      const when = new Date(row.createdAt);
+                      const whenLabel = Number.isNaN(when.getTime())
+                        ? "—"
+                        : when.toLocaleString(undefined, {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                      return (
+                        <tr
+                          key={row.id}
+                          className="border-t border-slate-100 dark:border-slate-800/80"
+                        >
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-400">
+                            {whenLabel}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-slate-900 dark:text-white">
+                              {row.userName || row.userEmail || "—"}
+                            </div>
+                            {row.userEmail ? (
+                              <div className="text-[11px] text-slate-500 dark:text-slate-500">
+                                {row.userEmail}
+                              </div>
+                            ) : null}
+                            {row.userRole ? (
+                              <div className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                {row.userRole}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-700 dark:text-slate-300">
+                            {String(row.area ?? "").trim() || "—"}
+                          </td>
+                          <td className="max-w-[14rem] px-3 py-2 font-mono text-[11px] text-slate-600 break-all dark:text-slate-400">
+                            {displayRemotePath(String(row.target ?? ""))}
+                          </td>
+                          <td className="max-w-[18rem] px-3 py-2 text-[11px] text-slate-600 dark:text-slate-400">
+                            {detail !== "—" ? (
+                              <span className="break-all">{detail}</span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        </section>
+      )}
       <NoticePopup
         open={deleteConfirm !== null}
         onClose={() => setDeleteConfirm(null)}

@@ -76,6 +76,7 @@ const NAV_MESSAGES: Record<
     navTestData: string;
     navCreativeDemosEdit: string;
     navDocumentation: string;
+    navHistory: string;
     navUserPermissions: string;
     navManageSftp: string;
     navSmtpMail: string;
@@ -97,6 +98,7 @@ const NAV_MESSAGES: Record<
     navTestData: "Test data",
     navCreativeDemosEdit: "Creative demos (table)",
     navDocumentation: "Documentation",
+    navHistory: "History",
     navUserPermissions: "User & Permissions",
     navManageSftp: "SFTP",
     navSmtpMail: "SMTP",
@@ -117,6 +119,7 @@ const NAV_MESSAGES: Record<
     navTestData: "Dữ liệu test",
     navCreativeDemosEdit: "Creative demos (bảng)",
     navDocumentation: "Tài liệu",
+    navHistory: "Lịch sử",
     navUserPermissions: "Người dùng & quyền",
     navManageSftp: "SFTP",
     navSmtpMail: "SMTP",
@@ -234,6 +237,9 @@ const HISTORY_MESSAGES: Record<
     highlightVault: string;
     highlightWeek: string;
     highlightProcessing: string;
+    highlightBuildDemo: string;
+    buildDemoFilterAll: string;
+    buildDemoFilterOnly: string;
     tableType: string;
     tableCampaign: string;
     tableModel: string;
@@ -243,6 +249,12 @@ const HISTORY_MESSAGES: Record<
     searchPlaceholder: string;
     filter: string;
     pagination: string;
+    deleteHistoryButton: string;
+    deleteHistoryConfirm: string;
+    deleteHistoryClearing: string;
+    deleteHistoryDialogTitle: string;
+    deleteHistoryDialogCancel: string;
+    deleteHistoryDialogAction: string;
     prev: string;
     next: string;
     typeStrategy: string;
@@ -256,22 +268,32 @@ const HISTORY_MESSAGES: Record<
   }
 > = {
   en: {
-    badge: "Campaign archive",
-    title: "History & assets",
+    badge: "Activity log",
+    title: "User activity history",
     description:
-      "Review every asset you generated — re-download creatives or copy strategies for the next flight.",
-    highlightVault: "In vault",
-    highlightWeek: "Done in 7d",
-    highlightProcessing: "In progress",
-    tableType: "Type",
-    tableCampaign: "Campaign item",
-    tableModel: "AI model",
-    tableDate: "Date created",
-    tableStatus: "Status",
-    recentTitle: "Recent campaign assets",
-    searchPlaceholder: "Search assets...",
-    filter: "Filter",
-    pagination: "Showing {shown} of {total} campaign items",
+      "Review recent page visits and important actions completed by the signed-in user.",
+    highlightVault: "Total activities",
+    highlightWeek: "Last 7 days",
+    highlightProcessing: "Today",
+    highlightBuildDemo: "Build Demo",
+    buildDemoFilterAll: "All activity",
+    buildDemoFilterOnly: "Build Demo only",
+    tableType: "User",
+    tableCampaign: "Activity",
+    tableModel: "Target",
+    tableDate: "Time",
+    tableStatus: "Area",
+    recentTitle: "Recent user activity",
+    searchPlaceholder: "Search activity...",
+    filter: "Clear",
+    pagination: "Showing {shown} of {total} activities",
+    deleteHistoryButton: "Delete all history",
+    deleteHistoryConfirm:
+      "Delete every activity record for all users? This cannot be undone.",
+    deleteHistoryClearing: "Deleting…",
+    deleteHistoryDialogTitle: "Delete activity history",
+    deleteHistoryDialogCancel: "Cancel",
+    deleteHistoryDialogAction: "Delete all",
     prev: "Prev",
     next: "Next",
     typeStrategy: "Strategy",
@@ -284,22 +306,32 @@ const HISTORY_MESSAGES: Record<
     statusFailed: "Failed",
   },
   vi: {
-    badge: "Lưu trữ chiến dịch",
-    title: "Lịch sử và tài sản",
+    badge: "Nhật ký hoạt động",
+    title: "Lịch sử hoạt động người dùng",
     description:
-      "Xem lại mọi nội dung marketing đã tạo — tải lại visual, hoặc copy chiến lược cho chiến dịch kế tiếp.",
-    highlightVault: "Trong kho",
-    highlightWeek: "Hoàn thành 7 ngày",
-    highlightProcessing: "Đang xử lý",
-    tableType: "Loại",
-    tableCampaign: "Hạng mục",
-    tableModel: "Model AI",
-    tableDate: "Ngày tạo",
-    tableStatus: "Trạng thái",
-    recentTitle: "Tài sản chiến dịch gần đây",
-    searchPlaceholder: "Tìm tài sản...",
-    filter: "Lọc",
-    pagination: "Hiển thị {shown} / {total} mục",
+      "Xem lại các trang vừa mở và những thao tác quan trọng mà user đã thực hiện.",
+    highlightVault: "Tổng hoạt động",
+    highlightWeek: "7 ngày gần đây",
+    highlightProcessing: "Hôm nay",
+    highlightBuildDemo: "Build Demo",
+    buildDemoFilterAll: "Mọi hoạt động",
+    buildDemoFilterOnly: "Chỉ Build Demo",
+    tableType: "Người dùng",
+    tableCampaign: "Hoạt động",
+    tableModel: "Đối tượng",
+    tableDate: "Thời gian",
+    tableStatus: "Khu vực",
+    recentTitle: "Hoạt động gần đây",
+    searchPlaceholder: "Tìm hoạt động...",
+    filter: "Xóa lọc",
+    pagination: "Hiển thị {shown} / {total} hoạt động",
+    deleteHistoryButton: "Xóa toàn bộ lịch sử",
+    deleteHistoryConfirm:
+      "Xóa hết nhật ký hoạt động của mọi user? Thao tác này không thể hoàn tác.",
+    deleteHistoryClearing: "Đang xóa…",
+    deleteHistoryDialogTitle: "Xóa lịch sử hoạt động",
+    deleteHistoryDialogCancel: "Hủy",
+    deleteHistoryDialogAction: "Xóa hết",
     prev: "Trước",
     next: "Sau",
     typeStrategy: "Chiến lược",

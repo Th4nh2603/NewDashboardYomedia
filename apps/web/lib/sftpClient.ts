@@ -181,6 +181,28 @@ export function createSftpClient(options?: SftpClientOptions) {
         }),
       });
     },
+    async setupDemoToMedia(path: string) {
+      return fetchJsonOrThrow<{
+        ok?: boolean;
+        logicalPath?: string;
+        sourcePath?: string;
+        targetPath?: string;
+        sourceKind?: "directory" | "file" | "symlink";
+        copiedFiles?: number;
+        copiedDirectories?: number;
+        createdTargetDirectory?: boolean;
+        error?: string;
+      }>(`${baseUrl}/api/sftp/setup-demo-media`, {
+        method: "POST",
+        headers: withRoleHeaders(
+          {
+            "Content-Type": "application/json",
+          },
+          roleHeader,
+        ),
+        body: JSON.stringify({ path }),
+      });
+    },
     async exists(path: string, scope: SftpScope = "demo") {
       return fetchJsonOrThrow<{
         ok?: boolean;

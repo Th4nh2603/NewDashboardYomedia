@@ -813,6 +813,188 @@ export async function uploadSftpBuffer(
   }
 }
 
+export async function copySftpPathBetweenConfigs(
+  sourcePath: string,
+  targetPath: string,
+  options: {
+    sourceConfig?: SftpConfig;
+    targetConfig?: SftpConfig;
+  } = {},
+) {
+  const sourceClient = new SftpClient();
+  const targetClient = new SftpClient();
+
+  const normalize = (input: string) =>
+    (input || "")
+      .trim()
+      .replace(/\\+/g, "/")
+      .replace(/\/{2,}/g, "/")
+      .replace(/\/+$/, "");
+
+  const normalizedSourcePath = normalize(sourcePath);
+  const normalizedTargetPath = normalize(targetPath);
+
+  if (!normalizedSourcePath) {
+    throw new Error("Missing source SFTP path.");
+  }
+  if (!normalizedTargetPath) {
+    throw new Error("Missing target SFTP path.");
+  }
+
+  const sourceConfig = options.sourceConfig ?? {};
+  const targetConfig = options.targetConfig ?? {};
+
+  const sourceHost =
+    sourceConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const sourcePort = sourceConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const sourceUsername = sourceConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const sourcePassword =
+    sourceConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  const targetHost =
+    targetConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
+  const targetPort = targetConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
+  const targetUsername = targetConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const targetPassword =
+    targetConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
+
+  if (!sourceHost || !sourceUsername || !sourcePassword) {
+    throw new Error("Missing source SFTP credentials (host/username/password).");
+  }
+  if (!targetHost || !targetUsername || !targetPassword) {
+    throw new Error("Missing target SFTP credentials (host/username/password).");
+  }
+
+  let copiedFiles = 0;
+  let copiedDirectories = 0;
+  let createdTargetDirectory = false;
+
+  const pathModule = await import("path");
+  const ensureTargetDirectory = async (dirPath: string) => {
+    if (!dirPath || dirPath === "." || dirPath === "/") return;
+    await (targetClient as any).mkdir(dirPath, true).catch(() => {
+      // ignore mkdir errors when directory already exists
+    });
+  };
+
+  const copyFile = async (fromPath: string, toPath: string) => {
+    const parentDir = pathModule.posix.dirname(toPath || "/");
+    await ensureTargetDirectory(parentDir);
+    const data = await sourceClient.get(fromPath);
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(String(data));
+    await targetClient.put(buffer, toPath);
+    copiedFiles += 1;
+  };
+
+  const copyDirectoryRecursive = async (
+    fromDir: string,
+    toDir: string,
+    isRoot = false,
+  ) => {
+    const targetExists = (await (targetClient as any).exists(toDir)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+
+    if (targetExists === "-" || targetExists === "l") {
+      throw new Error(`Destination path is not a directory: ${toDir}`);
+    }
+
+    if (!targetExists) {
+      await (targetClient as any).mkdir(toDir, true);
+      copiedDirectories += 1;
+      if (isRoot) createdTargetDirectory = true;
+    }
+
+    const entries = (await sourceClient.list(fromDir)) as {
+      name: string;
+      type: string;
+    }[];
+
+    for (const entry of entries) {
+      if (!entry?.name || entry.name === "." || entry.name === "..") continue;
+      const sourceEntryPath = `${fromDir}/${entry.name}`.replace(/\/{2,}/g, "/");
+      const targetEntryPath = `${toDir}/${entry.name}`.replace(/\/{2,}/g, "/");
+
+      if (entry.type === "d" || entry.type === "D") {
+        await copyDirectoryRecursive(sourceEntryPath, targetEntryPath);
+        continue;
+      }
+
+      await copyFile(sourceEntryPath, targetEntryPath);
+    }
+  };
+
+  try {
+    await sourceClient.connect({
+      host: sourceHost,
+      port: sourcePort,
+      username: sourceUsername,
+      password: sourcePassword,
+    });
+    await targetClient.connect({
+      host: targetHost,
+      port: targetPort,
+      username: targetUsername,
+      password: targetPassword,
+    });
+
+    const sourceType = (await (sourceClient as any).exists(normalizedSourcePath)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+    if (!sourceType) {
+      throw new Error(`Source path does not exist: ${normalizedSourcePath}`);
+    }
+
+    const targetType = (await (targetClient as any).exists(normalizedTargetPath)) as
+      | false
+      | "d"
+      | "-"
+      | "l";
+    if (targetType) {
+      throw new Error(`Destination path already exists: ${normalizedTargetPath}`);
+    }
+
+    if (sourceType === "d") {
+      await copyDirectoryRecursive(
+        normalizedSourcePath,
+        normalizedTargetPath,
+        true,
+      );
+    } else {
+      await copyFile(normalizedSourcePath, normalizedTargetPath);
+    }
+
+    return {
+      sourcePath: normalizedSourcePath,
+      targetPath: normalizedTargetPath,
+      sourceKind:
+        sourceType === "d"
+          ? ("directory" as const)
+          : sourceType === "-"
+            ? ("file" as const)
+            : ("symlink" as const),
+      copiedFiles,
+      copiedDirectories,
+      createdTargetDirectory,
+    };
+  } finally {
+    try {
+      await sourceClient.end();
+    } catch {
+      // ignore close errors
+    }
+    try {
+      await targetClient.end();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
 export async function verifySftpWritableDirectory(
   targetDir: string,
   config: SftpConfig = {},

@@ -16,16 +16,24 @@ const ROLE_PERMISSIONS_PATH = path.join(
 
 type RawPerms = Record<
   string,
-  { manageDemo?: { canSwitchSftpHost?: boolean } }
+  {
+    manageDemo?: {
+      canSwitchSftpHost?: boolean;
+      canSetupMediaSftp?: boolean;
+    };
+  }
 >;
 
 /** Reads JSON on disk (same file as server's role permission store). */
-function readManageDemoMediaSwitchFlag(role: string): boolean {
+function readManageDemoFlag(
+  role: string,
+  field: "canSwitchSftpHost" | "canSetupMediaSftp",
+): boolean {
   try {
     const raw = fs.readFileSync(ROLE_PERMISSIONS_PATH, "utf8");
     const parsed = JSON.parse(raw) as RawPerms;
     const r = role.trim().toLowerCase();
-    return parsed[r]?.manageDemo?.canSwitchSftpHost === true;
+    return parsed[r]?.manageDemo?.[field] === true;
   } catch {
     return false;
   }
@@ -40,5 +48,14 @@ export function isManageDemoMediaSftpAllowed(req: Request): boolean {
     .trim()
     .toLowerCase();
   if (role !== "admin") return false;
-  return readManageDemoMediaSwitchFlag(role);
+  return readManageDemoFlag(role, "canSwitchSftpHost");
+}
+
+/** Build Demo: copy converted upload from demo SFTP to media SFTP. */
+export function isBuildDemoMediaSetupAllowed(req: Request): boolean {
+  const role = String(getUserRole(req) ?? "")
+    .trim()
+    .toLowerCase();
+  if (!role) return false;
+  return readManageDemoFlag(role, "canSetupMediaSftp");
 }

@@ -12,6 +12,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   DocumentTextIcon,
+  ArchiveBoxIcon,
   QuestionMarkCircleIcon,
   ArrowUpTrayIcon,
   ClipboardDocumentListIcon,
@@ -212,6 +213,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         },
         { nameKey: "navManageDemo", path: "/manage-demo", icon: UsersIcon },
         { nameKey: "navUpload", path: "/upload", icon: ArrowUpTrayIcon },
+        {
+          nameKey: "navHistory",
+          path: "/history",
+          icon: ArchiveBoxIcon,
+        },
         {
           nameKey: "navTestData",
           path: "/test-data",

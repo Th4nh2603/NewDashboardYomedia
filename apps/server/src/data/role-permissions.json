@@ -3,6 +3,7 @@
     "manageDemo": {
       "canUseFileActionButtons": false,
       "canSwitchSftpHost": false,
+      "canSetupMediaSftp": false,
       "canSftpUploadBinary": false,
       "canSftpWriteFile": false,
       "canSftpDelete": false,
@@ -22,7 +23,6 @@
         "/bar",
         "/cinema",
         "/live",
-        "/history",
         "/ai-gmail"
       ]
     },
@@ -34,6 +34,7 @@
     "manageDemo": {
       "canUseFileActionButtons": true,
       "canSwitchSftpHost": true,
+      "canSetupMediaSftp": true,
       "canSftpUploadBinary": true,
       "canSftpWriteFile": true,
       "canSftpDelete": true,
@@ -72,6 +73,7 @@
     "manageDemo": {
       "canUseFileActionButtons": false,
       "canSwitchSftpHost": false,
+      "canSetupMediaSftp": false,
       "canSftpUploadBinary": true,
       "canSftpWriteFile": true,
       "canSftpDelete": false,
@@ -87,7 +89,7 @@
         "/manage-demo",
         "/chat",
         "/build-demo",
-        "/upload"
+        "/history"
       ]
     },
     "creativeShowcase": {
@@ -98,6 +100,7 @@
     "manageDemo": {
       "canUseFileActionButtons": false,
       "canSwitchSftpHost": false,
+      "canSetupMediaSftp": true,
       "canSftpUploadBinary": true,
       "canSftpWriteFile": true,
       "canSftpDelete": false,
@@ -117,7 +120,6 @@
         "/bar",
         "/cinema",
         "/live",
-        "/history",
         "/ai-gmail",
         "/build-demo"
       ]
@@ -130,6 +132,7 @@
     "manageDemo": {
       "canUseFileActionButtons": false,
       "canSwitchSftpHost": false,
+      "canSetupMediaSftp": false,
       "canSftpUploadBinary": true,
       "canSftpWriteFile": true,
       "canSftpDelete": false,
@@ -149,7 +152,6 @@
         "/bar",
         "/cinema",
         "/live",
-        "/history",
         "/ai-gmail",
         "/build-demo",
         "/upload"
@@ -163,6 +165,7 @@
     "manageDemo": {
       "canUseFileActionButtons": false,
       "canSwitchSftpHost": false,
+      "canSetupMediaSftp": false,
       "canSftpUploadBinary": false,
       "canSftpWriteFile": false,
       "canSftpDelete": false,
