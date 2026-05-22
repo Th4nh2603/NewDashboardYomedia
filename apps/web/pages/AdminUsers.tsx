@@ -1,8 +1,14 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import {
+  getBuildDemoBrandOptions,
+  normalizeBuildDemoBrandIds,
+} from "../lib/buildDemoBrands";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
+import AdminUserRowForm from "../components/admin/AdminUserRowForm";
+import type { AdminAccountRowFormValues } from "../lib/form";
 
 type Account = {
   id: string;
@@ -12,6 +18,8 @@ type Account = {
   role: string;
   roleTitle: string | null;
   status: string | null;
+  /** null/empty = inherit role; non-empty = user override. */
+  allowedBuildDemoBrands?: string[] | null;
 };
 
 type RolePermissionConfig = Record<
@@ -26,6 +34,7 @@ type RolePermissionConfig = Record<
       canSftpDelete?: boolean;
       canSftpRename?: boolean;
       canSftpMkdir?: boolean;
+      allowedBuildDemoBrands?: string[];
     };
     routeAccess?: {
       allowedRoutes?: string[];
@@ -36,7 +45,7 @@ type RolePermissionConfig = Record<
   }
 >;
 
-type AdminTab = "users" | "permissions";
+type AdminTab = "users" | "permissions" | "brand";
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Administrator" },
@@ -114,6 +123,75 @@ type PermissionCheckboxRowProps = {
   subtitle?: React.ReactNode;
 };
 
+const BUILD_DEMO_BRAND_OPTIONS = getBuildDemoBrandOptions();
+const ALL_BUILD_DEMO_BRAND_IDS = BUILD_DEMO_BRAND_OPTIONS.map((b) => b.id);
+
+const normalizeUserBrandOverride = (
+  value: string[] | null | undefined,
+): string[] | null => {
+  if (value === null || value === undefined) return null;
+  const normalized = normalizeBuildDemoBrandIds(value);
+  return normalized.length > 0 ? normalized : null;
+};
+
+const userBrandOverridesEqual = (
+  a: string[] | null | undefined,
+  b: string[] | null | undefined,
+): boolean => {
+  const left = normalizeUserBrandOverride(a);
+  const right = normalizeUserBrandOverride(b);
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+};
+
+const BuildDemoBrandPicker: React.FC<{
+  selected: string[];
+  onChange: (next: string[]) => void;
+  emptyHint?: string;
+  compact?: boolean;
+  disabled?: boolean;
+}> = ({ selected, onChange, emptyHint, compact, disabled }) => {
+  const selectedSet = new Set(selected);
+  return (
+    <div
+      className={`flex flex-col gap-1.5 ${compact ? "" : "max-w-md"} ${disabled ? "pointer-events-none opacity-60" : ""}`}
+    >
+      {emptyHint ? (
+        <p className="text-[10px] leading-snug text-slate-500 dark:text-slate-500">
+          {emptyHint}
+        </p>
+      ) : null}
+      <div
+        className={`grid gap-1.5 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}
+      >
+        {BUILD_DEMO_BRAND_OPTIONS.map((brand) => {
+          const checked = selectedSet.has(brand.id);
+          return (
+            <label
+              key={brand.id}
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-700 transition-colors hover:border-slate-300 dark:border-white/[0.06] dark:bg-[#0d111a]/60 dark:text-[#cbd5e1] dark:hover:border-white/10"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  const next = new Set(selected);
+                  if (e.target.checked) next.add(brand.id);
+                  else next.delete(brand.id);
+                  onChange(Array.from(next));
+                }}
+                className="h-3.5 w-3.5 shrink-0 accent-[#4cceac]"
+              />
+              <span className="truncate">{brand.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const PermissionCheckboxRow: React.FC<PermissionCheckboxRowProps> = ({
   checked,
   onChecked,
@@ -176,6 +254,9 @@ const normalizeAccount = (account: Partial<Account>, index: number): Account => 
   role: normalizeRole(account.role),
   roleTitle: normalizeNullableField(account.roleTitle),
   status: normalizeNullableField(account.status),
+  allowedBuildDemoBrands: normalizeUserBrandOverride(
+    account.allowedBuildDemoBrands,
+  ),
 });
 
 const normalizeRoutes = (routes: unknown): string[] => {
@@ -208,6 +289,12 @@ const AdminUsers: React.FC = () => {
   const [message, setMessage] = React.useState<string | null>(null);
   const [savingId, setSavingId] = React.useState<string | null>(null);
   const [savingPermissionRole, setSavingPermissionRole] = React.useState<
+    string | null
+  >(null);
+  const [savingBuildDemoUserId, setSavingBuildDemoUserId] = React.useState<
+    string | null
+  >(null);
+  const [savingBuildDemoRole, setSavingBuildDemoRole] = React.useState<
     string | null
   >(null);
 
@@ -272,29 +359,35 @@ const AdminUsers: React.FC = () => {
     void loadPermissions();
   }, [loadPermissions]);
 
-  const updateItem = (
-    id: string,
-    field: "role" | "roleTitle" | "status",
-    value: string,
-  ) => {
+  const updateUserBuildDemoBrands = (id: string, brands: string[]) => {
+    const normalized = normalizeBuildDemoBrandIds(brands);
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              allowedBuildDemoBrands:
+                normalized.length > 0 ? normalized : null,
+            }
+          : item,
+      ),
     );
   };
 
-  const handleSave = async (item: Account) => {
+  const handleSave = async (
+    item: Account,
+    values: AdminAccountRowFormValues,
+  ) => {
     setSavingId(item.id);
     setError(null);
     setMessage(null);
     try {
+      const role = normalizeRole(values.role);
       const payload = {
-        role: normalizeRole(item.role),
+        role,
         roleTitle:
-          String(item.roleTitle || "").trim() ||
-          roleTitleFromRole(normalizeRole(item.role)),
-        status: String(item.status || "active")
-          .trim()
-          .toLowerCase(),
+          values.roleTitle.trim() || roleTitleFromRole(role),
+        status: values.status,
       };
       await fetchJsonOrThrow(`${baseUrl}/api/admin/accounts/${item.id}`, {
         method: "PUT",
@@ -304,8 +397,17 @@ const AdminUsers: React.FC = () => {
         },
         body: JSON.stringify(payload),
       });
+      const updated: Account = {
+        ...item,
+        role: payload.role,
+        roleTitle: payload.roleTitle,
+        status: payload.status,
+      };
+      setItems((prev) =>
+        prev.map((entry) => (entry.id === item.id ? updated : entry)),
+      );
       setInitialItems((prev) =>
-        prev.map((entry) => (entry.id === item.id ? { ...item } : entry)),
+        prev.map((entry) => (entry.id === item.id ? updated : entry)),
       );
       setMessage(`Updated user ${item.name || item.email || item.id}`);
     } catch (err) {
@@ -313,6 +415,81 @@ const AdminUsers: React.FC = () => {
     } finally {
       setSavingId(null);
     }
+  };
+
+  const handleSaveUserBrands = async (item: Account) => {
+    if (normalizeRole(item.role) === "admin") return;
+    setSavingBuildDemoUserId(item.id);
+    setError(null);
+    setMessage(null);
+    try {
+      await fetchJsonOrThrow(`${baseUrl}/api/admin/accounts/${item.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-role": roleHeader,
+        },
+        body: JSON.stringify({
+          allowedBuildDemoBrands: item.allowedBuildDemoBrands ?? null,
+        }),
+      });
+      setInitialItems((prev) =>
+        prev.map((entry) => (entry.id === item.id ? { ...item } : entry)),
+      );
+      setMessage(
+        `Updated brand access for ${item.name || item.email || item.id}`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to update user brands",
+      );
+    } finally {
+      setSavingBuildDemoUserId(null);
+    }
+  };
+
+  const buildRolePermissionBody = (role: string) => {
+    const canUseFileActionButtons =
+      permissions[role]?.manageDemo?.canUseFileActionButtons === true;
+    const allowedRoutes = Array.isArray(
+      permissions[role]?.routeAccess?.allowedRoutes,
+    )
+      ? permissions[role]?.routeAccess?.allowedRoutes
+      : [];
+    const canSwitchSftpHost =
+      role === "admin" &&
+      permissions[role]?.manageDemo?.canSwitchSftpHost === true;
+    const canSetupMediaSftp =
+      permissions[role]?.manageDemo?.canSetupMediaSftp === true;
+    const canSftpUploadBinary =
+      permissions[role]?.manageDemo?.canSftpUploadBinary === true;
+    const canSftpWriteFile =
+      permissions[role]?.manageDemo?.canSftpWriteFile === true;
+    const canSftpDelete =
+      permissions[role]?.manageDemo?.canSftpDelete === true;
+    const canSftpRename =
+      permissions[role]?.manageDemo?.canSftpRename === true;
+    const canSftpMkdir = permissions[role]?.manageDemo?.canSftpMkdir === true;
+    const canDownloadCreativeDemos =
+      permissions[role]?.creativeShowcase?.canDownload === true;
+    const allowedBuildDemoBrands = normalizeBuildDemoBrandIds(
+      permissions[role]?.manageDemo?.allowedBuildDemoBrands,
+    );
+    return {
+      manageDemo: {
+        canUseFileActionButtons,
+        canSwitchSftpHost: role === "admin" ? canSwitchSftpHost : false,
+        canSetupMediaSftp,
+        canSftpUploadBinary,
+        canSftpWriteFile,
+        canSftpDelete,
+        canSftpRename,
+        canSftpMkdir,
+        allowedBuildDemoBrands,
+      },
+      routeAccess: { allowedRoutes },
+      creativeShowcase: { canDownload: canDownloadCreativeDemos },
+    };
   };
 
   const updatePermission = (role: string, canUse: boolean) => {
@@ -398,76 +575,47 @@ const AdminUsers: React.FC = () => {
     }));
   };
 
+  const updateRoleBuildDemoBrands = (role: string, brands: string[]) => {
+    if (role === "admin") return;
+    setPermissions((prev) => ({
+      ...prev,
+      [role]: {
+        ...(prev[role] || {}),
+        manageDemo: {
+          ...(prev[role]?.manageDemo || {}),
+          allowedBuildDemoBrands: normalizeBuildDemoBrandIds(brands),
+        },
+      },
+    }));
+  };
+
   const handleSavePermission = async (role: string) => {
     setSavingPermissionRole(role);
     setError(null);
     setMessage(null);
     try {
-      const canUseFileActionButtons =
-        permissions[role]?.manageDemo?.canUseFileActionButtons === true;
-      const allowedRoutes = Array.isArray(
-        permissions[role]?.routeAccess?.allowedRoutes,
-      )
-        ? permissions[role]?.routeAccess?.allowedRoutes
-        : [];
-      const canSwitchSftpHost =
-        role === "admin" &&
-        permissions[role]?.manageDemo?.canSwitchSftpHost === true;
-      const canSetupMediaSftp =
-        permissions[role]?.manageDemo?.canSetupMediaSftp === true;
-      const canSftpUploadBinary =
-        permissions[role]?.manageDemo?.canSftpUploadBinary === true;
-      const canSftpWriteFile =
-        permissions[role]?.manageDemo?.canSftpWriteFile === true;
-      const canSftpDelete =
-        permissions[role]?.manageDemo?.canSftpDelete === true;
-      const canSftpRename =
-        permissions[role]?.manageDemo?.canSftpRename === true;
-      const canSftpMkdir =
-        permissions[role]?.manageDemo?.canSftpMkdir === true;
-      const canDownloadCreativeDemos =
-        permissions[role]?.creativeShowcase?.canDownload === true;
+      const body = buildRolePermissionBody(role);
       await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "x-user-role": roleHeader,
         },
-        body: JSON.stringify({
-          manageDemo: {
-            canUseFileActionButtons,
-            canSwitchSftpHost:
-              role === "admin"
-                ? canSwitchSftpHost
-                : false,
-            canSetupMediaSftp,
-            canSftpUploadBinary,
-            canSftpWriteFile,
-            canSftpDelete,
-            canSftpRename,
-            canSftpMkdir,
-          },
-          routeAccess: {
-            allowedRoutes,
-          },
-          creativeShowcase: {
-            canDownload: canDownloadCreativeDemos,
-          },
-        }),
+        body: JSON.stringify(body),
       });
       setInitialPermissions((prev) => ({
         ...prev,
         [role]: {
           ...(permissions[role] || {}),
+          manageDemo: {
+            ...(permissions[role]?.manageDemo || {}),
+            ...body.manageDemo,
+          },
           routeAccess: {
             ...(permissions[role]?.routeAccess || {}),
-            allowedRoutes: normalizeRoutes(
-              permissions[role]?.routeAccess?.allowedRoutes,
-            ),
+            allowedRoutes: normalizeRoutes(body.routeAccess.allowedRoutes),
           },
-          creativeShowcase: {
-            canDownload: canDownloadCreativeDemos,
-          },
+          creativeShowcase: body.creativeShowcase,
         },
       }));
       setMessage(`Updated permission for role: ${role}`);
@@ -478,14 +626,48 @@ const AdminUsers: React.FC = () => {
     }
   };
 
-  const isUserDirty = (item: Account): boolean => {
+  const handleSaveRoleBrands = async (role: string) => {
+    if (role === "admin") return;
+    setSavingBuildDemoRole(role);
+    setError(null);
+    setMessage(null);
+    try {
+      const body = buildRolePermissionBody(role);
+      await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-role": roleHeader,
+        },
+        body: JSON.stringify(body),
+      });
+      setInitialPermissions((prev) => ({
+        ...prev,
+        [role]: {
+          ...(permissions[role] || {}),
+          manageDemo: {
+            ...(permissions[role]?.manageDemo || {}),
+            allowedBuildDemoBrands: body.manageDemo.allowedBuildDemoBrands,
+          },
+        },
+      }));
+      setMessage(`Updated brand access for role: ${role}`);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to update role brands",
+      );
+    } finally {
+      setSavingBuildDemoRole(null);
+    }
+  };
+
+  const isUserBrandDirty = (item: Account): boolean => {
+    if (normalizeRole(item.role) === "admin") return false;
     const original = initialItems.find((entry) => entry.id === item.id);
     if (!original) return false;
-    return (
-      normalizeRole(item.role) !== normalizeRole(original.role) ||
-      String(item.roleTitle || "").trim() !== String(original.roleTitle || "").trim() ||
-      String(item.status || "active").trim().toLowerCase() !==
-        String(original.status || "active").trim().toLowerCase()
+    return !userBrandOverridesEqual(
+      item.allowedBuildDemoBrands,
+      original.allowedBuildDemoBrands,
     );
   };
 
@@ -530,6 +712,24 @@ const AdminUsers: React.FC = () => {
     );
   };
 
+  const isRoleBrandDirty = (role: string): boolean => {
+    if (role === "admin") return false;
+    const currentBrands = normalizeBuildDemoBrandIds(
+      permissions[role]?.manageDemo?.allowedBuildDemoBrands,
+    );
+    const originalBrands = normalizeBuildDemoBrandIds(
+      initialPermissions[role]?.manageDemo?.allowedBuildDemoBrands,
+    );
+    return JSON.stringify(currentBrands) !== JSON.stringify(originalBrands);
+  };
+
+  const tabButtonClass = (tab: AdminTab) =>
+    `px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+      activeTab === tab
+        ? "border-[#4cceac] bg-[#4cceac]/15 text-emerald-700 dark:bg-[#4cceac]/20 dark:text-[#9ff3de]"
+        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
+    }`;
+
   return (
     <div className="w-full px-8 pt-10 pb-16 space-y-6">
       <header className="flex items-center justify-between gap-3">
@@ -538,15 +738,19 @@ const AdminUsers: React.FC = () => {
             User & Permission Management
           </h1>
           <p className="text-xs text-slate-600 mt-1 dark:text-[#a3a3a3]">
-            Separate user management from role-based permission configuration.
+            Users, route/SFTP permissions, and brand access are configured in separate tabs.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             type="button"
             onClick={() => {
-              if (activeTab === "users") void loadAccounts();
-              if (activeTab === "permissions") void loadPermissions();
+              if (activeTab === "users" || activeTab === "brand") {
+                void loadAccounts();
+              }
+              if (activeTab === "permissions" || activeTab === "brand") {
+                void loadPermissions();
+              }
             }}
             disabled={loading || permissionsLoading}
             className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-40 dark:border-white/10 dark:text-white/90 dark:bg-white/5 dark:hover:bg-white/10"
@@ -556,28 +760,23 @@ const AdminUsers: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          onClick={() => setActiveTab("users")}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-            activeTab === "users"
-              ? "border-[#4cceac] bg-[#4cceac]/15 text-emerald-700 dark:bg-[#4cceac]/20 dark:text-[#9ff3de]"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
-          }`}
-        >
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" onClick={() => setActiveTab("users")} className={tabButtonClass("users")}>
           Users
         </Button>
         <Button
           type="button"
           onClick={() => setActiveTab("permissions")}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-            activeTab === "permissions"
-              ? "border-[#4cceac] bg-[#4cceac]/15 text-emerald-700 dark:bg-[#4cceac]/20 dark:text-[#9ff3de]"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
-          }`}
+          className={tabButtonClass("permissions")}
         >
           Permissions
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setActiveTab("brand")}
+          className={tabButtonClass("brand")}
+        >
+          Brand
         </Button>
       </div>
 
@@ -592,7 +791,7 @@ const AdminUsers: React.FC = () => {
         </div>
       )}
 
-      {activeTab === "users" ? (
+      {activeTab === "users" && (
         <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
@@ -620,79 +819,32 @@ const AdminUsers: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
-                    <tr key={item.id} className="border-t border-slate-100 dark:border-white/5">
-                      <td className="px-4 py-3 text-slate-900 dark:text-white">{item.name}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-[#cbd5e1]">{item.email}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={item.role || ""}
-                          onChange={(e) => {
-                            const role = e.target.value;
-                            updateItem(item.id, "role", role);
-                            updateItem(item.id, "roleTitle", roleTitleFromRole(role));
-                          }}
-                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
-                        >
-                          {ROLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.value}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          value={item.roleTitle || ""}
-                          onChange={(e) =>
-                            updateItem(item.id, "roleTitle", e.target.value)
-                          }
-                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={item.status || "active"}
-                          onChange={(e) =>
-                            updateItem(item.id, "status", e.target.value)
-                          }
-                          className="w-full rounded-lg bg-white border border-slate-300 px-2 py-1.5 text-slate-900 dark:bg-[#0d111a] dark:border-white/10 dark:text-white"
-                        >
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {(() => {
-                          const dirty = isUserDirty(item);
-                          return (
-                        <Button
-                          type="button"
-                          variant={dirty ? "success" : "secondary"}
-                          onClick={() => void handleSave(item)}
-                          disabled={savingId === item.id || !dirty}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-40 ${
-                            dirty
-                              ? "!bg-[#4cceac] !text-[#141b2d] hover:!bg-[#5fd8b9]"
-                              : ""
-                          }`}
-                        >
-                          {savingId === item.id ? "Saving..." : "Save"}
-                        </Button>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))
+                  items.map((item) => {
+                    const baseline =
+                      initialItems.find((entry) => entry.id === item.id) ??
+                      item;
+                    return (
+                      <AdminUserRowForm
+                        key={item.id}
+                        name={item.name}
+                        email={item.email}
+                        baseline={baseline}
+                        roleOptions={ROLE_OPTIONS}
+                        statusOptions={STATUS_OPTIONS}
+                        roleTitleFromRole={roleTitleFromRole}
+                        saving={savingId === item.id}
+                        onSave={(values) => handleSave(item, values)}
+                      />
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === "permissions" && (
         <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 dark:border-white/5 dark:bg-[#0f141d] dark:text-slate-400">
             <span className="font-medium text-slate-700 dark:text-slate-300">Web routes</span> use{" "}
@@ -901,6 +1053,197 @@ const AdminUsers: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "brand" && (
+        <div className="space-y-6">
+          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
+            <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/5 dark:bg-[#0f141d]">
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-[#e2e8f0]">
+                By role
+              </h2>
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-500">
+                <span>Default brand access per role on</span>
+                <WebRouteChips paths={[WEB_BUILD_DEMO]} />
+                <span>· empty = all brands</span>
+              </p>
+            </div>
+            <div className="overflow-x-auto p-4">
+              {permissionsLoading ? (
+                <p className="py-6 text-center text-sm text-slate-500 dark:text-[#a3a3a3]">
+                  Loading…
+                </p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {ROLE_OPTIONS.map((option) => {
+                    const role = option.value;
+                    const isAdminRole = role === "admin";
+                    return (
+                      <div
+                        key={role}
+                        className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-[#0d111a]/40"
+                      >
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {option.label}
+                          </span>
+                          {isAdminRole ? (
+                            <span className="rounded-lg border border-[#4cceac]/35 bg-[#4cceac]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-[#9ff3de]">
+                              Full access — all brands
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant={isRoleBrandDirty(role) ? "success" : "secondary"}
+                              onClick={() => void handleSaveRoleBrands(role)}
+                              disabled={
+                                savingBuildDemoRole === role || !isRoleBrandDirty(role)
+                              }
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-40 ${
+                                isRoleBrandDirty(role)
+                                  ? "!bg-[#4cceac] !text-[#141b2d] hover:!bg-[#5fd8b9]"
+                                  : ""
+                              }`}
+                            >
+                              {savingBuildDemoRole === role ? "Saving..." : "Save"}
+                            </Button>
+                          )}
+                        </div>
+                        <BuildDemoBrandPicker
+                          selected={
+                            isAdminRole
+                              ? ALL_BUILD_DEMO_BRAND_IDS
+                              : (permissions[role]?.manageDemo
+                                  ?.allowedBuildDemoBrands ?? [])
+                          }
+                          onChange={(next) => updateRoleBuildDemoBrands(role, next)}
+                          disabled={isAdminRole}
+                          emptyHint={
+                            isAdminRole
+                              ? "Administrator always has every brand on Build Demo."
+                              : undefined
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-lg overflow-hidden dark:border-white/5 dark:bg-[#141b2d] dark:shadow-2xl">
+            <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/5 dark:bg-[#0f141d]">
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-[#e2e8f0]">
+                By user
+              </h2>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-500">
+                Override role defaults per account. Empty = inherit from role.
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="bg-slate-50 text-slate-600 dark:bg-[#0d111a] dark:text-[#94a3b8]">
+                  <tr>
+                    <th className="text-left px-4 py-3">Name</th>
+                    <th className="text-left px-4 py-3">Email</th>
+                    <th className="text-left px-4 py-3">Role</th>
+                    <th className="min-w-[280px] text-left px-4 py-3">Brands</th>
+                    <th className="text-right px-4 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td
+                        className="px-4 py-6 text-center text-slate-500 dark:text-[#a3a3a3]"
+                        colSpan={5}
+                      >
+                        Loading users…
+                      </td>
+                    </tr>
+                  ) : items.length === 0 ? (
+                    <tr>
+                      <td
+                        className="px-4 py-6 text-center text-slate-500 dark:text-[#a3a3a3]"
+                        colSpan={5}
+                      >
+                        No user records.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item) => {
+                      const isAdminUser = normalizeRole(item.role) === "admin";
+                      return (
+                      <tr
+                        key={item.id}
+                        className="border-t border-slate-100 dark:border-white/5"
+                      >
+                        <td className="px-4 py-3 text-slate-900 dark:text-white">
+                          {item.name}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-[#cbd5e1]">
+                          {item.email}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-[#cbd5e1]">
+                          {item.role}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <BuildDemoBrandPicker
+                            compact
+                            selected={
+                              isAdminUser
+                                ? ALL_BUILD_DEMO_BRAND_IDS
+                                : item.allowedBuildDemoBrands
+                                  ? [...item.allowedBuildDemoBrands]
+                                  : []
+                            }
+                            onChange={(next) =>
+                              updateUserBuildDemoBrands(item.id, next)
+                            }
+                            disabled={isAdminUser}
+                            emptyHint={
+                              isAdminUser
+                                ? "Administrator — full access to all brands."
+                                : undefined
+                            }
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-right align-top">
+                          {isAdminUser ? (
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-[#9ff3de]">
+                              Full access
+                            </span>
+                          ) : (
+                          <Button
+                            type="button"
+                            variant={isUserBrandDirty(item) ? "success" : "secondary"}
+                            onClick={() => void handleSaveUserBrands(item)}
+                            disabled={
+                              savingBuildDemoUserId === item.id ||
+                              !isUserBrandDirty(item)
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-40 ${
+                              isUserBrandDirty(item)
+                                ? "!bg-[#4cceac] !text-[#141b2d] hover:!bg-[#5fd8b9]"
+                                : ""
+                            }`}
+                          >
+                            {savingBuildDemoUserId === item.id
+                              ? "Saving..."
+                              : "Save"}
+                          </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -121,6 +121,45 @@ function logicalManagePathToDisplayPath(
   if (target !== "media") return logicalPath;
   return logicalPath.replace(/^\/script\/demo(?=\/|$)/i, MEDIA_UI_DISPLAY_ROOT);
 }
+
+type ManageSftpListChrome = {
+  shell: string;
+  header: string;
+  rowEven: string;
+  rowOdd: string;
+  rowHover: string;
+  hostBadge: string;
+};
+
+/** Table chrome so demo vs media SFTP host is obvious at a glance. */
+function getManageSftpListChrome(scope: "demo" | "media"): ManageSftpListChrome {
+  if (scope === "media") {
+    return {
+      shell:
+        "border-violet-200/90 bg-gradient-to-b from-violet-50/85 via-white to-violet-50/50 dark:border-violet-500/30 dark:from-violet-950/40 dark:via-[#08051a] dark:to-[#0c0820]",
+      header:
+        "border-violet-200/90 bg-violet-50/95 text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/55 dark:text-violet-200/85",
+      rowEven: "bg-white/40 dark:bg-transparent",
+      rowOdd: "bg-violet-50/65 dark:bg-violet-500/[0.045]",
+      rowHover:
+        "hover:bg-violet-100/80 dark:hover:bg-violet-500/[0.09]",
+      hostBadge:
+        "border-violet-300/70 bg-violet-100/90 text-violet-900 dark:border-violet-400/35 dark:bg-violet-500/15 dark:text-violet-100",
+    };
+  }
+  return {
+    shell:
+      "border-cyan-200/90 bg-gradient-to-b from-cyan-50/75 via-white to-slate-50 dark:border-cyan-500/25 dark:from-cyan-950/30 dark:via-[#030a1a] dark:to-[#020617]",
+    header:
+      "border-cyan-200/90 bg-cyan-50/95 text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/45 dark:text-cyan-200/85",
+    rowEven: "bg-white/50 dark:bg-transparent",
+    rowOdd: "bg-cyan-50/55 dark:bg-cyan-500/[0.04]",
+    rowHover: "hover:bg-cyan-100/70 dark:hover:bg-cyan-500/[0.08]",
+    hostBadge:
+      "border-cyan-300/70 bg-cyan-100/90 text-cyan-900 dark:border-cyan-400/35 dark:bg-cyan-500/15 dark:text-cyan-100",
+  };
+}
+
 const VIDEO_TARGET_MAX_BYTES = 4 * 1024 * 1024;
 const VIDEO_COMPRESSIBLE_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
 type RolePermissionConfig = Record<
@@ -259,6 +298,10 @@ const ManageDemo: React.FC = () => {
   }, [canShowSftpHostSwitch, manageSftpTarget]);
   const baseUrl = serverApiOrigin();
   const sftpScope = manageSftpTarget === "media" ? "media" : "demo";
+  const sftpListChrome = React.useMemo(
+    () => getManageSftpListChrome(sftpScope),
+    [sftpScope],
+  );
   const sftpClient = React.useMemo(
     () =>
       createSftpClient({
@@ -1374,10 +1417,19 @@ const ManageDemo: React.FC = () => {
 
           <div className="space-y-2.5 pb-4 sm:pb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#4cceac]" />
+              <div className="flex flex-wrap items-center gap-2 ml-1">
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    sftpScope === "media" ? "bg-violet-500" : "bg-[#4cceac]"
+                  }`}
+                />
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-[#a3a3a3]">
                   SFTP folder
+                </span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] ${sftpListChrome.hostBadge}`}
+                >
+                  {sftpScope === "media" ? "Media host" : "Demo host"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -1438,7 +1490,7 @@ const ManageDemo: React.FC = () => {
               </p>
             )}
             <div
-              className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md dark:border-slate-800/90 dark:bg-gradient-to-b dark:from-[#030a1a] dark:via-[#020617] dark:to-[#020617] dark:shadow-[0_14px_32px_rgba(2,6,23,0.5)]"
+              className={`relative overflow-hidden rounded-3xl border shadow-md dark:shadow-[0_14px_32px_rgba(2,6,23,0.5)] ${sftpListChrome.shell}`}
               onDragEnter={handleTableDragEnter}
               onDragOver={handleTableDragOver}
               onDragLeave={handleTableDragLeave}
@@ -1465,7 +1517,9 @@ const ManageDemo: React.FC = () => {
               )}
               <div className="overflow-x-auto">
                 <div className="min-w-[760px]">
-                  <div className="sticky top-0 z-10 grid grid-cols-12 border-b border-slate-200 bg-slate-50/95 px-4 py-2.5 text-[11px] font-semibold text-slate-600 backdrop-blur dark:border-slate-800 dark:bg-[#020617]/95 dark:text-slate-300">
+                  <div
+                    className={`sticky top-0 z-10 grid grid-cols-12 border-b px-4 py-2.5 text-[11px] font-semibold backdrop-blur ${sftpListChrome.header}`}
+                  >
                     <div className="col-span-5">Name</div>
                     <div className="col-span-2 text-center">Type</div>
                     <div className="col-span-2 text-right">Size</div>
@@ -1529,11 +1583,11 @@ const ManageDemo: React.FC = () => {
                               }
                               openRemoteMedia(fullPath);
                             }}
-                            className={`grid grid-cols-12 cursor-pointer border-t border-slate-100 px-4 py-2 transition-colors hover:bg-slate-50 dark:border-[#0f172a] dark:hover:bg-white/[0.04] ${
+                            className={`grid grid-cols-12 cursor-pointer border-t border-slate-100/80 px-4 py-2 transition-colors dark:border-[#0f172a]/90 ${
                               index % 2 === 0
-                                ? "bg-transparent"
-                                : "bg-slate-50/60 dark:bg-white/[0.015]"
-                            } ${
+                                ? sftpListChrome.rowEven
+                                : sftpListChrome.rowOdd
+                            } ${sftpListChrome.rowHover} ${
                               listBusy ? "pointer-events-none opacity-80" : ""
                             }`}
                           >

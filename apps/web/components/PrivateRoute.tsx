@@ -2,6 +2,11 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useAuth as useClerkAuth } from "@clerk/react";
+import {
+  buildAccessContext,
+  canAccessRoute,
+  PUBLIC_ROUTES,
+} from "../lib/access";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -11,9 +16,8 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { user, isAuthenticated, authReady } = useAuth();
   const { isSignedIn, isLoaded } = useClerkAuth();
   const location = useLocation();
-  const publicPaths = new Set(["/creative"]);
 
-  if (publicPaths.has(location.pathname)) {
+  if (PUBLIC_ROUTES.has(location.pathname)) {
     return <>{children}</>;
   }
 
@@ -25,13 +29,10 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  const ctx = buildAccessContext(user);
   const normalizedPath = location.pathname || "/";
-  const allowedRoutes = Array.isArray(user?.allowedRoutes)
-    ? user.allowedRoutes
-    : [];
-  const hasAllowedRouteConfig = allowedRoutes.length > 0;
-  if (hasAllowedRouteConfig && !allowedRoutes.includes(normalizedPath)) {
-    return <Navigate to={allowedRoutes[0] || "/"} replace />;
+  if (!canAccessRoute(ctx, normalizedPath)) {
+    return <Navigate to={ctx.defaultAllowedRoute} replace />;
   }
 
   return <>{children}</>;

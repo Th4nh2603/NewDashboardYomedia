@@ -1,5 +1,5 @@
 {
-  "name": "Nova AI Creative Suite",
+  "name": "NovaAi Creative Suite",
   "description": "A high-performance creative platform leveraging Gemini 3 and Veo for chat, image generation, video creation, and real-time audio interaction.",
   "requestFramePermissions": [
     "camera",

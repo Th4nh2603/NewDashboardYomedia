@@ -5,9 +5,12 @@
       "name": "Thanh Nguyen Tran Minh",
       "email": "thanh.ntm@pinetech.vn",
       "phone": "0902392603",
-      "role": "manager",
-      "roleTitle": "Manager",
-      "status": "active"
+      "role": "media",
+      "roleTitle": "Media",
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
@@ -25,7 +28,14 @@
       "phone": "",
       "role": "media",
       "roleTitle": "Media",
-      "status": "active"
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Bio",
+        "Maxkleen",
+        "Carrie Junior",
+        "Sacombank",
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3DZexFDhZOYpp2LW9seCtjytnZT",
@@ -34,7 +44,12 @@
       "phone": "",
       "role": "media",
       "roleTitle": "Media",
-      "status": "active"
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Enchanteur",
+        "BBHH",
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3DaCbwmZ3XTfPLhiIJUjfKKRfSO",
@@ -43,7 +58,19 @@
       "phone": "",
       "role": "design",
       "roleTitle": "Design",
-      "status": "active"
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Enchanteur",
+        "Romano",
+        "Bio",
+        "Gervenne",
+        "BBHH",
+        "Maxkleen",
+        "Aiken",
+        "Carrie Junior",
+        "Sacombank",
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3Dbk3Y9Z7SCNd4ALma19ppNKWea",
@@ -52,7 +79,19 @@
       "phone": "",
       "role": "media",
       "roleTitle": "Media",
-      "status": "active"
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Enchanteur",
+        "Romano",
+        "Bio",
+        "Gervenne",
+        "BBHH",
+        "Maxkleen",
+        "Aiken",
+        "Carrie Junior",
+        "Sacombank",
+        "Yomedia"
+      ]
     }
   ]
 }

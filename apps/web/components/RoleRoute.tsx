@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { buildAccessContext, canAccessRoute } from "../lib/access";
 
 interface RoleRouteProps {
   children: React.ReactNode;
@@ -8,13 +9,17 @@ interface RoleRouteProps {
   deny?: string[];
 }
 
-const RoleRoute: React.FC<RoleRouteProps> = ({ children, allow = [], deny = [] }) => {
+const RoleRoute: React.FC<RoleRouteProps> = ({
+  children,
+  allow = [],
+  deny = [],
+}) => {
   const { user } = useAuth();
   const location = useLocation();
-  const role = (user?.role || "").trim().toLowerCase();
+  const ctx = buildAccessContext(user);
+  const role = ctx.role;
   const allowedRoles = new Set(allow.map((item) => item.trim().toLowerCase()));
   const deniedRoles = new Set(deny.map((item) => item.trim().toLowerCase()));
-  const allowedRoutes = Array.isArray(user?.allowedRoutes) ? user.allowedRoutes : [];
 
   if (deniedRoles.has(role)) {
     return <Navigate to="/" replace />;
@@ -24,8 +29,8 @@ const RoleRoute: React.FC<RoleRouteProps> = ({ children, allow = [], deny = [] }
     return <Navigate to="/" replace />;
   }
 
-  if (allowedRoutes.length > 0 && !allowedRoutes.includes(location.pathname)) {
-    return <Navigate to={allowedRoutes[0] || "/"} replace />;
+  if (!canAccessRoute(ctx, location.pathname)) {
+    return <Navigate to={ctx.defaultAllowedRoute} replace />;
   }
 
   return <>{children}</>;

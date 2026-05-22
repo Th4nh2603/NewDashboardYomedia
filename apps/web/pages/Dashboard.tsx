@@ -211,10 +211,10 @@ const Dashboard: React.FC = () => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
             <h2 className={`text-xl font-black ${heading}`}>
-              Lối tắt creative
+              {tDashboard("quickTitle")}
             </h2>
             <p className={`text-sm mt-1 ${muted}`}>
-              Các luồng hay dùng — hover để “nổi” card.
+              {tDashboard("quickSubtitle")}
             </p>
           </div>
         </div>

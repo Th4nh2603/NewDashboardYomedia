@@ -33,6 +33,39 @@ function targetHoverTitle(entry: ActivityLogEntry): string | undefined {
   return undefined;
 }
 
+/** Stable accent per user so rows are easy to scan when viewing many actors. */
+const USER_ACCENT_PALETTE = [
+  '#4cceac',
+  '#818cf8',
+  '#f472b6',
+  '#fbbf24',
+  '#22d3ee',
+  '#a78bfa',
+  '#fb7185',
+  '#34d399',
+  '#60a5fa',
+  '#f97316',
+  '#2dd4bf',
+  '#c084fc',
+  '#84cc16',
+  '#38bdf8',
+  '#eab308',
+] as const;
+
+function hashString(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (Math.imul(31, h) + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function accentColorForUser(userEmail: string | undefined, userName: string | undefined): string {
+  const key = String(userEmail || userName || 'unknown').trim().toLowerCase();
+  const i = hashString(key) % USER_ACCENT_PALETTE.length;
+  return USER_ACCENT_PALETTE[i];
+}
+
 const History = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -209,13 +242,27 @@ const History = () => {
 
   const mappedData = React.useMemo(
     () =>
-      visibleActivities.map((activity) => ({
+      visibleActivities.map((activity) => {
+        const userAccent = accentColorForUser(activity.userEmail, activity.userName);
+        const nameColor = isDark ? 'text-[#e8e8e8]' : 'text-slate-900';
+        const subColor = isDark ? 'text-slate-400' : 'text-slate-600';
+        return {
         user: (
-          <div className="min-w-[180px]">
-            <p className="font-semibold text-[#e8e8e8]">
-              {activity.userName || activity.userEmail || 'User'}
-            </p>
-            <p className="text-xs text-slate-400">{activity.userEmail || '—'}</p>
+          <div className="flex min-w-[180px] items-start gap-2.5">
+            <span
+              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-black/15 dark:ring-white/15"
+              style={{ backgroundColor: userAccent }}
+              aria-hidden
+            />
+            <div
+              className="min-w-0 flex-1 border-l-2 pl-2.5"
+              style={{ borderLeftColor: userAccent }}
+            >
+              <p className={`font-semibold ${nameColor}`}>
+                {activity.userName || activity.userEmail || 'User'}
+              </p>
+              <p className={`text-xs ${subColor}`}>{activity.userEmail || '—'}</p>
+            </div>
           </div>
         ),
         activity: (
@@ -244,8 +291,9 @@ const History = () => {
             {activity.area || '—'}
           </span>
         ),
-      })),
-    [locale, visibleActivities],
+      };
+      }),
+    [isDark, locale, visibleActivities],
   );
 
   const highlights = React.useMemo(() => {

@@ -4,7 +4,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useLanguage, type NavMessageKey } from "../contexts/LanguageContext";
 import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
+import { useAccessContext, useCanAccess } from "../hooks/useCanAccess";
 import { useServerReachable } from "../hooks/useServerReachable";
+import { ADMIN_SECTION_ROUTES, canShowNavRoute } from "../lib/access";
 import { useUser } from "@clerk/react";
 import { motion } from "motion/react";
 import {
@@ -123,13 +125,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       : undefined;
   const displayRole =
     roleTitleFromServer || displayUser?.role || "Creative Director";
-  const normalizedRole = String(displayUser?.role || "")
-    .trim()
-    .toLowerCase();
-  const allowedRouteSet = new Set(
-    Array.isArray(displayUser?.allowedRoutes) ? displayUser.allowedRoutes : [],
-  );
-  const hasAllowedRouteConfig = allowedRouteSet.size > 0;
+  const access = useAccessContext();
+  const isAdmin = useCanAccess("admin");
   type SectionSpec = {
     titleKey: NavMessageKey | null;
     items: {
@@ -139,48 +136,37 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     }[];
   };
 
-  const adminSectionItems: SectionSpec["items"] =
-    normalizedRole !== "admin"
-      ? []
-      : ([
-          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/admin/users")
-            ? [
-                {
-                  nameKey: "navUserPermissions" as const,
-                  path: "/admin/users",
-                  icon: ShieldCheckIcon,
-                },
-              ]
-            : []),
-          ...(!hasAllowedRouteConfig ||
-          allowedRouteSet.has("/creative-demos-edit")
-            ? [
-                {
-                  nameKey: "navCreativeDemosEdit" as const,
-                  path: "/creative-demos-edit",
-                  icon: TableCellsIcon,
-                },
-              ]
-            : []),
-          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/manage-sftp")
-            ? [
-                {
-                  nameKey: "navManageSftp" as const,
-                  path: "/manage-sftp",
-                  icon: ServerStackIcon,
-                },
-              ]
-            : []),
-          ...(!hasAllowedRouteConfig || allowedRouteSet.has("/smtp-mail")
-            ? [
-                {
-                  nameKey: "navSmtpMail" as const,
-                  path: "/smtp-mail",
-                  icon: EnvelopeOpenIcon,
-                },
-              ]
-            : []),
-        ] satisfies SectionSpec["items"]);
+  const adminNavByPath: Record<
+    (typeof ADMIN_SECTION_ROUTES)[number],
+    SectionSpec["items"][number]
+  > = {
+    "/admin/users": {
+      nameKey: "navUserPermissions",
+      path: "/admin/users",
+      icon: ShieldCheckIcon,
+    },
+    "/creative-demos-edit": {
+      nameKey: "navCreativeDemosEdit",
+      path: "/creative-demos-edit",
+      icon: TableCellsIcon,
+    },
+    "/manage-sftp": {
+      nameKey: "navManageSftp",
+      path: "/manage-sftp",
+      icon: ServerStackIcon,
+    },
+    "/smtp-mail": {
+      nameKey: "navSmtpMail",
+      path: "/smtp-mail",
+      icon: EnvelopeOpenIcon,
+    },
+  };
+
+  const adminSectionItems: SectionSpec["items"] = isAdmin
+    ? ADMIN_SECTION_ROUTES.filter((path) => canShowNavRoute(access, path)).map(
+        (path) => adminNavByPath[path],
+      )
+    : [];
 
   const sections: SectionSpec[] = [
     {
@@ -238,8 +224,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const visibleSections = sections
     .map((section) => ({
       ...section,
-      items: section.items.filter(
-        (item) => !hasAllowedRouteConfig || allowedRouteSet.has(item.path),
+      items: section.items.filter((item) =>
+        canShowNavRoute(access, item.path),
       ),
     }))
     .filter((section) => section.items.length > 0);
@@ -296,7 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   isDark ? "text-white" : "text-slate-900"
                 }`}
               >
-                Yomedia<span className="text-[#4cceac]">AI</span>
+                Nova<span className="text-[#4cceac]">Ai</span>
               </span>
             </motion.div>
             <motion.button
@@ -435,11 +421,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </div>
 
       {/* Footer: admin offline toggle — admin only; version row when sidebar expanded */}
-      {(normalizedRole === "admin" || !isCollapsed) && (
+      {(isAdmin || !isCollapsed) && (
         <div
           className={`p-6 border-t ${isDark ? "border-white/5" : "border-slate-200/80"}`}
         >
-          {normalizedRole === "admin" && (
+          {isAdmin && (
             <SidebarAdminOfflineToggle
               isCollapsed={isCollapsed}
               isDark={isDark}
@@ -449,7 +435,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             <div
               className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-widest ${
                 isDark ? "text-[#475569]" : "text-slate-500"
-              } ${normalizedRole === "admin" ? "mt-3 pt-3 border-t border-dashed border-slate-500/20 dark:border-white/10" : ""}`}
+              } ${isAdmin ? "mt-3 pt-3 border-t border-dashed border-slate-500/20 dark:border-white/10" : ""}`}
             >
               <span>v1.2.0</span>
               <SidebarApiLine />

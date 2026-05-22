@@ -1,8 +1,14 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ChatBubbleBottomCenterTextIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Button from "./Button";
+import { Form, FormField, FormInput, FormTextarea } from "./form";
+import {
+  createInputPopupSchema,
+  useZodForm,
+  type InputPopupFormValues,
+} from "../lib/form";
 
 export interface InputPopupProps {
   open: boolean;
@@ -40,23 +46,31 @@ export default function InputPopup({
 }: InputPopupProps) {
   const titleId = useId();
   const descId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [value, setValue] = useState(initialValue);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const validateRef = useRef(validate);
+  validateRef.current = validate;
+  const schema = useMemo(
+    () =>
+      createInputPopupSchema({
+        validate: (value) => validateRef.current?.(value),
+      }),
+    [],
+  );
+
+  const form = useZodForm(schema, {
+    defaultValues: { value: initialValue },
+  });
+
+  const {
+    reset,
+    setError,
+    formState: { isSubmitting },
+  } = form;
 
   useEffect(() => {
     if (open) {
-      setValue(initialValue);
-      setError(null);
-      setBusy(false);
-      queueMicrotask(() => {
-        if (multiline) textareaRef.current?.focus();
-        else inputRef.current?.focus();
-      });
+      reset({ value: initialValue });
     }
-  }, [open, initialValue, multiline]);
+  }, [open, initialValue, reset]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,33 +84,23 @@ export default function InputPopup({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !isSubmitting) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, isSubmitting]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = value.trim();
-    const v = validate?.(trimmed);
-    if (v) {
-      setError(v);
-      return;
-    }
-    setError(null);
-    setBusy(true);
+  const handleValidSubmit = async ({ value }: InputPopupFormValues) => {
     try {
-      await onSubmit(trimmed);
+      await onSubmit(value);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setBusy(false);
+      setError("value", {
+        type: "server",
+        message: e instanceof Error ? e.message : "Something went wrong",
+      });
     }
   };
-
-  const fieldId = `${titleId}-field`;
 
   const node = (
     <AnimatePresence>
@@ -117,7 +121,7 @@ export default function InputPopup({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => {
-              if (!busy) onClose();
+              if (!isSubmitting) onClose();
             }}
           />
           <motion.div
@@ -140,7 +144,7 @@ export default function InputPopup({
               className="pointer-events-none absolute -left-10 top-24 h-32 w-32 rounded-full bg-violet-500/20 blur-3xl"
               aria-hidden
             />
-            <form onSubmit={handleSubmit}>
+            <Form form={form} onSubmit={handleValidSubmit}>
               <div className="relative border-b border-white/[0.06] bg-gradient-to-br from-white/[0.06] to-transparent px-6 pb-5 pt-6">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
@@ -164,7 +168,7 @@ export default function InputPopup({
                     size="icon"
                     type="button"
                     aria-label="Close"
-                    disabled={busy}
+                    disabled={isSubmitting}
                     onClick={onClose}
                     className="shrink-0 text-white/40 hover:text-white disabled:opacity-40"
                   >
@@ -172,56 +176,49 @@ export default function InputPopup({
                   </Button>
                 </div>
               </div>
-              <div className="relative space-y-3 px-6 py-5">
-                {label ? (
-                  <label htmlFor={fieldId} className="block text-xs font-bold uppercase tracking-wider text-[#9ca3af]">
-                    {label}
-                  </label>
-                ) : null}
-                {multiline ? (
-                  <textarea
-                    ref={textareaRef}
-                    id={fieldId}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder={placeholder}
-                    rows={rows}
-                    disabled={busy}
-                    className="w-full resize-y rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-[#64748b] outline-none ring-0 transition-[border-color,box-shadow] focus:border-[#4cceac]/50 focus:shadow-[0_0_0_3px_rgba(76,206,172,0.12)] disabled:opacity-50"
-                  />
-                ) : (
-                  <input
-                    ref={inputRef}
-                    id={fieldId}
-                    type="text"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder={placeholder}
-                    disabled={busy}
-                    className="h-12 w-full rounded-2xl border border-white/10 bg-black/35 px-4 text-sm text-white placeholder:text-[#64748b] outline-none transition-[border-color,box-shadow] focus:border-[#4cceac]/50 focus:shadow-[0_0_0_3px_rgba(76,206,172,0.12)] disabled:opacity-50"
-                  />
-                )}
-                {error ? (
-                  <p className="text-xs font-medium text-rose-300" role="alert">
-                    {error}
-                  </p>
-                ) : null}
+              <div className="relative px-6 py-5">
+                <FormField<InputPopupFormValues>
+                  name="value"
+                  label={label}
+                  required
+                >
+                  {multiline ? (
+                    <FormTextarea
+                      placeholder={placeholder}
+                      rows={rows}
+                      disabled={isSubmitting}
+                      autoFocus
+                    />
+                  ) : (
+                    <FormInput
+                      type="text"
+                      placeholder={placeholder}
+                      disabled={isSubmitting}
+                      autoFocus
+                    />
+                  )}
+                </FormField>
               </div>
               <div className="relative flex justify-end gap-3 border-t border-white/[0.06] bg-black/20 px-6 py-4">
                 <Button
                   variant="ghost"
                   size="md"
                   type="button"
-                  disabled={busy}
+                  disabled={isSubmitting}
                   onClick={onClose}
                 >
                   {cancelLabel}
                 </Button>
-                <Button variant="primary" size="md" type="submit" disabled={busy}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  disabled={isSubmitting}
+                >
                   {submitLabel}
                 </Button>
               </div>
-            </form>
+            </Form>
           </motion.div>
         </motion.div>
       ) : null}

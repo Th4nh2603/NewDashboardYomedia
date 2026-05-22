@@ -18,6 +18,7 @@ import {
   renameSftpPath,
   downloadSftpDirectoryAsZip,
   copySftpPathBetweenConfigs,
+  findExistingTargetDirectoriesUnderSource,
   configForManageSftpScope,
   mapRemotePathForManageScope,
   type ManageSftpScope,
@@ -456,25 +457,62 @@ sftpRouter.post(
   asyncHandler(async (req: Request, res: Response) => {
     assertBuildDemoMediaSetupAllowed(req);
 
-    const body = req.body as { path?: string };
+    const body = req.body as {
+      path?: string;
+      merge?: boolean;
+      dryRun?: boolean;
+      skipExistingDirectories?: boolean;
+      overwriteDirectories?: string[];
+    };
     const logicalPath = typeof body?.path === "string" ? body.path.trim() : "";
     if (!logicalPath) {
       throw new HttpError(400, "Missing 'path' field in body", {
         code: "BAD_REQUEST",
       });
     }
+    const merge = body?.merge === true;
+    const dryRun = body?.dryRun === true;
+    const skipExistingDirectories = body?.skipExistingDirectories === true;
+    const overwriteDirectories = Array.isArray(body?.overwriteDirectories)
+      ? body.overwriteDirectories
+          .filter((p): p is string => typeof p === "string")
+          .map((p) => p.trim())
+      : [];
 
     const sourcePath = mapRemotePathForManageScope(logicalPath, "demo");
     const targetPath = mapRemotePathForManageScope(logicalPath, "media");
+    const sourceConfig = configForManageSftpScope("demo");
+    const targetConfig = configForManageSftpScope("media");
+
+    if (dryRun) {
+      const existingDirectories = await findExistingTargetDirectoriesUnderSource(
+        sourcePath,
+        targetPath,
+        { sourceConfig, targetConfig },
+      );
+      res.json({
+        ok: true,
+        logicalPath,
+        dryRun: true,
+        existingDirectories,
+      });
+      return;
+    }
 
     const result = await copySftpPathBetweenConfigs(sourcePath, targetPath, {
-      sourceConfig: configForManageSftpScope("demo"),
-      targetConfig: configForManageSftpScope("media"),
+      sourceConfig,
+      targetConfig,
+      merge: merge || skipExistingDirectories || overwriteDirectories.length > 0,
+      skipExistingDirectories,
+      overwriteDirectoryPaths: overwriteDirectories,
     });
 
     res.json({
       ok: true,
       logicalPath,
+      merge,
+      skipExistingDirectories,
+      overwriteDirectories,
       ...result,
     });
   }),

@@ -24,6 +24,7 @@ import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
 import JSZip from "jszip";
 import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
+import { isBuildDemoBrandAllowed } from "../lib/buildDemoBrands";
 
 type BuildDemoRolePermissions = Record<
   string,
@@ -511,7 +512,16 @@ const BuildDemo: React.FC = () => {
   const { user } = useAuth();
   const normalizedRole = (user?.role || "").toLowerCase();
   const isAdminUser = normalizedRole === "admin";
-  const brands = (demoConfig as any).ListBrands ?? [];
+  const allBrands = (demoConfig as any).ListBrands ?? [];
+  const allowedBuildDemoBrands = user?.allowedBuildDemoBrands;
+  const brands = React.useMemo(() => {
+    if (!allowedBuildDemoBrands || allowedBuildDemoBrands.length === 0) {
+      return allBrands;
+    }
+    return allBrands.filter((item: { id?: string }) =>
+      isBuildDemoBrandAllowed(String(item.id ?? ""), allowedBuildDemoBrands),
+    );
+  }, [allBrands, allowedBuildDemoBrands]);
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
   const productCates = (demoConfig as any).ListProductCate ?? [];
@@ -640,6 +650,26 @@ const BuildDemo: React.FC = () => {
   });
   const productCateOptions = getProductCateOptionsByBrand(config.model);
   const baseUrl = serverApiOrigin();
+
+  React.useEffect(() => {
+    if (!config.model?.trim()) return;
+    if (isBuildDemoBrandAllowed(config.model, allowedBuildDemoBrands)) return;
+    const fallbackId = String(brands[0]?.id ?? "").trim();
+    if (!fallbackId) {
+      setConfig((prev) => ({ ...prev, model: "", productCate: "" }));
+      return;
+    }
+    const nextProductCates = getProductCateOptionsByBrand(fallbackId);
+    setConfig((prev) => ({
+      ...prev,
+      model: fallbackId,
+      productCate: nextProductCates.some(
+        (item: { id?: string }) => item.id === prev.productCate,
+      )
+        ? prev.productCate
+        : (nextProductCates[0]?.id ?? ""),
+    }));
+  }, [allowedBuildDemoBrands, brands, config.model]);
   const sftpClient = React.useMemo(
     () =>
       createSftpClient({
@@ -1932,6 +1962,12 @@ const BuildDemo: React.FC = () => {
     }
     if (!config.model?.trim()) {
       setSendError("Please select a brand before uploading to SFTP.");
+      return;
+    }
+    if (!isBuildDemoBrandAllowed(config.model, allowedBuildDemoBrands)) {
+      setSendError(
+        "You do not have permission to build demos for this brand. Contact an administrator.",
+      );
       return;
     }
     if (showDemoCategoryPicker && !selectedDemoCategory) {

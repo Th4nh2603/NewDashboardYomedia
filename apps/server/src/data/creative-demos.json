@@ -706,12 +706,12 @@
       "fileType": "HTML5",
       "file": "index.html",
       "category": "Mobile",
-      "value": "mobile-pull-ads",
+      "value": "mobile_footer_pull",
       "video": "none",
       "source": "yomedia/app/template/data/0042/banner",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": "",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/mobile/mobile_footer_pull.js",
+      "delivery-name-replace": "any",
       "fla": false
     },
     {

@@ -158,7 +158,7 @@ const DocumentPage: React.FC = () => {
           Router Documentation
         </h1>
         <p className="relative text-[#a3a3a3] text-sm md:text-base max-w-2xl leading-relaxed">
-          This page lists every router (path) in the YomediaAI dashboard, what it
+          This page lists every router (path) in the NovaAi dashboard, what it
           does, and brief usage notes for internal teams.
         </p>
       </header>

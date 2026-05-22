@@ -521,10 +521,10 @@ const ChatView = () => {
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40 text-slate-500 dark:text-slate-100">
             <ChatBubbleBottomCenterTextIcon className="w-16 h-16 mb-4" />
             <p className="text-xl font-medium">
-              Start a conversation with YomediaAI
+              Start a conversation with NovaAi
             </p>
             <p className="text-sm">
-              YomediaAI can help you with coding, writing, and logic.
+              NovaAi can help you with coding, writing, and logic.
             </p>
           </div>
         )}

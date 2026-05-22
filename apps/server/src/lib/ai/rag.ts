@@ -250,7 +250,7 @@ export async function answerWithRag(params: { question: string }) {
     .join("\n\n---\n\n");
 
   const prompt = [
-    "Bạn là YomediaAI. Trả lời NGẮN GỌN, đúng trọng tâm, dựa trên CONTEXT.",
+    "Bạn là NovaAi. Trả lời NGẮN GỌN, đúng trọng tâm, dựa trên CONTEXT.",
     "Nếu CONTEXT không đủ thông tin, hãy nói rõ là không tìm thấy trong tài liệu và gợi ý người dùng bổ sung tài liệu.",
     "",
     "CONTEXT:",

@@ -157,7 +157,7 @@ const Documentation: React.FC = () => {
           </h1>
         </div>
         <p className="text-[#a3a3a3] font-medium tracking-widest uppercase text-[10px] ml-5">
-          Nova AI Creative Suite • Technical Documentation
+          NovaAi Creative Suite • Technical Documentation
         </p>
         <div className="absolute -bottom-4 left-0 w-full h-px bg-gradient-to-r from-[#4cceac]/50 via-[#3d465d] to-transparent" />
       </header>

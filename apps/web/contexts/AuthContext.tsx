@@ -11,6 +11,8 @@ interface User {
   role?: string;
   roleTitle?: string;
   allowedRoutes?: string[];
+  /** Resolved list; null = all brands (admin / unrestricted). */
+  allowedBuildDemoBrands?: string[] | null;
 }
 
 interface AuthContextType {
@@ -142,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             role?: string;
             roleTitle?: string;
             allowedRoutes?: string[];
+            allowedBuildDemoBrands?: string[] | null;
           };
         }>(`${getServerBaseUrl()}/api/auth/me`, {
           method: "POST",
@@ -159,6 +162,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             allowedRoutes: Array.isArray(data.user.allowedRoutes)
               ? data.user.allowedRoutes
               : [],
+            allowedBuildDemoBrands: Array.isArray(data.user.allowedBuildDemoBrands)
+              ? data.user.allowedBuildDemoBrands
+              : data.user.allowedBuildDemoBrands === null
+                ? null
+                : nextUser?.allowedBuildDemoBrands,
           };
         } else if (isSignedIn && clerkUser && emailFromClerk) {
           nextUser = {

@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
     <div className="max-w-6xl mx-auto pt-10">
       <header className="mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-500 bg-clip-text text-transparent">
-          Welcome to YomediaAI
+          Welcome to NovaAi
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl">
           The ultimate creative workstation powered by the world's most advanced generative models.

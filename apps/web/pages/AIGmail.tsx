@@ -59,7 +59,7 @@ const mockEmails: Email[] = [
     sender: "NVIDIA AI",
     subject: "Exclusive access to H200 Tensor Core GPU",
     preview:
-      "As a valued partner of Nova AI, we are granting you early access to our latest hardware cluster...",
+      "As a valued partner of NovaAi, we are granting you early access to our latest hardware cluster...",
     time: "Mar 15",
     isRead: false,
     isStarred: true,

@@ -181,16 +181,30 @@ export function createSftpClient(options?: SftpClientOptions) {
         }),
       });
     },
-    async setupDemoToMedia(path: string) {
+    async setupDemoToMedia(
+      path: string,
+      options?: {
+        merge?: boolean;
+        dryRun?: boolean;
+        skipExistingDirectories?: boolean;
+        overwriteDirectories?: string[];
+      },
+    ) {
       return fetchJsonOrThrow<{
         ok?: boolean;
         logicalPath?: string;
+        dryRun?: boolean;
+        merge?: boolean;
+        skipExistingDirectories?: boolean;
+        overwriteDirectories?: string[];
+        existingDirectories?: string[];
         sourcePath?: string;
         targetPath?: string;
         sourceKind?: "directory" | "file" | "symlink";
         copiedFiles?: number;
         copiedDirectories?: number;
         createdTargetDirectory?: boolean;
+        skippedDirectories?: string[];
         error?: string;
       }>(`${baseUrl}/api/sftp/setup-demo-media`, {
         method: "POST",
@@ -200,7 +214,17 @@ export function createSftpClient(options?: SftpClientOptions) {
           },
           roleHeader,
         ),
-        body: JSON.stringify({ path }),
+        body: JSON.stringify({
+          path,
+          ...(options?.merge === true ? { merge: true } : {}),
+          ...(options?.dryRun === true ? { dryRun: true } : {}),
+          ...(options?.skipExistingDirectories === true
+            ? { skipExistingDirectories: true }
+            : {}),
+          ...(options?.overwriteDirectories?.length
+            ? { overwriteDirectories: options.overwriteDirectories }
+            : {}),
+        }),
       });
     },
     async exists(path: string, scope: SftpScope = "demo") {

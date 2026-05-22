@@ -1,0 +1,961 @@
+{
+  "skipPageViewPaths": [
+    "/open-router",
+    "/openrouter"
+  ],
+  "records": [
+    {
+      "id": "act_1779433488013_382uyk",
+      "createdAt": "2026-05-22T07:04:48.012Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/384x683",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/384x683",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/384x683",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Pull Ads",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1779090759823_l5x9ca",
+      "createdAt": "2026-05-18T07:52:39.821Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "build_demo_preview_reopen",
+      "area": "Build Demo",
+      "description": "Reopened demo preview (preview template or creative demo changed; SFTP files unchanged)",
+      "target": "/script/demo/2026/05/romano/all/video-1",
+      "metadata": {
+        "targetPath": "2026/05/romano/all/video-1",
+        "creativeDemo": "Video Pre-roll",
+        "previewHostTemplate": "tuoitre"
+      }
+    },
+    {
+      "id": "act_1779090658385_9bk003",
+      "createdAt": "2026-05-18T07:50:58.384Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "setup_media_sftp",
+      "area": "Build Demo",
+      "description": "Set up converted files on media SFTP",
+      "target": "2026/05/romano/all/video-1",
+      "metadata": {
+        "sourcePath": "/script/demo/2026/05/romano/all/video-1",
+        "copiedFiles": 2,
+        "copiedDirectories": 1
+      }
+    },
+    {
+      "id": "act_1779090612885_s0jgam",
+      "createdAt": "2026-05-18T07:50:12.882Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/romano/all/video-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/romano/all/video-1",
+        "remoteBase": "/script/demo/2026/05/romano/all/video-1",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1779089791448_1juc9p",
+      "createdAt": "2026-05-18T07:36:31.446Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ brand demo → media (chỉ thư mục mới)",
+      "target": "/media/2026/05/bbhh",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/05/bbhh",
+        "year": "2026",
+        "month": "05",
+        "brand": "bbhh",
+        "copiedFiles": 30,
+        "copiedDirectories": 18,
+        "skippedDirectories": [],
+        "overwriteDirectories": []
+      }
+    },
+    {
+      "id": "act_1779089333775_71ow5x",
+      "createdAt": "2026-05-18T07:28:53.774Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/384x683-4",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/384x683-4",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/384x683-4",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Inpage",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779089229224_ktcd0v",
+      "createdAt": "2026-05-18T07:27:09.222Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/384x683-3",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/384x683-3",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/384x683-3",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Inpage",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779089166423_17yny2",
+      "createdAt": "2026-05-18T07:26:06.421Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ thư mục từ demo SFTP lên media SFTP",
+      "target": "/media/2026/05/yomedia",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/05/yomedia",
+        "year": "2026",
+        "month": "05",
+        "brand": "yomedia",
+        "copiedFiles": 2,
+        "copiedDirectories": 3,
+        "merge": true
+      }
+    },
+    {
+      "id": "act_1779088857955_x6tfj2",
+      "createdAt": "2026-05-18T07:20:57.954Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/384x683-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/384x683-2",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/384x683-2",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Inpage",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779088812190_k5exfi",
+      "createdAt": "2026-05-18T07:20:12.189Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/970x250-4",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/970x250-4",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/970x250-4",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779088771268_9mpwto",
+      "createdAt": "2026-05-18T07:19:31.266Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/480x270-4",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/480x270-4",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/480x270-4",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779088607939_kduvl4",
+      "createdAt": "2026-05-18T07:16:47.937Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Vertical Video Inpage",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1779088267612_e0myrq",
+      "createdAt": "2026-05-18T07:11:07.611Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/970x250-3",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/970x250-3",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/970x250-3",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779088230563_vvbnbv",
+      "createdAt": "2026-05-18T07:10:30.561Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/970x250-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/970x250-2",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/970x250-2",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779088202566_51jl3e",
+      "createdAt": "2026-05-18T07:10:02.560Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/480x270-3",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/480x270-3",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/480x270-3",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779087417985_ilf1b9",
+      "createdAt": "2026-05-18T06:56:57.984Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/384x683-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/384x683-1",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/384x683-1",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Inpage",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779087321179_0sibb1",
+      "createdAt": "2026-05-18T06:55:21.177Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/970x250-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/970x250-1",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/970x250-1",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779086671369_jcrlgk",
+      "createdAt": "2026-05-18T06:44:31.368Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/480x270-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/480x270-2",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/480x270-2",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779086524991_mlmsgm",
+      "createdAt": "2026-05-18T06:42:04.989Z",
+      "userName": "Trân Phạm Lệ",
+      "userEmail": "tran.pl@pinetech.vn",
+      "userRole": "design",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/bbhh/all/html/480x270-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/bbhh/all/html/480x270-1",
+        "remoteBase": "/script/demo/2026/05/bbhh/all/html/480x270-1",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Masthead",
+        "brand": "BBHH"
+      }
+    },
+    {
+      "id": "act_1779076982521_sk0n81",
+      "createdAt": "2026-05-18T04:03:02.519Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_check_sftp_path",
+      "area": "AI Chat",
+      "description": "Checked SFTP path from chat input",
+      "target": "2024/04/enchanteur-naturelle/384x683",
+      "metadata": {
+        "inputPreview": "https://demo.yomedia.vn/yomedia/site/pnomb/index.html?f=pull-mb&b=2024%2F04%2Fenchanteur-naturelle%2F384x683%2Findex....",
+        "sftpDirectory": "/2024/04/enchanteur-naturelle/384x683/",
+        "exists": false
+      }
+    },
+    {
+      "id": "act_1778840726903_zdilzm",
+      "createdAt": "2026-05-15T10:25:26.902Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "save_file",
+      "area": "Manage Demo",
+      "description": "Saved file content on SFTP",
+      "target": "/script/demo/2026/05/carrie-junior/all/video/make-vast.xml",
+      "metadata": {
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1778840513142_jtry7o",
+      "createdAt": "2026-05-15T10:21:53.140Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "build_demo_preview_reopen",
+      "area": "Build Demo",
+      "description": "Reopened demo preview (preview template or creative demo changed; SFTP files unchanged)",
+      "target": "/script/demo/2026/05/romano/all/video",
+      "metadata": {
+        "targetPath": "2026/05/romano/all/video",
+        "creativeDemo": "Video In-read",
+        "previewHostTemplate": "tuoitre"
+      }
+    },
+    {
+      "id": "act_1778840458956_76p3cr",
+      "createdAt": "2026-05-15T10:20:58.955Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "build_demo_preview_reopen",
+      "area": "Build Demo",
+      "description": "Reopened demo preview (preview template or creative demo changed; SFTP files unchanged)",
+      "target": "/script/demo/2026/05/romano/all/video",
+      "metadata": {
+        "targetPath": "2026/05/romano/all/video",
+        "creativeDemo": "Video Pre-roll",
+        "previewHostTemplate": "tuoitre"
+      }
+    },
+    {
+      "id": "act_1778840431412_x4oqdu",
+      "createdAt": "2026-05-15T10:20:31.411Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "setup_media_sftp",
+      "area": "Build Demo",
+      "description": "Set up converted files on media SFTP",
+      "target": "2026/05/romano/all/video",
+      "metadata": {
+        "sourcePath": "/script/demo/2026/05/romano/all/video",
+        "copiedFiles": 2,
+        "copiedDirectories": 1
+      }
+    },
+    {
+      "id": "act_1778840418046_txjedv",
+      "createdAt": "2026-05-15T10:20:18.045Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/romano/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/romano/all/video",
+        "remoteBase": "/script/demo/2026/05/romano/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1778835778786_8xehvz",
+      "createdAt": "2026-05-15T09:02:58.785Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "rename_path",
+      "area": "Manage Demo",
+      "description": "Renamed item on SFTP",
+      "target": "/script/demo/2026/05/carrie-junior/all/video",
+      "metadata": {
+        "previousPath": "/script/demo/2026/05/carrie-junior/all/video-1",
+        "scope": "media"
+      }
+    },
+    {
+      "id": "act_1778835768069_hv5k2w",
+      "createdAt": "2026-05-15T09:02:48.068Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/carrie-junior/all/video-1",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778835751917_69ebdl",
+      "createdAt": "2026-05-15T09:02:31.916Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "setup_media_sftp",
+      "area": "Build Demo",
+      "description": "Set up converted files on media SFTP",
+      "target": "2026/05/carrie-junior/all/video-1",
+      "metadata": {
+        "sourcePath": "/script/demo/2026/05/carrie-junior/all/video-1",
+        "copiedFiles": 2,
+        "copiedDirectories": 1
+      }
+    },
+    {
+      "id": "act_1778835701715_ie1ut5",
+      "createdAt": "2026-05-15T09:01:41.713Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/carrie-junior/all/video-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/carrie-junior/all/video-1",
+        "remoteBase": "/script/demo/2026/05/carrie-junior/all/video-1",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Carrie Junior"
+      }
+    },
+    {
+      "id": "act_1778835637953_5kg23x",
+      "createdAt": "2026-05-15T09:00:37.952Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778835292667_ziwy85",
+      "createdAt": "2026-05-15T08:54:52.666Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "build_demo_preview_reopen",
+      "area": "Build Demo",
+      "description": "Reopened demo preview (preview template or creative demo changed; SFTP files unchanged)",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "targetPath": "2026/05/yomedia/all/video",
+        "creativeDemo": "Video In-read",
+        "previewHostTemplate": "eva"
+      }
+    },
+    {
+      "id": "act_1778835273361_c1e3bo",
+      "createdAt": "2026-05-15T08:54:33.360Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video Pre-roll",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778834416156_c3zhc9",
+      "createdAt": "2026-05-15T08:40:16.155Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/carrie-junior/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/carrie-junior/all/video",
+        "remoteBase": "/script/demo/2026/05/carrie-junior/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Carrie Junior"
+      }
+    },
+    {
+      "id": "act_1778734615683_v0fslb",
+      "createdAt": "2026-05-14T04:56:55.682Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778733884866_meqigi",
+      "createdAt": "2026-05-14T04:44:44.866Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778733501006_1tan4k",
+      "createdAt": "2026-05-14T04:38:21.005Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778732182836_poyihd",
+      "createdAt": "2026-05-14T04:16:22.835Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778730562799_tp2gmc",
+      "createdAt": "2026-05-14T03:49:22.798Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778730238338_d4gaqi",
+      "createdAt": "2026-05-14T03:43:58.337Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video-2",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video-2",
+        "totalFiles": 2,
+        "creativeDemo": "Video Pre-roll",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778730102847_5327o7",
+      "createdAt": "2026-05-14T03:41:42.846Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video-1",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video-1",
+        "totalFiles": 2,
+        "creativeDemo": "Video Pre-roll",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778729159542_s51tvb",
+      "createdAt": "2026-05-14T03:25:59.541Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/video",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778669119475_sje6jx",
+      "createdAt": "2026-05-13T10:45:19.473Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778666414100_6y5zdw",
+      "createdAt": "2026-05-13T10:00:14.099Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1778666170276_2gnf5r",
+      "createdAt": "2026-05-13T09:56:10.276Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125-6",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125-6",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125-6",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778666129947_oi69bi",
+      "createdAt": "2026-05-13T09:55:29.946Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/970x250-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/970x250-1",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/970x250-1",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778666041128_d3nmfu",
+      "createdAt": "2026-05-13T09:54:01.127Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125-5",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125-5",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125-5",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778665941447_wv6u26",
+      "createdAt": "2026-05-13T09:52:21.446Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/970x250",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/970x250",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/970x250",
+        "totalFiles": 2,
+        "creativeDemo": "Display Masthead",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778665475147_qoxyzz",
+      "createdAt": "2026-05-13T09:44:35.145Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/475x325-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/475x325-2",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/475x325-2",
+        "totalFiles": 2,
+        "creativeDemo": "Display Balloon Expandable",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778664648755_mco526",
+      "createdAt": "2026-05-13T09:30:48.754Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/475x325-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/475x325-1",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/475x325-1",
+        "totalFiles": 2,
+        "creativeDemo": "Display Balloon Expandable",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778658150634_xdd1wj",
+      "createdAt": "2026-05-13T07:42:30.632Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/475x325",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/475x325",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/475x325",
+        "totalFiles": 2,
+        "creativeDemo": "Display Balloon Expandable",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778654951365_78bd4z",
+      "createdAt": "2026-05-13T06:49:11.364Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125-4",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125-4",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125-4",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778654718953_xkgnli",
+      "createdAt": "2026-05-13T06:45:18.951Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125-3",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125-3",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125-3",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1778654278806_zs77vx",
+      "createdAt": "2026-05-13T06:37:58.805Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 8 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/600x125-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/600x125-2",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/600x125-2",
+        "totalFiles": 8,
+        "creativeDemo": "Mobile In Image iTVC",
+        "brand": "Yomedia"
+      }
+    }
+  ]
+}

@@ -14,6 +14,12 @@ export type SftpSearchMatch = {
   matchedName: string;
 };
 
+export type SftpBrowserScope = "demo" | "media";
+
+function buildScopeQuery(scope?: SftpBrowserScope): string {
+  return scope === "media" ? `&scope=${encodeURIComponent("media")}` : "";
+}
+
 export function getServerBaseUrl(): string {
   return serverApiOrigin();
 }
@@ -47,13 +53,17 @@ export function joinPath(base: string, name: string): string {
 export async function fetchSftpList(
   path: string,
   init?: RequestInit,
+  scope?: SftpBrowserScope,
 ): Promise<SftpEntry[]> {
   const baseUrl = getServerBaseUrl();
   const data = await fetchJsonOrThrow<{
     ok?: boolean;
     entries?: SftpEntry[];
     error?: string;
-  }>(`${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}`, init);
+  }>(
+    `${baseUrl}/api/sftp/list?path=${encodeURIComponent(path)}${buildScopeQuery(scope)}`,
+    init,
+  );
   if (!data.ok) {
     throw new Error(data.error || `Unable to list ${path}`);
   }
@@ -64,6 +74,7 @@ export async function fetchSftpSearch(
   path: string,
   query: string,
   init?: RequestInit,
+  scope?: SftpBrowserScope,
 ): Promise<SftpSearchMatch[]> {
   const baseUrl = getServerBaseUrl();
   const data = await fetchJsonOrThrow<{
@@ -71,7 +82,7 @@ export async function fetchSftpSearch(
     matches?: SftpSearchMatch[];
     error?: string;
   }>(
-    `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(path)}&q=${encodeURIComponent(query)}`,
+    `${baseUrl}/api/sftp/search-directories?path=${encodeURIComponent(path)}&q=${encodeURIComponent(query)}${buildScopeQuery(scope)}`,
     init,
   );
   if (!data.ok) {

@@ -20,6 +20,10 @@ import { userRouter } from "./routes/user.js";
 import { smtpRouter, legacySendEmailHandler } from "./routes/smtp.js";
 import { errorHandler, notFoundHandler } from "./lib/http/errors.js";
 import { getUserRole } from "./lib/auth/role.js";
+import {
+  getBuildDemoBrandOptions,
+  normalizeBuildDemoBrandIds,
+} from "./lib/buildDemoBrands.js";
 
 function getClerkApiFirstErrorMessage(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null) return undefined;
@@ -131,6 +135,8 @@ type Account = {
   role?: string;
   roleTitle?: string;
   status?: string;
+  /** Non-empty = user override; omit/null = inherit role default. */
+  allowedBuildDemoBrands?: string[] | null;
 };
 
 type RolePermissionConfig = Record<
@@ -142,6 +148,8 @@ type RolePermissionConfig = Record<
       canSwitchSftpHost?: boolean;
       /** Build Demo: copy converted upload from demo SFTP to media SFTP. */
       canSetupMediaSftp?: boolean;
+      /** Build Demo: empty = all brands; non-empty = restrict brand picker & uploads. */
+      allowedBuildDemoBrands?: string[];
       /** @deprecated Loaded for backward compat; not written by normalize. */
       canEditDeleteSftp?: boolean;
       canSftpUploadBinary?: boolean;
@@ -283,6 +291,30 @@ function getAllowedRoutesByRole(roleRaw: string | undefined): string[] {
   return getDefaultAllowedRoutesByRole(role);
 }
 
+function resolveAllowedBuildDemoBrands(account: Account): string[] | null {
+  const role = normalizeText(account.role);
+  if (role === "admin") return null;
+
+  const userBrands = normalizeBuildDemoBrandIds(account.allowedBuildDemoBrands);
+  if (userBrands.length > 0) return userBrands;
+
+  const roleBrands = normalizeBuildDemoBrandIds(
+    loadRolePermissions()[role]?.manageDemo?.allowedBuildDemoBrands,
+  );
+  if (roleBrands.length > 0) return roleBrands;
+
+  return null;
+}
+
+function parseAccountBrandOverride(
+  value: unknown,
+): string[] | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const normalized = normalizeBuildDemoBrandIds(value);
+  return normalized.length > 0 ? normalized : null;
+}
+
 function buildUserPayload(account: Account) {
   return {
     id: account.id,
@@ -293,6 +325,7 @@ function buildUserPayload(account: Account) {
     roleTitle: account.roleTitle,
     status: account.status,
     allowedRoutes: getAllowedRoutesByRole(account.role),
+    allowedBuildDemoBrands: resolveAllowedBuildDemoBrands(account),
   };
 }
 
@@ -349,6 +382,10 @@ function mapClerkUserToAdminAccount(clerkUser: any, localAccount?: Account) {
     nullableText(localAccount?.status) ||
     "active";
 
+  const clerkBrandOverride = parseAccountBrandOverride(
+    publicMetadata.allowedBuildDemoBrands,
+  );
+
   return {
     id: String(clerkUser.id),
     name:
@@ -363,6 +400,10 @@ function mapClerkUserToAdminAccount(clerkUser: any, localAccount?: Account) {
     roleTitle,
     status,
     allowedRoutes: getAllowedRoutesByRole(role),
+    allowedBuildDemoBrands:
+      localAccount?.allowedBuildDemoBrands !== undefined
+        ? localAccount.allowedBuildDemoBrands
+        : clerkBrandOverride ?? null,
   };
 }
 
@@ -378,6 +419,19 @@ function loadAccounts(): Account[] {
 function saveAccounts(accounts: Account[]) {
   accountsCache = accounts;
   fs.writeFileSync(accountsPath, JSON.stringify({ accounts }, null, 2), "utf8");
+}
+
+function updateLocalAccountById(
+  id: string,
+  patch: Pick<Account, "allowedBuildDemoBrands">,
+) {
+  const accounts = loadAccounts();
+  const index = accounts.findIndex((account) => account.id === id);
+  if (index < 0) return false;
+  const nextAccounts = [...accounts];
+  nextAccounts[index] = { ...nextAccounts[index], ...patch };
+  saveAccounts(nextAccounts);
+  return true;
 }
 
 function upsertLocalAccountFromClerkUser(clerkUser: any) {
@@ -415,6 +469,12 @@ function upsertLocalAccountFromClerkUser(clerkUser: any) {
     status:
       normalized.status ||
       (existingIndex >= 0 ? accounts[existingIndex].status : "active"),
+    allowedBuildDemoBrands:
+      existingIndex >= 0
+        ? accounts[existingIndex].allowedBuildDemoBrands
+        : parseAccountBrandOverride(
+            (clerkUser.publicMetadata || {}).allowedBuildDemoBrands,
+          ) ?? null,
   };
 
   if (existingIndex >= 0) {
@@ -515,6 +575,9 @@ function normalizeRolePermissions(
           safeInput.default?.manageDemo,
           "canSftpMkdir",
         ),
+        allowedBuildDemoBrands: normalizeBuildDemoBrandIds(
+          safeInput.default?.manageDemo?.allowedBuildDemoBrands,
+        ),
       },
       routeAccess: {
         allowedRoutes: normalizeAllowedRoutes(
@@ -554,6 +617,12 @@ function normalizeRolePermissions(
         canSftpDelete: resolveSftpAclField(config?.manageDemo, "canSftpDelete"),
         canSftpRename: resolveSftpAclField(config?.manageDemo, "canSftpRename"),
         canSftpMkdir: resolveSftpAclField(config?.manageDemo, "canSftpMkdir"),
+        allowedBuildDemoBrands:
+          r === "admin"
+            ? []
+            : normalizeBuildDemoBrandIds(
+                config?.manageDemo?.allowedBuildDemoBrands,
+              ),
       },
       routeAccess: {
         allowedRoutes: normalizeAllowedRoutes(
@@ -781,6 +850,7 @@ app.get("/api/permissions", (_req, res) => {
     ok: true,
     permissions: loadRolePermissions(),
     availableRoutes: ALL_ALLOWED_ROUTES,
+    buildDemoBrandOptions: getBuildDemoBrandOptions(),
   });
 });
 
@@ -790,6 +860,7 @@ app.get("/api/admin/permissions", (req, res) => {
     ok: true,
     permissions: loadRolePermissions(),
     availableRoutes: ALL_ALLOWED_ROUTES,
+    buildDemoBrandOptions: getBuildDemoBrandOptions(),
   });
 });
 
@@ -810,10 +881,15 @@ app.put("/api/admin/permissions/:role", (req, res) => {
       canSftpDelete?: unknown;
       canSftpRename?: unknown;
       canSftpMkdir?: unknown;
+      allowedBuildDemoBrands?: unknown;
     };
     routeAccess?: { allowedRoutes?: unknown };
     creativeShowcase?: { canDownload?: unknown };
   };
+  const allowedBuildDemoBrands =
+    role === "admin"
+      ? []
+      : normalizeBuildDemoBrandIds(payload?.manageDemo?.allowedBuildDemoBrands);
   const canUseFileActionButtons =
     payload?.manageDemo?.canUseFileActionButtons === true;
   const canSwitchSftpHost =
@@ -852,6 +928,7 @@ app.put("/api/admin/permissions/:role", (req, res) => {
         canSftpDelete,
         canSftpRename,
         canSftpMkdir,
+        allowedBuildDemoBrands,
       },
       routeAccess: {
         ...currentPermissions[role]?.routeAccess,
@@ -883,6 +960,7 @@ app.put("/api/admin/accounts/:id", async (req, res) => {
     role?: string;
     roleTitle?: string;
     status?: string;
+    allowedBuildDemoBrands?: unknown;
   };
   const updates: Partial<Account> = {};
 
@@ -895,8 +973,26 @@ app.put("/api/admin/accounts/:id", async (req, res) => {
   if (typeof payload.status === "string") {
     updates.status = payload.status.trim().toLowerCase();
   }
+  if (payload.allowedBuildDemoBrands !== undefined) {
+    const existing = loadAccounts().find((account) => account.id === id);
+    const effectiveRole = normalizeText(updates.role ?? existing?.role);
+    if (effectiveRole === "admin") {
+      updates.allowedBuildDemoBrands = null;
+    } else {
+      const normalized = normalizeBuildDemoBrandIds(
+        payload.allowedBuildDemoBrands,
+      );
+      updates.allowedBuildDemoBrands =
+        normalized.length > 0 ? normalized : null;
+    }
+  }
 
-  if (!updates.role && !updates.roleTitle && !updates.status) {
+  if (
+    !updates.role &&
+    !updates.roleTitle &&
+    !updates.status &&
+    updates.allowedBuildDemoBrands === undefined
+  ) {
     return res.status(400).json({ ok: false, error: "No valid update fields" });
   }
   try {
@@ -928,16 +1024,27 @@ app.put("/api/admin/accounts/:id", async (req, res) => {
     if (updates.status) {
       nextPublicMetadata.status = updates.status;
     }
+    if (updates.allowedBuildDemoBrands !== undefined) {
+      nextPublicMetadata.allowedBuildDemoBrands = updates.allowedBuildDemoBrands;
+    }
 
     const updatedUser = await clerkClient.users.updateUserMetadata(id, {
       publicMetadata: nextPublicMetadata,
     });
 
     upsertLocalAccountFromClerkUser(updatedUser);
+    if (updates.allowedBuildDemoBrands !== undefined) {
+      updateLocalAccountById(id, {
+        allowedBuildDemoBrands: updates.allowedBuildDemoBrands,
+      });
+    }
+
+    const localAccounts = loadAccounts();
+    const localAccount = localAccounts.find((account) => account.id === id);
 
     return res.json({
       ok: true,
-      user: mapClerkUserToAdminAccount(updatedUser),
+      user: mapClerkUserToAdminAccount(updatedUser, localAccount),
     });
   } catch (error) {
     console.error(`Failed to update Clerk user ${id}`, error);
