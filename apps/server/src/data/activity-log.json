@@ -5,6 +5,17 @@
   ],
   "records": [
     {
+      "id": "act_1779442200601_1wk3d1",
+      "createdAt": "2026-05-22T09:30:00.568Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
       "id": "act_1779433488013_382uyk",
       "createdAt": "2026-05-22T07:04:48.012Z",
       "userName": "Thanh Minh",

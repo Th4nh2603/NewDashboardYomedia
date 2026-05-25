@@ -1,9 +1,11 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 import { writeFile, mkdir, readFile, readdir, unlink } from "fs/promises";
 import path from "path";
 
 const router = Router();
+router.use(requireClerkAuth);
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 
 const HTML_JS_EXT = [".html", ".htm", ".js", ".mjs", ".cjs"];

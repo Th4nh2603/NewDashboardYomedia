@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/react";
-import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { setAdminOfflineMode } from "../lib/adminOfflineMode";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 
@@ -74,23 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const clerkJwt = await getToken();
           if (clerkJwt) {
-            const clerkProfile = await fetchJsonOrThrow<{
-              ok?: boolean;
-              user?: {
-                id?: string;
-                name?: string;
-                firstName?: string;
-                lastName?: string;
-                username?: string;
-                email?: string;
-                imageUrl?: string;
-              };
-            }>(`${getServerBaseUrl()}/api/user/me`, {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${clerkJwt}`,
-              },
-            });
+            const clerkProfile = await api.user.me();
 
             if (clerkProfile?.ok && clerkProfile?.user) {
               nextUser = {
@@ -136,21 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          user?: {
-            name?: string;
-            email?: string;
-            role?: string;
-            roleTitle?: string;
-            allowedRoutes?: string[];
-            allowedBuildDemoBrands?: string[] | null;
-          };
-        }>(`${getServerBaseUrl()}/api/auth/me`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailToLookup, name: nameFromClerk }),
-        });
+        const data = await api.auth.me({ name: nameFromClerk });
 
         if (data?.ok && data?.user) {
           nextUser = {
@@ -162,11 +132,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             allowedRoutes: Array.isArray(data.user.allowedRoutes)
               ? data.user.allowedRoutes
               : [],
-            allowedBuildDemoBrands: Array.isArray(data.user.allowedBuildDemoBrands)
-              ? data.user.allowedBuildDemoBrands
-              : data.user.allowedBuildDemoBrands === null
-                ? null
-                : nextUser?.allowedBuildDemoBrands,
+            allowedBuildDemoBrands:
+              "allowedBuildDemoBrands" in data.user &&
+              Array.isArray(data.user.allowedBuildDemoBrands)
+                ? data.user.allowedBuildDemoBrands
+                : "allowedBuildDemoBrands" in data.user &&
+                    data.user.allowedBuildDemoBrands === null
+                  ? null
+                  : nextUser?.allowedBuildDemoBrands,
           };
         } else if (isSignedIn && clerkUser && emailFromClerk) {
           nextUser = {

@@ -1,38 +1,18 @@
 import { Router, Request, Response } from "express";
-import { createClerkClient, verifyToken } from "@clerk/backend";
+import { createClerkClient } from "@clerk/backend";
+import {
+  getBearerToken,
+  isClerkAuthConfigured,
+  verifyClerkBearerToken,
+} from "../lib/auth/clerkVerify.js";
 
 const router = Router();
 
-function getBearerToken(req: Request): string | null {
-  const authHeader =
-    typeof req.headers.authorization === "string"
-      ? req.headers.authorization
-      : Array.isArray(req.headers.authorization)
-        ? req.headers.authorization[0]
-        : null;
-  if (!authHeader) return null;
-  const [scheme, token] = authHeader.split(/\s+/);
-  if (scheme?.toLowerCase() !== "bearer" || !token) return null;
-  return token.trim();
-}
-
-function parseAuthorizedParties(): string[] | undefined {
-  const raw = process.env.CLERK_AUTHORIZED_PARTIES?.trim();
-  if (!raw) return undefined;
-  const parts = raw
-    .split(/[,|\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return parts.length ? parts : undefined;
-}
-
 router.get("/me", async (req: Request, res: Response) => {
   try {
-    const secretKey = process.env.CLERK_SECRET_KEY?.trim();
-    const jwtKey = process.env.CLERK_JWT_KEY?.trim();
     const isDev = process.env.NODE_ENV !== "production";
 
-    if (!secretKey) {
+    if (!isClerkAuthConfigured()) {
       return res.json({
         ok: false,
         error:
@@ -48,18 +28,9 @@ router.get("/me", async (req: Request, res: Response) => {
       });
     }
 
-    const parties = parseAuthorizedParties();
-    const verifyBase = {
-      clockSkewInMs: 60_000,
-      ...(parties?.length ? { authorizedParties: parties } : {}),
-    };
-
     let claims;
     try {
-      claims = await verifyToken(token, {
-        ...verifyBase,
-        ...(jwtKey ? { jwtKey } : { secretKey }),
-      });
+      claims = await verifyClerkBearerToken(token);
     } catch (verifyErr) {
       const msg =
         verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
@@ -73,7 +44,7 @@ router.get("/me", async (req: Request, res: Response) => {
       });
     }
 
-    const userId = claims?.sub;
+    const userId = claims.sub;
     if (!userId) {
       return res.status(401).json({
         ok: false,
@@ -81,6 +52,7 @@ router.get("/me", async (req: Request, res: Response) => {
       });
     }
 
+    const secretKey = process.env.CLERK_SECRET_KEY!.trim();
     const clerkClient = createClerkClient({ secretKey });
     const clerkUser = await clerkClient.users.getUser(userId);
     const primaryEmail = clerkUser.emailAddresses.find(

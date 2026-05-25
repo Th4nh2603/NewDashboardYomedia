@@ -1,6 +1,7 @@
 import React from "react";
+import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuth } from "../contexts/AuthContext";
-import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import {
   getBuildDemoBrandOptions,
   normalizeBuildDemoBrandIds,
@@ -272,8 +273,9 @@ const normalizeRoutes = (routes: unknown): string[] => {
 };
 
 const AdminUsers: React.FC = () => {
-  const { user } = useAuth();
-  const roleHeader = (user?.role || "").toLowerCase();
+  const { authReady } = useAuth();
+  const { isSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const canCallApi = authReady && clerkLoaded && isSignedIn;
   const baseUrl = serverApiOrigin();
   const [activeTab, setActiveTab] = React.useState<AdminTab>("users");
 
@@ -299,22 +301,17 @@ const AdminUsers: React.FC = () => {
   >(null);
 
   const loadAccounts = React.useCallback(async () => {
+    if (!canCallApi) return;
     setLoading(true);
     setError(null);
     setMessage(null);
     try {
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        accounts?: Array<Partial<Account>>;
-      }>(
-        `${baseUrl}/api/admin/accounts`,
-        {
-          headers: { "x-user-role": roleHeader },
-        },
+      const data = await api.admin.accounts();
+      const accounts =
+        "accounts" in data && Array.isArray(data.accounts) ? data.accounts : [];
+      const normalizedAccounts = accounts.map((account, index) =>
+        normalizeAccount(account, index),
       );
-      const normalizedAccounts = Array.isArray(data.accounts)
-        ? data.accounts.map((account, index) => normalizeAccount(account, index))
-        : [];
       setItems(normalizedAccounts);
       setInitialItems(normalizedAccounts);
     } catch (err) {
@@ -324,23 +321,25 @@ const AdminUsers: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, roleHeader]);
+  }, [baseUrl, canCallApi]);
 
   React.useEffect(() => {
+    if (!authReady || !clerkLoaded) return;
+    if (!isSignedIn) {
+      setError("Phiên đăng nhập Clerk đã hết. Vui lòng đăng nhập lại.");
+      setLoading(false);
+      setPermissionsLoading(false);
+      return;
+    }
     void loadAccounts();
-  }, [loadAccounts]);
+  }, [authReady, clerkLoaded, isSignedIn, loadAccounts]);
 
   const loadPermissions = React.useCallback(async () => {
+    if (!canCallApi) return;
     setPermissionsLoading(true);
     setError(null);
     try {
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        permissions?: RolePermissionConfig;
-        availableRoutes?: string[];
-      }>(`${baseUrl}/api/admin/permissions`, {
-        headers: { "x-user-role": roleHeader },
-      });
+      const data = await api.permissions.adminGet();
       setPermissions(data.permissions || {});
       setInitialPermissions(data.permissions || {});
       setAvailableRoutes(
@@ -353,11 +352,12 @@ const AdminUsers: React.FC = () => {
     } finally {
       setPermissionsLoading(false);
     }
-  }, [baseUrl, roleHeader]);
+  }, [baseUrl, canCallApi]);
 
   React.useEffect(() => {
+    if (!canCallApi) return;
     void loadPermissions();
-  }, [loadPermissions]);
+  }, [canCallApi, loadPermissions]);
 
   const updateUserBuildDemoBrands = (id: string, brands: string[]) => {
     const normalized = normalizeBuildDemoBrandIds(brands);
@@ -389,14 +389,7 @@ const AdminUsers: React.FC = () => {
           values.roleTitle.trim() || roleTitleFromRole(role),
         status: values.status,
       };
-      await fetchJsonOrThrow(`${baseUrl}/api/admin/accounts/${item.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": roleHeader,
-        },
-        body: JSON.stringify(payload),
-      });
+      await api.admin.updateAccount(item.id, payload);
       const updated: Account = {
         ...item,
         role: payload.role,
@@ -423,15 +416,8 @@ const AdminUsers: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      await fetchJsonOrThrow(`${baseUrl}/api/admin/accounts/${item.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": roleHeader,
-        },
-        body: JSON.stringify({
-          allowedBuildDemoBrands: item.allowedBuildDemoBrands ?? null,
-        }),
+      await api.admin.updateAccount(item.id, {
+        allowedBuildDemoBrands: item.allowedBuildDemoBrands ?? null,
       });
       setInitialItems((prev) =>
         prev.map((entry) => (entry.id === item.id ? { ...item } : entry)),
@@ -595,14 +581,7 @@ const AdminUsers: React.FC = () => {
     setMessage(null);
     try {
       const body = buildRolePermissionBody(role);
-      await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": roleHeader,
-        },
-        body: JSON.stringify(body),
-      });
+      await api.permissions.adminUpdate(role, body);
       setInitialPermissions((prev) => ({
         ...prev,
         [role]: {
@@ -633,14 +612,7 @@ const AdminUsers: React.FC = () => {
     setMessage(null);
     try {
       const body = buildRolePermissionBody(role);
-      await fetchJsonOrThrow(`${baseUrl}/api/admin/permissions/${role}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": roleHeader,
-        },
-        body: JSON.stringify(body),
-      });
+      await api.permissions.adminUpdate(role, body);
       setInitialPermissions((prev) => ({
         ...prev,
         [role]: {

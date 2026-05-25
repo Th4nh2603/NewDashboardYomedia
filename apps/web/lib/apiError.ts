@@ -1,3 +1,5 @@
+import { withApiAuthHeaders } from "./apiAuth";
+
 /** Normalized failure from this app's Express API (`{ ok: false, error, code? }`) or fetch. */
 
 export class BackendRequestError extends Error {
@@ -95,9 +97,12 @@ export async function fetchJsonOrThrow<T>(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<T> {
+  const headers = await withApiAuthHeaders(init?.headers);
+  const requestInit: RequestInit = { ...init, headers };
+
   let res: Response;
   try {
-    res = await fetch(input, init);
+    res = await fetch(input, requestInit);
   } catch (error) {
     const message =
       error instanceof Error && error.message

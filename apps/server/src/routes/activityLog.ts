@@ -3,9 +3,11 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getUserRole } from "../lib/auth/role.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
 
 const router = Router();
+router.use(requireClerkAuth);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ACTIVITY_LOG_JSON_PATH = path.join(

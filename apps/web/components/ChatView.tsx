@@ -3,6 +3,7 @@ import { useError } from "../contexts/ErrorContext";
 import { useAuth } from "../contexts/AuthContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from './Button';
@@ -430,21 +431,7 @@ const ChatView = () => {
     try {
       const baseUrl = serverApiOrigin();
 
-      const data = await fetchJsonOrThrow<
-        | { ok: true; answer?: string }
-        | { ok: false; error?: string }
-      >(`${baseUrl}/api/rag/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmedInput }),
-      });
-      if (!data.ok) {
-        throw new Error(
-          "error" in data && data.error
-            ? data.error
-            : "Request failed. Please try again.",
-        );
-      }
+      const data = await api.rag.query(trimmedInput);
 
       const modelMsg: ChatMessage = {
         id: (Date.now() + 2).toString(),

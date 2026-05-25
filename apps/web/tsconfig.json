@@ -21,9 +21,16 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@yomedia/api": [
+        "../../packages/api/src/index.ts"
       ]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "./**/*",
+    "../server/src/types/express.d.ts"
+  ]
 }

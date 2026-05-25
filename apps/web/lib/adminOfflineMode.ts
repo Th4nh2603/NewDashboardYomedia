@@ -46,6 +46,7 @@ export function isBlockedAdminOfflineFetchTarget(input: RequestInfo | URL): bool
 
   const u = new URL(href);
   if (u.pathname.startsWith("/api/")) return true;
+  if (u.pathname.startsWith("/api/trpc")) return true;
 
   const raw =
     typeof import.meta.env.VITE_SERVER_URL === "string"

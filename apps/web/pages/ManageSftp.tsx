@@ -5,6 +5,8 @@ import NoticePopup from "../components/NoticePopup";
 import { useAuth } from "../contexts/AuthContext";
 import brandColors from "../data/brandColors.json";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
+import { fetchWithApiAuth } from "../lib/apiAuth";
 import {
   FolderIcon,
   MagnifyingGlassIcon,
@@ -245,10 +247,7 @@ const ManageSftp: React.FC = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          permissions?: SftpManageRolePermissions;
-        }>(`${getServerBaseUrl()}/api/permissions`);
+        const data = await api.permissions.get();
         if (!cancelled && data.permissions) setManageSftpPermissions(data.permissions);
       } catch {
         // keep default false
@@ -492,9 +491,8 @@ const ManageSftp: React.FC = () => {
       setActionBanner(null);
       try {
         const baseUrl = getServerBaseUrl();
-        const res = await fetch(
+        const res = await fetchWithApiAuth(
           `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(fullPath)}${sftpScopeQuery(sftpScope)}`,
-          { headers: { ...(roleHeader ?? {}) } },
         );
         if (!res.ok) {
           throw await backendErrorFromResponse(res);

@@ -17,6 +17,7 @@
     "@langchain/core": "^1.1.40",
     "@langchain/google-genai": "^2.1.26",
     "@langchain/textsplitters": "^1.0.1",
+    "@trpc/server": "^11.17.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.0",
@@ -24,7 +25,9 @@
     "jszip": "^3.10.1",
     "langchain": "^1.2.34",
     "nodemailer": "^8.0.7",
-    "ssh2-sftp-client": "^11.0.0"
+    "ssh2-sftp-client": "^11.0.0",
+    "superjson": "^2.2.6",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

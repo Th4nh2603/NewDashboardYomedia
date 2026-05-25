@@ -1,11 +1,13 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
 import { getUserRole } from "../lib/auth/role.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const router = Router();
+router.use(requireClerkAuth);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CREATIVE_DEMOS_JSON_PATH = path.join(

@@ -39,6 +39,7 @@ import {
   assertSftpUploadBinaryAllowed,
   assertSftpWriteFileAllowed,
 } from "../lib/auth/sftpMutate.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +54,7 @@ function flattenDirPaths(node: SftpDirTreeNode): string[] {
 }
 
 export const sftpRouter = Router();
+sftpRouter.use(requireClerkAuth);
 
 /** `scope=media` uses SFTP_*_MEDIA; omit or other ⇒ demo SFTP_* / defaults. POST bodies may include `scope`. */
 function parseManageSftpScope(req: Request): ManageSftpScope {

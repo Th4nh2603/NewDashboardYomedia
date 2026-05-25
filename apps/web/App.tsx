@@ -28,11 +28,15 @@ import Documentation from "./pages/Documentation";
 import TestData from "./pages/TestData";
 import CreativeDemosEditor from "./pages/CreativeDemosEditor";
 import AdminUsers from "./pages/AdminUsers";
+import { ClerkApiAuthBridge } from "./components/ClerkApiAuthBridge";
+import { TrpcProvider } from "./lib/trpc/react";
 
 const App: React.FC = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
+        <TrpcProvider>
+        <ClerkApiAuthBridge />
         <AuthProvider>
           <ErrorProvider>
             <AppErrorBoundary>
@@ -127,6 +131,7 @@ const App: React.FC = () => {
             </AppErrorBoundary>
           </ErrorProvider>
         </AuthProvider>
+        </TrpcProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

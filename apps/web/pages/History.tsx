@@ -8,7 +8,7 @@ import { ArchiveBoxIcon, ArrowTrendingUpIcon, TrashIcon } from '@heroicons/react
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { interpolate, useLanguage } from '../contexts/LanguageContext';
-import { fetchJsonOrThrow } from '../lib/apiError';
+import { api } from '../lib/trpc/api';
 import { type ActivityLogEntry } from '../lib/activityLog';
 import { serverApiOrigin } from '../lib/serverApiOrigin';
 
@@ -123,24 +123,21 @@ const History = () => {
       setLoading(true);
       setLoadError(null);
       try {
-        const params = new URLSearchParams({
+        const data = await api.activityLog.list({
           limit:
-            isManager || (isAdmin && viewScope === 'all') ? '400' : '200',
-        });
-        if (isManager) {
-          params.set('special', 'manager-team');
-        } else if (viewScope !== 'all' && user?.email?.trim()) {
-          params.set('email', user.email.trim());
-        }
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          records?: ActivityLogEntry[];
-          total?: number;
-        }>(`${baseUrl}/api/activity-log?${params.toString()}`, {
-          headers: historyApiHeaders,
+            isManager || (isAdmin && viewScope === 'all') ? 400 : 200,
+          ...(isManager
+            ? { special: 'manager-team' }
+            : viewScope !== 'all' && user?.email?.trim()
+              ? { email: user.email.trim() }
+              : {}),
         });
         if (!cancelled) {
-          setActivities(Array.isArray(data.records) ? data.records : []);
+          setActivities(
+            Array.isArray(data.records)
+              ? (data.records as ActivityLogEntry[])
+              : [],
+          );
           setTotalAvailable(
             typeof data.total === 'number'
               ? data.total
@@ -177,10 +174,7 @@ const History = () => {
     setClearingHistory(true);
     setClearHistoryError(null);
     try {
-      await fetchJsonOrThrow<{ ok?: boolean }>(`${baseUrl}/api/activity-log`, {
-        method: 'DELETE',
-        headers: historyApiHeaders,
-      });
+      await api.activityLog.clear();
       setDeleteConfirmOpen(false);
       setRefreshKey((k) => k + 1);
     } catch (error) {

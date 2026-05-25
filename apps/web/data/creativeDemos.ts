@@ -1,5 +1,5 @@
 import { fetchJsonOrThrow } from "../lib/apiError";
-import { serverApiOrigin } from "../lib/serverApiOrigin";
+import { api } from "../lib/trpc/api";
 
 export type CreativeDemoItem = {
   id: string;
@@ -65,9 +65,7 @@ export async function loadCreativeDemos(): Promise<CreativeDemoItem[]> {
   let data: CreativeDemoResponse | null = null;
   let loadedFromServerApi = false;
   try {
-    data = await fetchJsonOrThrow<CreativeDemoResponse>(
-      `${serverApiOrigin()}/api/creative-demos`,
-    );
+    data = await api.creative.demos();
     loadedFromServerApi = true;
   } catch {
     // fallback below

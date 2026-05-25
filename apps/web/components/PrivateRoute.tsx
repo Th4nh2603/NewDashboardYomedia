@@ -25,8 +25,12 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     return null;
   }
 
-  if (!isAuthenticated && !isSignedIn) {
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   const ctx = buildAccessContext(user);

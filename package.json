@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "pnpm --parallel --filter server --filter nova-ai-creative-suite run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,6 +18,9 @@
     },
     "onlyBuiltDependencies": [
       "ffmpeg-static"
+    ],
+    "ignoredBuiltDependencies": [
+      "@clerk/shared"
     ]
   },
   "dependencies": {

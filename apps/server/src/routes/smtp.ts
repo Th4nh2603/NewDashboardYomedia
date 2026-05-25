@@ -7,8 +7,10 @@ import {
 import nodemailer from "nodemailer";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
 import { getUserRole } from "../lib/auth/role.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 
 export const smtpRouter = Router();
+smtpRouter.use(requireClerkAuth);
 
 type MailTransportConfig = {
   host: string;

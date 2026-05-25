@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
@@ -175,12 +176,7 @@ const Upload: React.FC = () => {
     if (!canUpload) return;
     const loadDemoTitles = async () => {
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          items?: DemoListItem[];
-        }>(
-          `${baseUrl}/api/creative-demo-titles?activeOnly=0`,
-        );
+        const data = await api.creative.demoTitles(false);
         const items = Array.isArray(data.items) ? data.items : [];
         setDemoItems(items);
       } catch {

@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { answerWithRag } from "../lib/ai/rag.js";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 
 export const ragRouter = Router();
+ragRouter.use(requireClerkAuth);
 
 ragRouter.post(
   "/query",

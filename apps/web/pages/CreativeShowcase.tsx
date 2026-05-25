@@ -17,6 +17,8 @@ import {
 import Button from "../components/Button";
 import { type CreativeDemoItem } from "../data/creativeDemos";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
+import { fetchWithApiAuth } from "../lib/apiAuth";
 import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 
@@ -595,9 +597,7 @@ const CreativeShowcase: React.FC = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await fetchJsonOrThrow<ShowcasePermissionsPayload>(
-          `${baseUrl}/api/permissions`,
-        );
+        const data = await api.permissions.get();
         if (!cancelled) {
           setRolePermissions(data.permissions ?? {});
           setRolePermissionsLoaded(true);
@@ -619,9 +619,8 @@ const CreativeShowcase: React.FC = () => {
       if (!item.source || downloadingId || !canDownloadCreativeDemos || !role) return;
       setDownloadingId(item.id);
       try {
-        const res = await fetch(
+        const res = await fetchWithApiAuth(
           `${baseUrl}/api/sftp/download-directory?path=${encodeURIComponent(item.source)}`,
-          { headers: { "x-user-role": role } },
         );
         if (!res.ok) {
           throw await backendErrorFromResponse(res);
@@ -695,9 +694,7 @@ const CreativeShowcase: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchJsonOrThrow<CreativeDemosApiResponse>(
-          `${baseUrl}/api/creative-demos`,
-        );
+        const data = await api.creative.demos();
         const demos = Array.isArray(data?.demos)
           ? data.demos
               .map(normalizeDemo)

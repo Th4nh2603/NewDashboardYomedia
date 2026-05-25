@@ -25,6 +25,7 @@ import {
 import { createSftpClient, type SftpEntry } from "../lib/sftpClient";
 import { recordActivity, type ActivityLogEntry } from "../lib/activityLog";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
 import NoticePopup from "../components/NoticePopup";
@@ -364,10 +365,7 @@ const ManageDemo: React.FC = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          permissions?: RolePermissionConfig;
-        }>(`${baseUrl}/api/permissions`);
+        const data = await api.permissions.get();
         if (!cancelled && data?.permissions) {
           setPermissions(data.permissions);
         }
@@ -406,18 +404,17 @@ const ManageDemo: React.FC = () => {
       setUploadAuditLoading(true);
       setUploadAuditError(null);
       try {
-        const qs = new URLSearchParams({
+        const data = await api.activityLog.list({
           special: "manage-demo-uploads",
-          limit: "120",
+          limit: 120,
           scope: sftpScope,
         });
-        const data = await fetchJsonOrThrow<{
-          records?: ActivityLogEntry[];
-        }>(`${baseUrl}/api/activity-log?${qs}`, {
-          headers: { "x-user-role": "admin" },
-        });
         if (!cancelled) {
-          setUploadAudit(Array.isArray(data.records) ? data.records : []);
+          setUploadAudit(
+            Array.isArray(data.records)
+              ? (data.records as ActivityLogEntry[])
+              : [],
+          );
         }
       } catch (err) {
         if (!cancelled) {

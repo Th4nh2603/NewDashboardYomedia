@@ -6,6 +6,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
+import { fetchWithApiAuth } from "../lib/apiAuth";
 import { recordActivity } from "../lib/activityLog";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from '../components/Button';
@@ -50,15 +52,9 @@ const TestData: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        content?: string;
-        error?: string;
-      }>(`${baseUrl}/api/test-data`, {
-        headers: { "x-user-role": role },
-      });
-      if (!data.ok) {
-        throw new Error(data.error || "Unable to load creative-demos.json");
+      const data = await api.testData.get();
+      if (!data?.ok) {
+        throw new Error("Unable to load creative-demos.json");
       }
       setContent(
         typeof data.content === "string" ? data.content : '{"demos":[]}\n',
@@ -84,20 +80,11 @@ const TestData: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-        `${baseUrl}/api/test-data`,
-        {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": role,
-        },
-        body: JSON.stringify({
-          content: content == null ? "" : String(content),
-        }),
-      });
-      if (!data.ok) {
-        throw new Error(data.error || "Save failed");
+      const data = await api.testData.update(
+        content == null ? "" : String(content),
+      );
+      if (!data?.ok) {
+        throw new Error("Save failed");
       }
       setMessage("creative-demos.json saved.");
       void recordActivity({
@@ -195,9 +182,7 @@ const TestData: React.FC = () => {
     try {
       const url = new URL(`${baseUrl}/api/file-upload/file`);
       url.searchParams.set("name", videoResult.savedName);
-      const res = await fetch(url.toString(), {
-        headers: { "x-user-role": role },
-      });
+      const res = await fetchWithApiAuth(url.toString());
       if (!res.ok) {
         throw await backendErrorFromResponse(res);
       }

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler, HttpError } from "../lib/http/errors.js";
 import { getUserRole } from "../lib/auth/role.js";
+import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,6 +16,7 @@ import {
 } from "../lib/media/videoCompress.js";
 
 const router = Router();
+router.use(requireClerkAuth);
 const FILE_UPLOAD_DIR = path.join(process.cwd(), "uploads", "file-center");
 const ALLOWED_ROLES = new Set(["admin", "design"]);
 const MAX_UPLOAD_SIZE_BYTES = 30 * 1024 * 1024;

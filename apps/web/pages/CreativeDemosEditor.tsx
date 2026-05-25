@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from "../components/Button";
 
@@ -168,15 +169,9 @@ const CreativeDemosEditor: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      const data = await fetchJsonOrThrow<{
-        ok?: boolean;
-        content?: string;
-        error?: string;
-      }>(`${baseUrl}/api/test-data`, {
-        headers: { "x-user-role": role },
-      });
-      if (!data.ok) {
-        throw new Error(data.error || "Unable to load creative-demos.json");
+      const data = await api.testData.get();
+      if (!data?.ok) {
+        throw new Error("Unable to load creative-demos.json");
       }
       const raw =
         typeof data.content === "string" ? data.content : '{"demos":[]}\n';
@@ -206,19 +201,9 @@ const CreativeDemosEditor: React.FC = () => {
     try {
       const body = serializeCreativeDemosDoc(extra, demos);
       JSON.parse(body);
-      const data = await fetchJsonOrThrow<{ ok?: boolean; error?: string }>(
-        `${baseUrl}/api/test-data`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-role": role,
-          },
-          body: JSON.stringify({ content: body }),
-        },
-      );
-      if (!data.ok) {
-        throw new Error(data.error || "Save failed");
+      const data = await api.testData.update(body);
+      if (!data?.ok) {
+        throw new Error("Save failed");
       }
       setMessage("creative-demos.json saved.");
       void load();

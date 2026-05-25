@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 import { clerkAppearance } from "./src/config/clerkTheme";
@@ -55,7 +54,6 @@ const missingConfigKeys = [
 ].filter(Boolean) as string[];
 
 const root = ReactDOM.createRoot(rootElement);
-const queryClient = new QueryClient();
 
 root.render(
   <React.StrictMode>
@@ -66,9 +64,7 @@ root.render(
         publishableKey={clerkPublishableKey as string}
         appearance={clerkAppearance}
       >
-        <QueryClientProvider client={queryClient}>
-          <App />
-        </QueryClientProvider>
+        <App />
       </ClerkProvider>
     )}
   </React.StrictMode>,

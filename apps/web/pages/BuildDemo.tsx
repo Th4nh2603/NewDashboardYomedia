@@ -18,6 +18,7 @@ import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { recordActivity } from "../lib/activityLog";
 import { fetchJsonOrThrow } from "../lib/apiError";
+import { api } from "../lib/trpc/api";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import { createSftpClient } from "../lib/sftpClient";
 import Button from "../components/Button";
@@ -693,10 +694,7 @@ const BuildDemo: React.FC = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          permissions?: BuildDemoRolePermissions;
-        }>(`${baseUrl}/api/permissions`);
+        const data = await api.permissions.get();
         if (!cancelled && data.permissions) {
           setBuildDemoPermissions(data.permissions);
         }
@@ -1058,14 +1056,7 @@ const BuildDemo: React.FC = () => {
     let cancelled = false;
     const loadDemoTitles = async () => {
       try {
-        const data = await fetchJsonOrThrow<{
-          ok?: boolean;
-          items?: Array<{
-            id?: string;
-            title?: string;
-            size?: string | string[];
-          }>;
-        }>(`${baseUrl}/api/creative-demo-titles?activeOnly=0`);
+        const data = await api.creative.demoTitles(false);
         const items = Array.isArray(data.items)
           ? data.items
               .map((item) => ({

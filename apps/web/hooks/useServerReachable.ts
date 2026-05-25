@@ -3,12 +3,12 @@ import {
   getAdminOfflineMode,
   subscribeAdminOfflineMode,
 } from "../lib/adminOfflineMode";
-import { serverApiOrigin } from "../lib/serverApiOrigin";
+import { api } from "../lib/trpc/api";
 
 const POLL_MS = 15000;
 
 /**
- * Tracks whether the Express API responds to GET /api/health (no auth).
+ * Tracks whether the API responds to tRPC health.check (no auth).
  */
 export function useServerReachable(): boolean {
   const [reachable, setReachable] = useState(() => !getAdminOfflineMode());
@@ -21,20 +21,10 @@ export function useServerReachable(): boolean {
         if (!cancelled) setReachable(false);
         return;
       }
-      const base = serverApiOrigin();
-      const url = `${base}/api/health`;
-      const ctrl = new AbortController();
-      const t = window.setTimeout(() => ctrl.abort(), 8000);
       try {
-        const res = await fetch(url, {
-          method: "GET",
-          signal: ctrl.signal,
-          cache: "no-store",
-        });
-        clearTimeout(t);
-        if (!cancelled) setReachable(res.ok);
+        const result = await api.health.check();
+        if (!cancelled) setReachable(result.ok === true);
       } catch {
-        clearTimeout(t);
         if (!cancelled) setReachable(false);
       }
     };
