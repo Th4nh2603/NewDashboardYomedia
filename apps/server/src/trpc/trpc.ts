@@ -1,10 +1,10 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
+import { trpcTransformer } from "@yomedia/api";
 import type { TrpcContext } from "./context.js";
 import { HttpError, isHttpError } from "../lib/http/errors.js";
 
 const t = initTRPC.context<TrpcContext>().create({
-  transformer: superjson,
+  transformer: trpcTransformer,
   errorFormatter({ shape, error }) {
     const http = error.cause;
     if (isHttpError(http)) {

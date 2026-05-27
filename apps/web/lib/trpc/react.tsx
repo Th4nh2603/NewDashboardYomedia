@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCReact, httpBatchLink } from "@trpc/react-query";
-import superjson from "superjson";
 import type { AppRouter } from "@yomedia/api";
+import { trpcTransformer } from "@yomedia/api";
 import { withApiAuthHeaders } from "../apiAuth";
 import { serverApiOrigin } from "../serverApiOrigin";
 
@@ -34,7 +34,7 @@ export const TrpcProvider: React.FC<{ children: React.ReactNode }> = ({
         httpBatchLink({
           url: trpcUrl(),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          transformer: superjson as any,
+          transformer: trpcTransformer as any,
           async headers() {
             return withApiAuthHeaders();
           },

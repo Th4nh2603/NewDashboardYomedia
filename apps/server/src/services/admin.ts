@@ -1,6 +1,7 @@
 import { createClerkClient } from "@clerk/backend";
 import {
   loadAccounts,
+  migrateLegacyRoleKey,
   normalizeAccountText,
   saveAccounts,
   type Account,
@@ -108,7 +109,7 @@ export async function updateAdminAccount(
   const updates: Partial<Account> = {};
 
   if (typeof payload.role === "string") {
-    updates.role = payload.role.trim().toLowerCase();
+    updates.role = migrateLegacyRoleKey(payload.role);
   }
   if (typeof payload.roleTitle === "string") {
     updates.roleTitle = payload.roleTitle.trim();
@@ -130,12 +131,12 @@ export async function updateAdminAccount(
     }
   }
 
-  if (
-    !updates.role &&
-    !updates.roleTitle &&
-    !updates.status &&
-    updates.allowedBuildDemoBrands === undefined
-  ) {
+  const hasRole = typeof payload.role === "string";
+  const hasRoleTitle = typeof payload.roleTitle === "string";
+  const hasStatus = typeof payload.status === "string";
+  const hasBrands = payload.allowedBuildDemoBrands !== undefined;
+
+  if (!hasRole && !hasRoleTitle && !hasStatus && !hasBrands) {
     return { ok: false as const, error: "No valid update fields" };
   }
 

@@ -39,6 +39,8 @@ const DEFAULT_SFTP_PATH = "/script/demo";
 /** UI path when connected to media SFTP (mirrors server `mapRemotePathForManageScope`). */
 const MEDIA_UI_DISPLAY_ROOT = "/media";
 const MANAGE_SFTP_SCOPE_STORAGE_KEY = "manageSftpScope";
+const VIDEO_TARGET_MAX_BYTES = 4 * 1024 * 1024;
+const VIDEO_COMPRESSIBLE_EXT = new Set(["mp4", "webm", "mov", "m4v"]);
 
 function logicalManagePathToDisplayPath(
   logicalPath: string,
@@ -148,6 +150,7 @@ type SftpManageRolePermissions = Record<
     manageDemo?: {
       canSwitchSftpHost?: boolean;
       canSetupMediaSftp?: boolean;
+      canSftpUploadBinary?: boolean;
       canSftpWriteFile?: boolean;
       canSftpDelete?: boolean;
     };
@@ -264,8 +267,10 @@ const ManageSftp: React.FC = () => {
   const canShowSftpHostSwitch =
     isAdminUser && mdSftp?.canSwitchSftpHost === true;
   const canSftpWriteFile = mdSftp?.canSftpWriteFile === true;
+  const canSftpUploadBinary = mdSftp?.canSftpUploadBinary === true;
   const canSftpDelete = mdSftp?.canSftpDelete === true;
   const canSetupMediaSftp = mdSftp?.canSetupMediaSftp === true;
+  const canDropUpload = canSftpUploadBinary && canSftpWriteFile;
   const sftpClient = React.useMemo(
     () =>
       createSftpClient({
@@ -339,6 +344,12 @@ const ManageSftp: React.FC = () => {
   );
   const syncOverwriteHandledRef = React.useRef(false);
   const [actionBanner, setActionBanner] = React.useState<string | null>(null);
+  const [dragDepth, setDragDepth] = React.useState(0);
+  const [isDragOverTable, setIsDragOverTable] = React.useState(false);
+  const [uploadingDropFiles, setUploadingDropFiles] = React.useState(false);
+  const [uploadSummary, setUploadSummary] = React.useState<string | null>(null);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const filesInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const isEditableFileName = React.useCallback((name: string) => {
     return /\.(html?|js|mjs|ts|css|json|txt|xml)$/i.test(name.toLowerCase());
@@ -790,6 +801,191 @@ const ManageSftp: React.FC = () => {
     }
   }, [canSyncBrandToMedia, syncBusy, runBrandSyncCopy]);
 
+  const readFileAsDataUrl = React.useCallback(
+    (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () =>
+          reject(
+            reader.error ?? new Error(`Unable to read file: ${file.name}`),
+          );
+        reader.readAsDataURL(file);
+      }),
+    [],
+  );
+
+  const isCompressibleVideoFileName = React.useCallback((name: string) => {
+    const ext = name.split(".").pop()?.toLowerCase() ?? "";
+    return VIDEO_COMPRESSIBLE_EXT.has(ext);
+  }, []);
+
+  const handleDropFiles = React.useCallback(
+    async (files: File[]) => {
+      if (!canDropUpload || uploadingDropFiles || useRecursiveSearch) return;
+      const validFiles = files.filter(
+        (file) => file && file.name && file.size >= 0,
+      );
+      if (validFiles.length === 0) return;
+
+      setUploadingDropFiles(true);
+      setUploadError(null);
+      setUploadSummary(null);
+      setActionBanner(null);
+      try {
+        const videoCompressionLogs: string[] = [];
+        for (const file of validFiles) {
+          const fileName = file.name.replace(/[\\/]/g, "_").trim();
+          if (!fileName) continue;
+
+          const targetPath = joinPath(sftpPath, fileName);
+          const isVideoFile = isCompressibleVideoFileName(fileName);
+          const data = isVideoFile
+            ? await sftpClient.writeBinary(targetPath, file, {
+                scope: sftpScope,
+              })
+            : await (async () => {
+                const dataUrl = await readFileAsDataUrl(file);
+                const base64 = dataUrl.includes(",")
+                  ? dataUrl.split(",")[1]
+                  : dataUrl;
+                return sftpClient.write(
+                  {
+                    path: targetPath,
+                    content: base64,
+                    encoding: "base64",
+                  },
+                  { scope: sftpScope },
+                );
+              })();
+
+          if (!data?.ok) {
+            throw new Error(
+              data?.error || `Unable to upload file: ${file.name}`,
+            );
+          }
+
+          if (isVideoFile) {
+            const originalBytes = Number(data.video?.originalBytes);
+            const compressedBytes = Number(data.video?.compressedBytes);
+            if (
+              Number.isFinite(originalBytes) &&
+              Number.isFinite(compressedBytes)
+            ) {
+              if (data.video?.videoCompressed) {
+                const savedPercent =
+                  originalBytes > 0
+                    ? Math.max(0, (1 - compressedBytes / originalBytes) * 100)
+                    : 0;
+                const targetState =
+                  compressedBytes <= VIDEO_TARGET_MAX_BYTES
+                    ? "target <= 4MB"
+                    : "still > 4MB";
+                videoCompressionLogs.push(
+                  `${fileName}: ${formatSizeInMb(originalBytes)} -> ${formatSizeInMb(compressedBytes)} (${savedPercent.toFixed(1)}% saved, ${targetState})`,
+                );
+              } else {
+                videoCompressionLogs.push(
+                  `${fileName}: kept original ${formatSizeInMb(originalBytes)}`,
+                );
+              }
+            }
+          }
+        }
+
+        if (videoCompressionLogs.length > 0) {
+          setUploadSummary(
+            `Video processing (server compress before SFTP upload): ${videoCompressionLogs.join(" | ")}`,
+          );
+        } else {
+          setUploadSummary(
+            `Uploaded ${validFiles.length} file(s) to SFTP successfully.`,
+          );
+        }
+        void recordActivity({
+          user,
+          action: "upload_files",
+          area: "Manage SFTP",
+          description: `Uploaded ${validFiles.length} file(s) to SFTP`,
+          target: sftpPath,
+          metadata: {
+            scope: sftpScope,
+            fileCount: validFiles.length,
+            files: validFiles.map((file) => file.name),
+          },
+        });
+        refreshFileQueries();
+      } catch (err) {
+        setUploadError(
+          err instanceof Error ? err.message : "Unknown network error",
+        );
+      } finally {
+        setUploadingDropFiles(false);
+      }
+    },
+    [
+      canDropUpload,
+      uploadingDropFiles,
+      useRecursiveSearch,
+      sftpPath,
+      readFileAsDataUrl,
+      isCompressibleVideoFileName,
+      formatSizeInMb,
+      sftpClient,
+      sftpScope,
+      user,
+      refreshFileQueries,
+    ],
+  );
+
+  const handleTableDragEnter = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload || useRecursiveSearch) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth((prev) => prev + 1);
+      setIsDragOverTable(true);
+    },
+    [canDropUpload, useRecursiveSearch],
+  );
+
+  const handleTableDragOver = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload || useRecursiveSearch) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    [canDropUpload, useRecursiveSearch],
+  );
+
+  const handleTableDragLeave = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload || useRecursiveSearch) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next === 0) setIsDragOverTable(false);
+        return next;
+      });
+    },
+    [canDropUpload, useRecursiveSearch],
+  );
+
+  const handleTableDrop = React.useCallback(
+    async (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canDropUpload || useRecursiveSearch) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setDragDepth(0);
+      setIsDragOverTable(false);
+      const droppedFiles = Array.from(event.dataTransfer.files ?? []);
+      await handleDropFiles(droppedFiles);
+    },
+    [canDropUpload, useRecursiveSearch, handleDropFiles],
+  );
+
   return (
     <div className="w-full px-4 sm:px-5 space-y-4 sm:space-y-5">
       <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730] dark:via-[#0b1730]/95 dark:to-[#102449] dark:shadow-[0_18px_36px_rgba(2,6,23,0.42)]">
@@ -805,8 +1001,8 @@ const ManageSftp: React.FC = () => {
             </h1>
             <p className="text-xs text-slate-600 dark:text-slate-300/80">
               Browse any path, filter or search folders recursively, then read,
-              edit, delete, or download ZIPs — same layout as Manage Demo, without
-              live preview.
+              edit, delete, download ZIPs, or drag-and-drop files to upload into
+              the current folder (when permitted).
             </p>
           </div>
           <div className="w-full sm:w-auto sm:shrink-0">
@@ -932,6 +1128,36 @@ const ManageSftp: React.FC = () => {
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {canDropUpload && !useRecursiveSearch && (
+                <>
+                  <input
+                    ref={filesInputRef}
+                    type="file"
+                    multiple
+                    className="sr-only"
+                    tabIndex={-1}
+                    onChange={(e) => {
+                      const list = e.target.files;
+                      if (list?.length) void handleDropFiles(Array.from(list));
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => filesInputRef.current?.click()}
+                    disabled={listBusy || uploadingDropFiles}
+                    variant="secondary"
+                    size="md"
+                    className="inline-flex items-center gap-1.5"
+                    title={`Upload files to ${sftpPathForDisplay}`}
+                  >
+                    <CloudArrowUpIcon
+                      className={`h-4 w-4 ${uploadingDropFiles ? "animate-pulse" : ""}`}
+                    />
+                    {uploadingDropFiles ? "Uploading…" : "Upload files"}
+                  </Button>
+                </>
+              )}
               {canSetupMediaSftp && (
                 <Button
                   type="button"
@@ -1044,6 +1270,18 @@ const ManageSftp: React.FC = () => {
           {panelError && !filePanel && (
             <p className="text-sm text-amber-400/90 px-1">{panelError}</p>
           )}
+          {canDropUpload && !useRecursiveSearch && (
+            <p className="text-[10px] font-medium text-slate-500 px-1 dark:text-slate-400">
+              Drag and drop files onto the folder list below to upload into the
+              current path.
+            </p>
+          )}
+          {uploadError && (
+            <p className="text-sm text-amber-400/90 px-1">{uploadError}</p>
+          )}
+          {uploadSummary && !uploadError && (
+            <p className="text-xs text-emerald-300/90 px-1">{uploadSummary}</p>
+          )}
           {actionBanner && (
             <p
               className={`text-xs px-1 ${
@@ -1062,7 +1300,30 @@ const ManageSftp: React.FC = () => {
 
           <div
             className={`relative overflow-hidden rounded-3xl border shadow-md dark:shadow-[0_14px_32px_rgba(2,6,23,0.5)] ${sftpListChrome.shell}`}
+            onDragEnter={handleTableDragEnter}
+            onDragOver={handleTableDragOver}
+            onDragLeave={handleTableDragLeave}
+            onDrop={handleTableDrop}
           >
+            {canDropUpload && !useRecursiveSearch && isDragOverTable && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/88 backdrop-blur-[1px] dark:bg-[#020617]/85">
+                <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 px-5 py-4 text-center shadow-[0_0_0_2px_rgba(34,211,238,0.15)] dark:border-cyan-400/45 dark:shadow-[0_0_0_2px_rgba(34,211,238,0.2)]">
+                  <p className="text-sm font-semibold text-cyan-800 dark:text-cyan-200">
+                    Drop files here to upload
+                  </p>
+                  <p className="mt-1 break-all font-mono text-[11px] text-cyan-700 dark:text-cyan-100/80">
+                    {sftpPathForDisplay}
+                  </p>
+                </div>
+              </div>
+            )}
+            {canDropUpload && !useRecursiveSearch && uploadingDropFiles && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100/90 dark:bg-[#020617]/75">
+                <div className="rounded-xl border border-slate-300/80 bg-white px-4 py-2 text-xs font-semibold text-slate-800 dark:border-white/15 dark:bg-white/5 dark:text-white">
+                  Uploading files…
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto">
               {useRecursiveSearch ? (
                 <div className="min-w-[560px]">

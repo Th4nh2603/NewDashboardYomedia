@@ -1,11 +1,40 @@
+import { isBackendRequestError } from "../apiError";
+import {
+  isApiConnectivityFailure,
+  reportApiConnectivityFailure,
+} from "../adminOfflineMode";
 import { trpcClient } from "./client";
 import { trpcErrorToBackend } from "./errors";
+import {
+  ACCOUNT_ROLES,
+  type AccountRole,
+  type AccountStatus,
+} from "../form/schemas/adminAccount";
+
+function normalizeApiRole(role: string): AccountRole {
+  const normalized = role.trim().toLowerCase();
+  const migrated = normalized === "adsopmanager" ? "manager" : normalized;
+  return ACCOUNT_ROLES.includes(migrated as AccountRole)
+    ? (migrated as AccountRole)
+    : "guest";
+}
+
+function normalizeApiStatus(status: string): AccountStatus {
+  return status.trim().toLowerCase() === "inactive" ? "inactive" : "active";
+}
 
 async function call<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    throw trpcErrorToBackend(err);
+    const backend = trpcErrorToBackend(err);
+    if (
+      isBackendRequestError(backend) &&
+      isApiConnectivityFailure(backend.status, backend.code)
+    ) {
+      reportApiConnectivityFailure();
+    }
+    throw backend;
   }
 }
 
@@ -42,9 +71,30 @@ export const api = {
         role?: string;
         roleTitle?: string;
         status?: string;
-        allowedBuildDemoBrands?: unknown;
+        allowedBuildDemoBrands?: string[] | null;
       },
-    ) => call(() => trpcClient.admin.updateAccount.mutate({ id, ...patch })),
+    ) => {
+      const input: Parameters<typeof trpcClient.admin.updateAccount.mutate>[0] =
+        { id: String(id).trim() };
+      if (typeof patch.role === "string") {
+        input.role = normalizeApiRole(patch.role);
+      }
+      if (typeof patch.roleTitle === "string") {
+        input.roleTitle = patch.roleTitle.trim();
+      }
+      if (typeof patch.status === "string") {
+        input.status = normalizeApiStatus(patch.status);
+      }
+      if (patch.allowedBuildDemoBrands !== undefined) {
+        input.allowedBuildDemoBrands = patch.allowedBuildDemoBrands;
+      }
+      if (Object.keys(input).length === 1) {
+        return Promise.reject(
+          new Error("At least one field to update is required"),
+        );
+      }
+      return call(() => trpcClient.admin.updateAccount.mutate(input));
+    },
   },
   creative: {
     demos: () => call(() => trpcClient.creative.demos.query()),

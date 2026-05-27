@@ -244,7 +244,8 @@ const normalizeNullableField = (value: unknown): string | null => {
 
 const normalizeRole = (role: unknown): string => {
   const normalized = normalizeNullableField(role)?.toLowerCase();
-  return normalized || "guest";
+  if (!normalized) return "guest";
+  return normalized === "adsopmanager" ? "manager" : normalized;
 };
 
 const normalizeAccount = (account: Partial<Account>, index: number): Account => ({
@@ -378,18 +379,23 @@ const AdminUsers: React.FC = () => {
     item: Account,
     values: AdminAccountRowFormValues,
   ) => {
+    const userId = String(item.id || "").trim();
+    if (!userId || userId.startsWith("unknown-")) {
+      setError("Cannot update this user: missing Clerk user id.");
+      return;
+    }
     setSavingId(item.id);
     setError(null);
     setMessage(null);
     try {
-      const role = normalizeRole(values.role);
+      const role = values.role;
       const payload = {
         role,
         roleTitle:
           values.roleTitle.trim() || roleTitleFromRole(role),
         status: values.status,
       };
-      await api.admin.updateAccount(item.id, payload);
+      await api.admin.updateAccount(userId, payload);
       const updated: Account = {
         ...item,
         role: payload.role,
@@ -412,11 +418,16 @@ const AdminUsers: React.FC = () => {
 
   const handleSaveUserBrands = async (item: Account) => {
     if (normalizeRole(item.role) === "admin") return;
+    const userId = String(item.id || "").trim();
+    if (!userId || userId.startsWith("unknown-")) {
+      setError("Cannot update this user: missing Clerk user id.");
+      return;
+    }
     setSavingBuildDemoUserId(item.id);
     setError(null);
     setMessage(null);
     try {
-      await api.admin.updateAccount(item.id, {
+      await api.admin.updateAccount(userId, {
         allowedBuildDemoBrands: item.allowedBuildDemoBrands ?? null,
       });
       setInitialItems((prev) =>

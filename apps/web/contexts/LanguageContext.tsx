@@ -32,6 +32,7 @@ const LAYOUT_MESSAGES: Record<
     themeAriaUseDark: string;
     adminOfflineMode: string;
     adminOfflineModeActive: string;
+    adminOfflineModeAutoActive: string;
     adminOfflineModeAria: string;
   }
 > = {
@@ -44,6 +45,7 @@ const LAYOUT_MESSAGES: Record<
     themeAriaUseDark: "Switch to dark theme",
     adminOfflineMode: "Offline mode",
     adminOfflineModeActive: "API disconnected",
+    adminOfflineModeAutoActive: "API unreachable (auto)",
     adminOfflineModeAria: "Toggle admin offline mode — blocks dashboard API requests",
   },
   vi: {
@@ -55,6 +57,7 @@ const LAYOUT_MESSAGES: Record<
     themeAriaUseDark: "Chuyển sang giao diện tối",
     adminOfflineMode: "Chế độ offline",
     adminOfflineModeActive: "Đã ngắt API",
+    adminOfflineModeAutoActive: "Mất kết nối API (tự động)",
     adminOfflineModeAria:
       "Bật/tắt chế độ offline (admin) — chặn mọi gọi API dashboard",
   },

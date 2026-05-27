@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@trpc/server": "^11.4.3"
+    "@trpc/server": "^11.4.3",
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
     "typescript": "~5.8.0"

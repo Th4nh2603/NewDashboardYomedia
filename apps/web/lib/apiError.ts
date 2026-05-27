@@ -1,4 +1,8 @@
 import { withApiAuthHeaders } from "./apiAuth";
+import {
+  isApiConnectivityFailure,
+  reportApiConnectivityFailure,
+} from "./adminOfflineMode";
 
 /** Normalized failure from this app's Express API (`{ ok: false, error, code? }`) or fetch. */
 
@@ -104,18 +108,27 @@ export async function fetchJsonOrThrow<T>(
   try {
     res = await fetch(input, requestInit);
   } catch (error) {
+    if (error instanceof Error && error.name === "AdminOfflineError") {
+      throw error;
+    }
     const message =
       error instanceof Error && error.message
         ? error.message
         : "Network request failed";
-    throw new BackendRequestError(message, 0, {
+    const networkErr = new BackendRequestError(message, 0, {
       code: "NETWORK_ERROR",
       body: error,
     });
+    reportApiConnectivityFailure();
+    throw networkErr;
   }
 
   if (!res.ok) {
-    throw await backendErrorFromResponse(res);
+    const err = await backendErrorFromResponse(res);
+    if (isApiConnectivityFailure(err.status, err.code)) {
+      reportApiConnectivityFailure();
+    }
+    throw err;
   }
 
   if (isNoContentResponse(res)) {

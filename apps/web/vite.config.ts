@@ -54,37 +54,60 @@ function devApiProxyPlugin(): Plugin {
       server.middlewares.use('/api', (req, res) => {
         const port = readDevApiPort();
         const pathname = req.url ?? '';
-        // Connect strips the `/api` mount prefix; backend routes are `/api/...`.
         const backendPath = pathname.startsWith('/api')
           ? pathname
           : `/api${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
-        const proxyReq = http.request(
-          {
-            hostname: '127.0.0.1',
-            port,
-            path: backendPath,
-            method: req.method,
-            headers: { ...req.headers, host: `127.0.0.1:${port}` },
-          },
-          (proxyRes) => {
-            const code = proxyRes.statusCode ?? 502;
-            const h = proxyRes.headers;
-            // Node types: headers may contain undefined values; filter for writeHead
-            const out: NodeJS.Dict<number | string | string[]> = {};
-            for (const [k, v] of Object.entries(h)) {
-              if (v === undefined) continue;
-              out[k] = v;
-            }
-            res.writeHead(code, out);
-            proxyRes.pipe(res);
-          },
-        );
-        proxyReq.on('error', (err) => {
+
+        const forward = (body?: Buffer) => {
+          const headers: Record<string, string | string[] | undefined> = {
+            ...req.headers,
+            host: `127.0.0.1:${port}`,
+          };
+          if (body && body.length > 0) {
+            headers['content-length'] = String(body.length);
+          }
+          const proxyReq = http.request(
+            {
+              hostname: '127.0.0.1',
+              port,
+              path: backendPath,
+              method: req.method,
+              headers,
+            },
+            (proxyRes) => {
+              const code = proxyRes.statusCode ?? 502;
+              const out: NodeJS.Dict<number | string | string[]> = {};
+              for (const [k, v] of Object.entries(proxyRes.headers)) {
+                if (v === undefined) continue;
+                out[k] = v;
+              }
+              res.writeHead(code, out);
+              proxyRes.pipe(res);
+            },
+          );
+          proxyReq.on('error', (err) => {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            res.end(`API proxy (127.0.0.1:${port}): ${err.message}`);
+          });
+          if (body && body.length > 0) proxyReq.write(body);
+          proxyReq.end();
+        };
+
+        const method = req.method ?? 'GET';
+        if (method === 'GET' || method === 'HEAD') {
+          forward();
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', () => forward(Buffer.concat(chunks)));
+        req.on('error', (err) => {
           res.statusCode = 502;
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
           res.end(`API proxy (127.0.0.1:${port}): ${err.message}`);
         });
-        req.pipe(proxyReq);
       });
     },
   };
@@ -98,7 +121,7 @@ export default defineConfig(async ({ mode }) => {
       server: {
         port: webPort,
         host: '0.0.0.0',
-        strictPort: true,
+        strictPort: false,
       },
       plugins: [react(), devApiProxyPlugin()],
       define: {

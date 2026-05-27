@@ -100,6 +100,86 @@ function isDroppedFolderPlaceholder(file: File): boolean {
   return true;
 }
 
+type DropSnap =
+  | { kind: "entry"; entry: FileSystemEntry }
+  | { kind: "file"; file: File };
+
+async function collectFolderItemsFromDataTransfer(
+  dataTransfer: DataTransfer,
+): Promise<FolderUploadItem[]> {
+  const fileListFallback = Array.from(dataTransfer.files ?? []).filter(
+    (f) => !isDroppedFolderPlaceholder(f),
+  );
+
+  const snapshots: DropSnap[] = [];
+  const items = dataTransfer.items;
+  if (items?.length) {
+    for (let i = 0; i < items.length; i++) {
+      const dtItem = items[i];
+      const entry = (
+        dtItem as DataTransferItem & {
+          webkitGetAsEntry?: () => FileSystemEntry | null;
+        }
+      ).webkitGetAsEntry?.();
+      if (entry) {
+        snapshots.push({ kind: "entry", entry });
+      } else if (dtItem.kind === "file") {
+        const f = dtItem.getAsFile();
+        if (f && !isDroppedFolderPlaceholder(f)) {
+          snapshots.push({ kind: "file", file: f });
+        }
+      }
+    }
+  }
+
+  const collected: FolderUploadItem[] = [];
+
+  for (const snap of snapshots) {
+    if (snap.kind === "entry") {
+      try {
+        const fromEntry = await collectFilesFromEntry(snap.entry, "");
+        collected.push(...fromEntry);
+      } catch {
+        /* ignore broken entry */
+      }
+    } else {
+      collected.push({
+        file: snap.file,
+        relativePath: snap.file.name.replace(/\\/g, "/"),
+      });
+    }
+  }
+
+  for (const file of fileListFallback) {
+    const already = collected.some((it) => it.file === file);
+    if (!already) {
+      collected.push({
+        file,
+        relativePath: file.name.replace(/\\/g, "/"),
+      });
+    }
+  }
+
+  const dedupe = new Map<string, FolderUploadItem>();
+  for (const it of collected) {
+    const key = `${it.relativePath}\0${it.file.size}\0${it.file.lastModified}`;
+    if (!dedupe.has(key)) dedupe.set(key, it);
+  }
+  return [...dedupe.values()];
+}
+
+function collectFolderItemsFromFileList(
+  fileList: FileList | null,
+): FolderUploadItem[] {
+  if (!fileList?.length) return [];
+  return Array.from(fileList).map((file) => {
+    const rel =
+      (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
+      file.name;
+    return { file, relativePath: rel.replace(/\\/g, "/") };
+  });
+}
+
 const Upload: React.FC = () => {
   const { user } = useAuth();
   const baseUrl = serverApiOrigin();
@@ -129,6 +209,9 @@ const Upload: React.FC = () => {
   >(null);
   const demoComboRef = React.useRef<HTMLDivElement | null>(null);
   const folderDropDepthRef = React.useRef(0);
+  const filesInputRef = React.useRef<HTMLInputElement | null>(null);
+  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+  const ignoreNextDropzoneClickRef = React.useRef(false);
 
   const resolveFolderOverwrite = React.useCallback((choice: boolean) => {
     const r = folderOverwriteResolverRef.current;
@@ -340,86 +423,32 @@ const Upload: React.FC = () => {
     setSelectedFolderName(rootName);
   }, []);
 
+  const stageFolderItems = React.useCallback(
+    (items: FolderUploadItem[]) => {
+      if (items.length === 0) return;
+      applyFolderItems(items);
+    },
+    [applyFolderItems],
+  );
+
   const handleFolderDrop = React.useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      ignoreNextDropzoneClickRef.current = true;
       folderDropDepthRef.current = 0;
       setIsFolderDropActive(false);
-      if (!hasSelectedDemo) {
-        setError("Please select a creative demo before dropping files.");
-        return;
-      }
-
-      type DropSnap =
-        | { kind: "entry"; entry: FileSystemEntry }
-        | { kind: "file"; file: File };
-
-      const fileListFallback = Array.from(e.dataTransfer.files ?? []).filter(
-        (f) => !isDroppedFolderPlaceholder(f),
-      );
-
-      const snapshots: DropSnap[] = [];
-      const items = e.dataTransfer.items;
-      if (items?.length) {
-        for (let i = 0; i < items.length; i++) {
-          const dtItem = items[i];
-          const entry = (
-            dtItem as DataTransferItem & {
-              webkitGetAsEntry?: () => FileSystemEntry | null;
-            }
-          ).webkitGetAsEntry?.();
-          if (entry) {
-            snapshots.push({ kind: "entry", entry });
-          } else if (dtItem.kind === "file") {
-            const f = dtItem.getAsFile();
-            if (f && !isDroppedFolderPlaceholder(f)) {
-              snapshots.push({ kind: "file", file: f });
-            }
-          }
-        }
-      }
-
-      const collected: FolderUploadItem[] = [];
-
-      for (const snap of snapshots) {
-        if (snap.kind === "entry") {
-          try {
-            // Single file: path = file name (no synthetic folder); folders: preserve tree like Explorer.
-            const fromEntry = await collectFilesFromEntry(snap.entry, "");
-            collected.push(...fromEntry);
-          } catch {
-            /* ignore broken entry */
-          }
-        } else {
-          collected.push({
-            file: snap.file,
-            relativePath: snap.file.name.replace(/\\/g, "/"),
-          });
-        }
-      }
-
-      for (const file of fileListFallback) {
-        const already = collected.some((it) => it.file === file);
-        if (!already) {
-          collected.push({
-            file,
-            relativePath: file.name.replace(/\\/g, "/"),
-          });
-        }
-      }
-
-      const dedupe = new Map<string, FolderUploadItem>();
-      for (const it of collected) {
-        const key = `${it.relativePath}\0${it.file.size}\0${it.file.lastModified}`;
-        if (!dedupe.has(key)) dedupe.set(key, it);
-      }
-      const merged = [...dedupe.values()];
-
-      if (merged.length === 0) return;
-      applyFolderItems(merged);
+      const merged = await collectFolderItemsFromDataTransfer(e.dataTransfer);
+      stageFolderItems(merged);
     },
-    [applyFolderItems, hasSelectedDemo],
+    [stageFolderItems],
+  );
+
+  const handleFilesInputChange = React.useCallback(
+    (fileList: FileList | null) => {
+      stageFolderItems(collectFolderItemsFromFileList(fileList));
+    },
+    [stageFolderItems],
   );
 
   const handleUploadFolder = async () => {
@@ -736,27 +765,40 @@ const Upload: React.FC = () => {
         </p>
         {!hasSelectedDemo && (
           <p className="text-xs text-amber-700 dark:text-amber-300">
-            Please select Creative Demo Title before dropping files here.
+            Select a Creative Demo Title before uploading (you can still add files
+            via drag-and-drop or browse).
           </p>
         )}
 
         <div
-          className={`rounded-2xl border border-dashed p-5 transition ${
-            !hasSelectedDemo
-              ? "border-slate-300/80 bg-slate-50 opacity-90 dark:border-white/10 dark:bg-slate-900/60 dark:opacity-80"
-              : isFolderDropActive
-                ? "border-[#4cceac]/70 bg-[#4cceac]/10 shadow-[0_0_0_4px_rgba(76,206,172,0.18)]"
-                : "border-slate-300/80 bg-slate-50/90 hover:border-[#4cceac]/55 dark:border-white/10 dark:bg-slate-900/70 dark:hover:border-[#4cceac]/40"
+          role="button"
+          tabIndex={0}
+          aria-label="Upload zone: drag and drop or choose files"
+          className={`relative rounded-2xl border border-dashed p-5 transition ${
+            isFolderDropActive
+              ? "border-[#4cceac]/70 bg-[#4cceac]/10 shadow-[0_0_0_4px_rgba(76,206,172,0.18)]"
+              : "cursor-pointer border-slate-300/80 bg-slate-50/90 hover:border-[#4cceac]/55 dark:border-white/10 dark:bg-slate-900/70 dark:hover:border-[#4cceac]/40"
           }`}
+          onClick={() => {
+            if (ignoreNextDropzoneClickRef.current) {
+              ignoreNextDropzoneClickRef.current = false;
+              return;
+            }
+            filesInputRef.current?.click();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              filesInputRef.current?.click();
+            }
+          }}
           onDragEnter={(e) => {
-            if (!hasSelectedDemo) return;
             e.preventDefault();
             e.stopPropagation();
             folderDropDepthRef.current += 1;
             setIsFolderDropActive(true);
           }}
           onDragLeave={(e) => {
-            if (!hasSelectedDemo) return;
             e.preventDefault();
             e.stopPropagation();
             folderDropDepthRef.current -= 1;
@@ -766,26 +808,75 @@ const Upload: React.FC = () => {
             }
           }}
           onDragOver={(e) => {
-            if (!hasSelectedDemo) return;
             e.preventDefault();
             e.stopPropagation();
             e.dataTransfer.dropEffect = "copy";
           }}
           onDrop={(e) => void handleFolderDrop(e)}
         >
+          <input
+            ref={filesInputRef}
+            type="file"
+            multiple
+            accept=".fla,.psd,application/x-fla,image/vnd.adobe.photoshop"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              handleFilesInputChange(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            // @ts-expect-error non-standard; folder picker in Chromium
+            webkitdirectory=""
+            directory=""
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              handleFilesInputChange(e.target.files);
+              e.target.value = "";
+            }}
+          />
           <p className="text-sm leading-relaxed text-slate-700 dark:text-[#cbd5e1]">
-            {hasSelectedDemo ? (
+            {isFolderDropActive ? (
+              <span className="font-semibold text-teal-700 dark:text-[#9ff3de]">
+                Release to add files
+              </span>
+            ) : (
               <>
                 Drag and drop a folder or multiple{" "}
                 <span className="font-semibold text-teal-700 dark:text-[#9ff3de]">.fla</span> /{" "}
                 <span className="font-semibold text-teal-700 dark:text-[#9ff3de]">.psd</span>{" "}
-                files into this zone
-                (combined max 30MB).
+                files here, or click this zone to browse (combined max 30MB).
               </>
-            ) : (
-              "Pick a Creative Demo Title first, then drag and drop files or a folder here."
             )}
           </p>
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="border border-slate-200 text-xs normal-case tracking-normal dark:border-white/10"
+              onClick={() => filesInputRef.current?.click()}
+            >
+              Choose files
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="border border-slate-200 text-xs normal-case tracking-normal dark:border-white/10"
+              onClick={() => folderInputRef.current?.click()}
+            >
+              Choose folder
+            </Button>
+          </div>
           <p className="mt-2 text-xs text-slate-500 dark:text-[#94a3b8]">
             {selectedFolderItems.length > 0
               ? `${selectedFolderItems.length} file(s) · total ${formatFileSize(stagedTotalBytes)} / ${formatFileSize(MAX_BATCH_TOTAL_BYTES)}`

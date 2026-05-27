@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm --parallel --filter server --filter nova-ai-creative-suite run dev",
+    "dev": "pnpm --parallel --filter ./apps/server --filter ./apps/web run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

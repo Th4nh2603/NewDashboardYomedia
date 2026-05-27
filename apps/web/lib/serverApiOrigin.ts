@@ -3,11 +3,12 @@
  * In Vite dev, returns "" so fetches hit the web origin and `/api` is proxied to the server.
  */
 export function serverApiOrigin(): string {
+  // Dev: always use same-origin `/api` (Vite proxy → local Express).
+  if (import.meta.env.DEV) return "";
   const raw =
     typeof import.meta.env.VITE_SERVER_URL === "string"
       ? import.meta.env.VITE_SERVER_URL.trim()
       : "";
   if (raw) return raw.replace(/\/+$/, "");
-  if (import.meta.env.DEV) return "";
   return "http://localhost:3001";
 }

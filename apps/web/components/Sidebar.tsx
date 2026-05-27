@@ -42,7 +42,12 @@ function SidebarAdminOfflineToggle({
   isDark: boolean;
 }) {
   const { tLayout } = useLanguage();
-  const { enabled, toggle } = useAdminOfflineMode();
+  const { enabled, manual, auto, toggle } = useAdminOfflineMode();
+  const activeLabel = manual
+    ? tLayout("adminOfflineModeActive")
+    : auto
+      ? tLayout("adminOfflineModeAutoActive")
+      : tLayout("adminOfflineMode");
   return (
     <motion.button
       type="button"
@@ -64,9 +69,7 @@ function SidebarAdminOfflineToggle({
       />
       {!isCollapsed && (
         <span className="whitespace-nowrap">
-          {enabled
-            ? tLayout("adminOfflineModeActive")
-            : tLayout("adminOfflineMode")}
+          {enabled ? activeLabel : tLayout("adminOfflineMode")}
         </span>
       )}
     </motion.button>

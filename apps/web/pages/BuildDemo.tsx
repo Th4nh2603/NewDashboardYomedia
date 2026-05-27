@@ -26,6 +26,11 @@ import NoticePopup from "../components/NoticePopup";
 import JSZip from "jszip";
 import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
 import { isBuildDemoBrandAllowed } from "../lib/buildDemoBrands";
+import {
+  getBuildDemoUploadResultStorageKey,
+  loadPersistedBuildDemoUploadResult,
+  persistBuildDemoUploadResult,
+} from "../lib/buildDemoUploadResultStorage";
 
 type BuildDemoRolePermissions = Record<
   string,
@@ -351,6 +356,10 @@ function formatMediaSetupPath(value: string | null | undefined): string {
 /** Demo format Video: luôn ghi file dưới thư mục demo với đường dẫn cố định này (SFTP + ZIP offline). */
 const VIDEO_DEMO_FIXED_REL_PATH = "tvc.mp4";
 
+/** Offline ZIP: skip vendor/lib trees (manifest URLs are rewritten to CDN in converted HTML/JS). */
+const OFFLINE_PACKAGE_SKIP_REL_PATH_RE =
+  /(^|\/)(libs?|node_modules)(\/|$)/i;
+
 const DEMO_PUBLIC_VIDEO_ORIGIN = "https://demo.yomedia.vn";
 
 /** VAST 2.0 for make-vast.xml; `targetDemoPath` is the public path segment (e.g. 2026/04/brand/.../tvc). */
@@ -642,6 +651,12 @@ const BuildDemo: React.FC = () => {
   >("default");
   const [lastSuccessfulSftpUpload, setLastSuccessfulSftpUpload] =
     useState<LastSuccessfulSftpUpload | null>(null);
+  const buildDemoUploadResultStorageKey = React.useMemo(
+    () => getBuildDemoUploadResultStorageKey(user?.email),
+    [user?.email],
+  );
+  const [uploadResultStorageReady, setUploadResultStorageReady] =
+    useState(false);
   const prevDemoFormatRef = useRef<(typeof demoFormats)[number] | null>(null);
   const [metrics, setMetrics] = useState({
     gpu: 12,
@@ -706,6 +721,35 @@ const BuildDemo: React.FC = () => {
       cancelled = true;
     };
   }, [baseUrl]);
+
+  useEffect(() => {
+    setUploadResultStorageReady(false);
+    const persisted = loadPersistedBuildDemoUploadResult(
+      buildDemoUploadResultStorageKey,
+    );
+    setSftpUploadPopupPayload(
+      (persisted?.sftpUploadPopupPayload as SftpUploadPopupPayload | null) ??
+        null,
+    );
+    setLastSuccessfulSftpUpload(
+      (persisted?.lastSuccessfulSftpUpload as LastSuccessfulSftpUpload | null) ??
+        null,
+    );
+    setUploadResultStorageReady(true);
+  }, [buildDemoUploadResultStorageKey]);
+
+  useEffect(() => {
+    if (!uploadResultStorageReady) return;
+    persistBuildDemoUploadResult(buildDemoUploadResultStorageKey, {
+      sftpUploadPopupPayload,
+      lastSuccessfulSftpUpload,
+    });
+  }, [
+    buildDemoUploadResultStorageKey,
+    uploadResultStorageReady,
+    sftpUploadPopupPayload,
+    lastSuccessfulSftpUpload,
+  ]);
 
   const bdSftp =
     buildDemoPermissions[normalizedRole]?.manageDemo ??
@@ -1694,6 +1738,33 @@ const BuildDemo: React.FC = () => {
       .replace(/\\+/g, "/")
       .replace(/^\/+/, "");
 
+  const isOfflinePackageImageFile = (item: UploadedFile) => {
+    const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+    return IMAGE_EXTS.includes(ext) || item.file.type.startsWith("image/");
+  };
+
+  const isOfflinePackageVideoFile = (item: UploadedFile) => {
+    const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+    return VIDEO_EXTS.includes(ext) || item.file.type.startsWith("video/");
+  };
+
+  /** HTML/JS sources for offline convert + ZIP (excludes images, libs, and other assets). */
+  const isOfflinePackageTextFile = (item: UploadedFile) => {
+    if (isOfflinePackageImageFile(item) || isOfflinePackageVideoFile(item)) {
+      return false;
+    }
+    const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
+    if (!TEXT_EXTS.includes(ext)) return false;
+    const rel = normalizeRelativePath(item).replace(/\\/g, "/");
+    if (OFFLINE_PACKAGE_SKIP_REL_PATH_RE.test(rel)) return false;
+    return true;
+  };
+
+  const pickOfflinePackageFiles = (all: UploadedFile[]) => ({
+    textFiles: all.filter(isOfflinePackageTextFile),
+    videoFiles: all.filter(isOfflinePackageVideoFile),
+  });
+
   /** Drop a leading folder that duplicates the SFTP leaf or the HTML/JS basename (e.g. …/600x125-2/600x125/index.html → …/600x125-2/index.html). */
   const stripRedundantRelativeFolderPrefix = (
     relativePath: string,
@@ -1713,7 +1784,7 @@ const BuildDemo: React.FC = () => {
 
   /**
    * Offline download: flat zip (no remote SFTP-style paths).
-   * HTML + JS always; uploaded videos included when present.
+   * Only converted HTML/JS plus video when uploaded — images, libs, and other assets are omitted.
    * First HTML becomes `index.html`; basenames uniquified on clashes across text + video.
    */
   const buildOfflineGeneratedFiles = async (
@@ -1725,6 +1796,7 @@ const BuildDemo: React.FC = () => {
     let indexHtmlUsed = false;
 
     for (const item of textFiles) {
+      if (!isOfflinePackageTextFile(item)) continue;
       const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
       if (!TEXT_EXTS.includes(ext)) continue;
 
@@ -1748,6 +1820,7 @@ const BuildDemo: React.FC = () => {
     }
 
     for (const item of videoFiles) {
+      if (!isOfflinePackageVideoFile(item)) continue;
       const ext = `.${item.file.name.split(".").pop() ?? ""}`.toLowerCase();
       if (!VIDEO_EXTS.includes(ext)) continue;
       const relativePath = normalizeRelativePath(item);
@@ -1879,9 +1952,17 @@ const BuildDemo: React.FC = () => {
       const ext = `.${f.file.name.split(".").pop() ?? ""}`.toLowerCase();
       return VIDEO_EXTS.includes(ext);
     });
+    const offlinePackageFiles = pickOfflinePackageFiles(files);
 
     if (config.demoFormat === "Video") {
-      if (videoFiles.length !== 1 || files.length !== 1) {
+      if (adminOfflineMode) {
+        if (offlinePackageFiles.videoFiles.length !== 1) {
+          setSendError(
+            "Video format: upload exactly one MP4/WebM/MOV file.",
+          );
+          return;
+        }
+      } else if (videoFiles.length !== 1 || files.length !== 1) {
         setSendError(
           "Video format: upload exactly one MP4/WebM/MOV file (no other assets).",
         );
@@ -1889,12 +1970,16 @@ const BuildDemo: React.FC = () => {
       }
     }
 
-    if (textFiles.length === 0 && videoFiles.length === 0) {
-      setSendError(
-        adminOfflineMode
-          ? "No HTML/JS/video files found to convert."
-          : "No HTML/JS/video files found to upload.",
-      );
+    if (adminOfflineMode) {
+      if (
+        offlinePackageFiles.textFiles.length === 0 &&
+        offlinePackageFiles.videoFiles.length === 0
+      ) {
+        setSendError("No HTML/JS/video files found to convert.");
+        return;
+      }
+    } else if (textFiles.length === 0 && videoFiles.length === 0) {
+      setSendError("No HTML/JS/video files found to upload.");
       return;
     }
 
@@ -1903,17 +1988,17 @@ const BuildDemo: React.FC = () => {
       setPreparingOfflineFiles(true);
       try {
         const generated = await buildOfflineGeneratedFiles(
-          textFiles,
-          videoFiles,
+          offlinePackageFiles.textFiles,
+          offlinePackageFiles.videoFiles,
           config.demoFormat === "Video" ? VIDEO_DEMO_FIXED_REL_PATH : undefined,
         );
         setOfflineGeneratedFiles(generated);
         const summaryParts = [
-          textFiles.length > 0 ? "HTML + JS" : null,
-          videoFiles.length > 0
+          offlinePackageFiles.textFiles.length > 0 ? "HTML + JS" : null,
+          offlinePackageFiles.videoFiles.length > 0
             ? config.demoFormat === "Video"
               ? `video as ${VIDEO_DEMO_FIXED_REL_PATH}`
-              : `${videoFiles.length} video`
+              : `${offlinePackageFiles.videoFiles.length} video`
             : null,
         ].filter(Boolean);
         setOfflinePackagePayload({
@@ -2050,8 +2135,8 @@ const BuildDemo: React.FC = () => {
       setPreparingOfflineFiles(true);
       try {
         const generated = await buildOfflineGeneratedFiles(
-          textFiles,
-          videoFiles,
+          offlinePackageFiles.textFiles,
+          offlinePackageFiles.videoFiles,
           config.demoFormat === "Video" ? VIDEO_DEMO_FIXED_REL_PATH : undefined,
         );
         setOfflineGeneratedFiles(generated);
@@ -2062,7 +2147,7 @@ const BuildDemo: React.FC = () => {
             ?.trim() ?? reason.trim();
         setOfflinePackagePayload({
           kind: "fallback",
-          summary: `${generated.length} file(s) bundled for local ZIP download.`,
+          summary: `${generated.length} converted file(s) bundled for local ZIP download (HTML/JS + video only).`,
           uploadIssueSummary: issueLine.slice(0, 280),
         });
         setOfflinePackageDialogOpen(true);
@@ -2840,7 +2925,6 @@ const BuildDemo: React.FC = () => {
                   setOfflineGeneratedFiles([]);
                   setOfflinePackagePayload(null);
                   setOfflinePackageDialogOpen(false);
-                  setSftpUploadPopupPayload(null);
                   setSftpUploadDialogOpen(false);
                 }}
                 disabled={files.length === 0 && !sourceUrl}
@@ -3569,7 +3653,8 @@ const BuildDemo: React.FC = () => {
                   aria-hidden
                 />
                 <span>
-                  Videos are included when you uploaded them. File name:{" "}
+                  ZIP contains converted HTML/JS only, plus video when uploaded
+                  (images and other assets are not included). File name:{" "}
                   <span className="font-semibold text-white/90">
                     Banner + month + date + timezone
                   </span>

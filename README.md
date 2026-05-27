@@ -410,16 +410,18 @@ pnpm dev
 
 Mở **http://localhost:3000** (UI). API mặc định **3001**; Vite proxy `/api` → server (đọc `apps/web/.dev-api-port` nếu API đổi port).
 
+> **Lưu ý:** Không dùng `pnpm -r dev` — lệnh này chạy tuần tự, server giữ tiến trình nên Vite (cổng 3000) không bao giờ khởi động → `ERR_CONNECTION_REFUSED` trên localhost:3000. Luôn dùng **`pnpm dev`**.
+
 Nếu cổng bận: dừng tiến trình cũ (`Ctrl+C`), tránh chạy nhiều lần `pnpm dev`. Web **không** chiếm cổng 3001.
 
 Hoặc từng app:
 
 ```bash
 # Web — http://localhost:3000 (proxy /api → server)
-pnpm --filter web dev
+pnpm --filter ./apps/web dev
 
 # Server — http://localhost:3001 (tự tìm port trống nếu bận)
-pnpm --filter server dev
+pnpm --filter ./apps/server dev
 
 # Mobile
 pnpm --filter mobile start

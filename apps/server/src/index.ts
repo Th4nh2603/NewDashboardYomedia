@@ -86,9 +86,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "x-user-role"],
   }),
 );
-/** Large enough for bulky JSON; video uploads prefer sftp writeBinary (octet-stream, 500mb). */
-app.use(express.json({ limit: "500mb" }));
 
+/** tRPC must run before express.json so POST batch bodies are not lost or mis-parsed. */
 app.use(
   "/api/trpc",
   trpcExpress.createExpressMiddleware({
@@ -96,6 +95,9 @@ app.use(
     createContext,
   }),
 );
+
+/** Large enough for bulky JSON; video uploads prefer sftp writeBinary (octet-stream, 500mb). */
+app.use(express.json({ limit: "500mb" }));
 
 /** REST-only: binary SFTP upload & ZIP download (streaming / raw body). */
 app.use("/api/sftp", sftpRouter);

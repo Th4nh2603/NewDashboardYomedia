@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import {
   getAdminOfflineMode,
+  getApiOfflineMode,
+  reportHealthProbeFailure,
+  reportHealthProbeSuccess,
   subscribeAdminOfflineMode,
 } from "../lib/adminOfflineMode";
 import { api } from "../lib/trpc/api";
+import { isBackendRequestError } from "../lib/apiError";
 
 const POLL_MS = 15000;
 
 /**
  * Tracks whether the API responds to tRPC health.check (no auth).
+ * Drives auto-offline when probes fail and clears it when the API recovers.
  */
 export function useServerReachable(): boolean {
-  const [reachable, setReachable] = useState(() => !getAdminOfflineMode());
+  const [reachable, setReachable] = useState(() => !getApiOfflineMode());
 
   useEffect(() => {
     let cancelled = false;
@@ -21,17 +26,30 @@ export function useServerReachable(): boolean {
         if (!cancelled) setReachable(false);
         return;
       }
+
       try {
         const result = await api.health.check();
-        if (!cancelled) setReachable(result.ok === true);
-      } catch {
+        const ok = result.ok === true;
+        if (!cancelled) setReachable(ok);
+        if (ok) reportHealthProbeSuccess();
+        else reportHealthProbeFailure();
+      } catch (err) {
         if (!cancelled) setReachable(false);
+        if (
+          isBackendRequestError(err) &&
+          (err.status === 0 ||
+            err.status >= 502 ||
+            err.code === "NETWORK_ERROR")
+        ) {
+          reportHealthProbeFailure();
+        }
       }
     };
 
     void check();
     const id = window.setInterval(check, POLL_MS);
     const unsub = subscribeAdminOfflineMode(() => {
+      if (!cancelled) setReachable(!getApiOfflineMode());
       void check();
     });
     return () => {

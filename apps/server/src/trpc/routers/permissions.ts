@@ -3,7 +3,12 @@ import {
   getPermissionsSnapshot,
   updateRolePermission,
 } from "../../services/permissions.js";
-import { adminProcedure, publicProcedure, router, runHandler } from "../trpc.js";
+import {
+  adminProcedure,
+  publicProcedure,
+  router,
+  runHandler,
+} from "../trpc.js";
 import { HttpError } from "../../lib/http/errors.js";
 import { normalizeAccountText } from "../../lib/auth/accounts.js";
 
@@ -22,7 +27,9 @@ const rolePermissionPayloadSchema = z.object({
     })
     .optional(),
   routeAccess: z.object({ allowedRoutes: z.unknown().optional() }).optional(),
-  creativeShowcase: z.object({ canDownload: z.unknown().optional() }).optional(),
+  creativeShowcase: z
+    .object({ canDownload: z.unknown().optional() })
+    .optional(),
 });
 
 export const permissionsRouter = router({
@@ -45,6 +52,7 @@ export const permissionsRouter = router({
     )
     .mutation(({ input }) =>
       runHandler(async () => {
+        console.log("input", input);
         const role = normalizeAccountText(input.role);
         if (!role) {
           throw new HttpError(400, "Missing role");
