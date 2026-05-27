@@ -38,6 +38,117 @@ Xác thực: **Clerk** + **Google OAuth**. Phân quyền: `admin`, `guest`, và 
 
 ---
 
+## Tổng hợp module đã cài (kèm chức năng)
+
+### Root (`/package.json`)
+
+| Module | Chức năng |
+|--------|-----------|
+| `@clerk/react` | SDK Clerk cho React, hỗ trợ đăng nhập/phiên người dùng ở tầng UI dùng chung. |
+| `lucide-react` | Bộ icon React để dựng giao diện dashboard. |
+
+### Web (`apps/web/package.json`)
+
+| Module | Chức năng |
+|--------|-----------|
+| `@clerk/react` | Tích hợp đăng nhập/xác thực Clerk trong web app. |
+| `@clerk/themes` | Tuỳ biến giao diện component Clerk theo theme. |
+| `@google/genai` | Gọi Google Gemini phía client cho chat/vision. |
+| `@heroicons/react` | Bộ icon SVG cho React components. |
+| `@hookform/resolvers` | Kết nối React Hook Form với schema validator (Zod). |
+| `@react-oauth/google` | Hỗ trợ đăng nhập Google OAuth phía client. |
+| `@tanstack/react-query` | Cache/fetch state cho API calls và đồng bộ dữ liệu UI. |
+| `@trpc/client` | Client tRPC gọi procedure backend theo type-safe API. |
+| `@trpc/react-query` | Tích hợp tRPC với React Query hooks. |
+| `@yomedia/api` | Package nội bộ chia sẻ type/router contract giữa web và server. |
+| `jszip` | Nén/giải nén dữ liệu ZIP trong các tác vụ xử lý file. |
+| `jwt-decode` | Giải mã JWT ở client để đọc thông tin claim. |
+| `motion` | Animation/transitions cho trải nghiệm UI. |
+| `react` | Nền tảng UI component-based của ứng dụng web. |
+| `react-dom` | Renderer React cho môi trường trình duyệt. |
+| `react-hook-form` | Quản lý form state/validation hiệu quả trong React. |
+| `react-router-dom` | Điều hướng route trong SPA. |
+| `superjson` | Serialize dữ liệu nâng cao (Date, Map, ...) khi giao tiếp tRPC. |
+| `zod` | Khai báo schema và validate input/output. |
+| `@types/node` (dev) | Type definitions Node.js cho TypeScript tooling. |
+| `@vitejs/plugin-react` (dev) | Plugin React cho Vite (HMR, transform JSX). |
+| `typescript` (dev) | Compiler/type checker TypeScript cho web app. |
+| `vite` (dev) | Dev server + bundler cho ứng dụng web. |
+
+### Server (`apps/server/package.json`)
+
+| Module | Chức năng |
+|--------|-----------|
+| `@clerk/backend` | Xác thực Clerk JWT ở backend và truy cập SDK phía server. |
+| `@google/generative-ai` | SDK Gemini chính thức dùng cho tác vụ AI server-side. |
+| `@langchain/community` | Các integration community cho pipeline AI/RAG. |
+| `@langchain/core` | Thành phần lõi (runnables, messages, prompts) của LangChain. |
+| `@langchain/google-genai` | Connector LangChain cho Google Gemini models. |
+| `@langchain/textsplitters` | Chia nhỏ tài liệu trước khi embed/retrieval trong RAG. |
+| `@trpc/server` | Xây dựng API tRPC type-safe trên server. |
+| `@yomedia/api` | Chia sẻ định nghĩa router/types giữa server và client. |
+| `cors` | Cấu hình CORS cho API Express. |
+| `dotenv` | Load biến môi trường từ `.env`. |
+| `express` | HTTP server framework cho REST endpoints. |
+| `ffmpeg-static` | Cung cấp binary ffmpeg phục vụ xử lý media. |
+| `jszip` | Tạo/đọc file ZIP cho thao tác file, download gói dữ liệu. |
+| `langchain` | Framework orchestration cho workflow LLM/RAG. |
+| `nodemailer` | Gửi email qua SMTP. |
+| `openai` | SDK OpenAI (dự phòng/mở rộng kênh LLM). |
+| `ssh2-sftp-client` | Kết nối và thao tác file qua SFTP. |
+| `superjson` | Serialize dữ liệu nâng cao qua tRPC. |
+| `zod` | Validate schema dữ liệu đầu vào/đầu ra API. |
+| `@types/cors` (dev) | Type definitions cho `cors`. |
+| `@types/express` (dev) | Type definitions cho Express. |
+| `@types/node` (dev) | Type definitions Node.js cho TypeScript. |
+| `@types/nodemailer` (dev) | Type definitions cho Nodemailer. |
+| `tsx` (dev) | Chạy TypeScript trực tiếp trong dev/watch mode. |
+| `typescript` (dev) | Compiler/type checker TypeScript cho server. |
+
+### Mobile (`apps/mobile/package.json`)
+
+| Module | Chức năng |
+|--------|-----------|
+| `@expo/vector-icons` | Bộ icon chuẩn cho ứng dụng Expo/React Native. |
+| `@react-navigation/bottom-tabs` | Điều hướng tab bottom trong mobile app. |
+| `@react-navigation/elements` | UI building blocks cho React Navigation. |
+| `@react-navigation/native` | Core navigation container và API điều hướng. |
+| `expo` | Runtime/tooling chính của nền tảng Expo. |
+| `expo-constants` | Truy cập hằng số hệ thống/app config trong runtime. |
+| `expo-font` | Load và quản lý custom fonts. |
+| `expo-haptics` | Tạo phản hồi rung (haptic feedback). |
+| `expo-image` | Hiển thị ảnh tối ưu hiệu năng cho Expo. |
+| `expo-linking` | Xử lý deep link và URL scheme. |
+| `expo-router` | Routing theo file-system cho Expo app. |
+| `expo-splash-screen` | Cấu hình và điều khiển splash screen. |
+| `expo-status-bar` | Điều khiển status bar theo màn hình. |
+| `expo-symbols` | Symbol/icon utilities cho hệ sinh thái Expo. |
+| `expo-system-ui` | Tùy chỉnh UI hệ thống (theme/status/navigation). |
+| `expo-web-browser` | Mở web auth/session trong trình duyệt hệ thống. |
+| `react` | Nền tảng component cho mobile app. |
+| `react-dom` | Renderer cho target web của Expo (khi chạy web). |
+| `react-native` | Framework native UI cho iOS/Android. |
+| `react-native-gesture-handler` | Gesture engine cho thao tác chạm/phức hợp. |
+| `react-native-worklets` | Worklet runtime hỗ trợ animation/tác vụ realtime. |
+| `react-native-reanimated` | Animation mượt trên UI thread. |
+| `react-native-safe-area-context` | Xử lý safe area cho tai thỏ/thanh điều hướng. |
+| `react-native-screens` | Tối ưu stack navigation bằng native screens. |
+| `react-native-web` | Chạy React Native components trên web. |
+| `@types/react` (dev) | Type definitions React cho TypeScript. |
+| `typescript` (dev) | Compiler/type checker TypeScript cho mobile app. |
+| `eslint` (dev) | Lint code JavaScript/TypeScript. |
+| `eslint-config-expo` (dev) | Bộ rule ESLint chuẩn cho dự án Expo. |
+
+### Shared API package (`packages/api/package.json`)
+
+| Module | Chức năng |
+|--------|-----------|
+| `@trpc/server` | Định nghĩa kiểu/router tRPC dùng chung giữa các app. |
+| `superjson` | Serialize dữ liệu nâng cao trong contract tRPC dùng chung. |
+| `typescript` (dev) | Kiểm tra kiểu cho package shared API. |
+
+---
+
 ## Cấu trúc dự án
 
 ```text
@@ -472,6 +583,11 @@ pnpm --filter web preview
 | `CLERK_JWT_KEY` | (Tùy chọn) JWT verification |
 | `CLERK_AUTHORIZED_PARTIES` | Danh sách origin được phép |
 | `GEMINI_API_KEY` | RAG / AI server-side |
+| `CHAT_SYSTEM_PROMPT` | (Tùy chọn) System prompt cho AI Chat/RAG. Dùng `\n` cho xuống dòng. Mặc định: NovaAi YoMedia |
+| `GEMINI_CHAT_MODEL` | (Tùy chọn) Model Gemini cho chat RAG (mặc định `gemini-flash-latest`) |
+| `OPENAI_CHAT_MODEL` | (Tùy chọn) Model OpenAI cho chat RAG (mặc định `gpt-4o-mini`) |
+| `TAVILY_API_KEY` | Tavily web search (chat prefix `web - `) |
+| `TAVILY_MAX_RESULTS` | (Tùy chọn) Số kết quả Tavily, 1–20 (mặc định `5`) |
 | `SFTP_HOST`, `SFTP_PORT`, `SFTP_USER`, `SFTP_PASSWORD` | Host demo |
 | `SFTP_HOST_MEDIA`, `SFTP_PORT_MEDIA`, `SFTP_USER_MEDIA`, `SFTP_PASSWORD_MEDIA` | Host media/CDN |
 | `SFTP_MEDIA_MANAGE_PATH_PREFIX` | Tiền tố map path media (mặc định `media`) |

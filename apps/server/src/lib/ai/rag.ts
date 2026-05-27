@@ -4,6 +4,16 @@ import { fileURLToPath } from "url";
 
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import OpenAI from "openai";
+
+import { getChatSystemPrompt } from "./chatSystemPrompt.js";
+import {
+  formatTavilyHitsForPrompt,
+  parseWebSearchQuestion,
+  searchWebWithTavily,
+} from "./tavily.js";
+
+export type ChatAiProvider = "gemini" | "openai";
 
 type RagSingleton = {
   docs: Document[];
@@ -12,10 +22,33 @@ type RagSingleton = {
   sourceCount: number;
 };
 
-let singletonPromise: Promise<RagSingleton> | null = null;
+const singletonByProvider = new Map<ChatAiProvider, Promise<RagSingleton>>();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function stripUtf8Bom(text: string): string {
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+function parseJsonText(raw: string): unknown {
+  return JSON.parse(stripUtf8Bom(raw));
+}
+
+function requireApiKey(provider: ChatAiProvider): string {
+  if (provider === "openai") {
+    const key = process.env.OPENAI_API_KEY?.trim();
+    if (!key) throw new Error("Missing OPENAI_API_KEY");
+    return key;
+  }
+  const key = process.env.GEMINI_API_KEY?.trim();
+  if (!key) throw new Error("Missing GEMINI_API_KEY");
+  return key;
+}
+
+function providerDisplayName(provider: ChatAiProvider): string {
+  return provider === "openai" ? "OpenAI" : "Gemini";
+}
 
 async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
   const entries = await readdir(folderAbs, { withFileTypes: true });
@@ -31,7 +64,7 @@ async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
     const raw = await readFile(fullPath, "utf8");
     const ext = path.extname(name).toLowerCase();
     const content =
-      ext === ".json" ? JSON.stringify(JSON.parse(raw), null, 2) : raw;
+      ext === ".json" ? JSON.stringify(parseJsonText(raw), null, 2) : raw;
     docs.push(
       new Document({
         pageContent: content,
@@ -42,9 +75,12 @@ async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
   return docs;
 }
 
-async function loadJsonDoc(jsonAbsPath: string, sourceName: string): Promise<Document[]> {
+async function loadJsonDoc(
+  jsonAbsPath: string,
+  sourceName: string,
+): Promise<Document[]> {
   const raw = await readFile(jsonAbsPath, "utf8");
-  const content = JSON.stringify(JSON.parse(raw), null, 2);
+  const content = JSON.stringify(parseJsonText(raw), null, 2);
   return [
     new Document({
       pageContent: content,
@@ -53,57 +89,62 @@ async function loadJsonDoc(jsonAbsPath: string, sourceName: string): Promise<Doc
   ];
 }
 
-async function getRagSingleton(): Promise<RagSingleton> {
-  if (singletonPromise) return singletonPromise;
-
-  singletonPromise = (async () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing GEMINI_API_KEY");
-    }
-
-    const docsFolder = path.join(process.cwd(), "rag", "docs");
-    const creativeDemosPath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "data",
-      "creative-demos.json",
-    );
-
-    const [docsFromFolder, docsFromCreativeDemos] = await Promise.all([
-      loadDocsFromFolder(docsFolder),
-      loadJsonDoc(creativeDemosPath, "creative-demos.json"),
-    ]);
-
-    const docs = [...docsFromFolder, ...docsFromCreativeDemos];
-    if (docs.length === 0) {
-      throw new Error(`No RAG docs found in ${docsFolder}`);
-    }
-
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1200,
-      chunkOverlap: 200,
-    });
-    const chunks = await splitter.splitDocuments(docs);
-
-    const vectors = await embedTexts({
-      apiKey,
-      texts: chunks.map((d) => d.pageContent),
-    });
-
-    return {
-      docs: chunks,
-      vectors,
-      readyAt: Date.now(),
-      sourceCount: docs.length,
-    };
-  })();
-
-  return singletonPromise;
+async function getRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
+  let promise = singletonByProvider.get(provider);
+  if (!promise) {
+    promise = buildRagSingleton(provider);
+    singletonByProvider.set(provider, promise);
+  }
+  return promise;
 }
 
-async function embedText(params: { apiKey: string; text: string; timeoutMs?: number }) {
+async function buildRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
+  const apiKey = requireApiKey(provider);
+
+  const docsFolder = path.join(process.cwd(), "rag", "docs");
+  const creativeDemosPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "data",
+    "creative-demos.json",
+  );
+
+  const [docsFromFolder, docsFromCreativeDemos] = await Promise.all([
+    loadDocsFromFolder(docsFolder),
+    loadJsonDoc(creativeDemosPath, "creative-demos.json"),
+  ]);
+
+  const docs = [...docsFromFolder, ...docsFromCreativeDemos];
+  if (docs.length === 0) {
+    throw new Error(`No RAG docs found in ${docsFolder}`);
+  }
+
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1200,
+    chunkOverlap: 200,
+  });
+  const chunks = await splitter.splitDocuments(docs);
+
+  const vectors = await embedTexts({
+    provider,
+    apiKey,
+    texts: chunks.map((d) => d.pageContent),
+  });
+
+  return {
+    docs: chunks,
+    vectors,
+    readyAt: Date.now(),
+    sourceCount: docs.length,
+  };
+}
+
+async function embedTextGemini(params: {
+  apiKey: string;
+  text: string;
+  timeoutMs?: number;
+}) {
   const timeoutMs = params.timeoutMs ?? 15000;
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
@@ -122,7 +163,10 @@ async function embedText(params: { apiKey: string; text: string; timeoutMs?: num
       },
     );
 
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as {
+      error?: { message?: string };
+      embedding?: { values?: number[] };
+    };
     if (!res.ok) {
       throw new Error(
         `Embedding failed (${res.status}): ${json?.error?.message || "Unknown error"}`,
@@ -133,29 +177,75 @@ async function embedText(params: { apiKey: string; text: string; timeoutMs?: num
     if (!Array.isArray(values)) {
       throw new Error("Embedding response missing embedding.values");
     }
-    return values as number[];
+    return values;
   } finally {
     clearTimeout(t);
   }
 }
 
-async function embedTexts(params: { apiKey: string; texts: string[] }) {
-  // sequential to keep stable (quota/latency)
+async function embedTextOpenAI(params: {
+  apiKey: string;
+  text: string;
+  timeoutMs?: number;
+}) {
+  const timeoutMs = params.timeoutMs ?? 15000;
+  const client = new OpenAI({ apiKey: params.apiKey, timeout: timeoutMs });
+  const model =
+    process.env.OPENAI_EMBEDDING_MODEL?.trim() || "text-embedding-3-small";
+  const res = await client.embeddings.create({
+    model,
+    input: params.text,
+  });
+  const embedding = res.data[0]?.embedding;
+  if (!embedding?.length) {
+    throw new Error("OpenAI embedding response missing embedding vector");
+  }
+  return embedding;
+}
+
+async function embedText(params: {
+  provider: ChatAiProvider;
+  apiKey: string;
+  text: string;
+  timeoutMs?: number;
+}) {
+  if (params.provider === "openai") {
+    return embedTextOpenAI(params);
+  }
+  return embedTextGemini(params);
+}
+
+async function embedTexts(params: {
+  provider: ChatAiProvider;
+  apiKey: string;
+  texts: string[];
+}) {
   const out: number[][] = [];
   for (const text of params.texts) {
-    out.push(await embedText({ apiKey: params.apiKey, text, timeoutMs: 20000 }));
+    out.push(
+      await embedText({
+        provider: params.provider,
+        apiKey: params.apiKey,
+        text,
+        timeoutMs: 20000,
+      }),
+    );
   }
   return out;
 }
 
-async function generateAnswer(params: {
+async function generateAnswerGemini(params: {
   apiKey: string;
+  systemPrompt?: string;
   prompt: string;
   timeoutMs?: number;
   model?: string;
 }) {
   const timeoutMs = params.timeoutMs ?? 20000;
-  const model = params.model ?? "gemini-flash-latest";
+  const model =
+    params.model ??
+    process.env.GEMINI_CHAT_MODEL?.trim() ??
+    "gemini-flash-latest";
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
@@ -167,6 +257,13 @@ async function generateAnswer(params: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(params.systemPrompt?.trim()
+            ? {
+                systemInstruction: {
+                  parts: [{ text: params.systemPrompt.trim() }],
+                },
+              }
+            : {}),
           contents: [{ role: "user", parts: [{ text: params.prompt }] }],
           generationConfig: { temperature: 0.2 },
         }),
@@ -174,7 +271,12 @@ async function generateAnswer(params: {
       },
     );
 
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as {
+      error?: { message?: string };
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
     if (!res.ok) {
       throw new Error(
         `Generate failed (${res.status}): ${json?.error?.message || "Unknown error"}`,
@@ -182,11 +284,49 @@ async function generateAnswer(params: {
     }
 
     const text =
-      json?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || "").join("") || "";
+      json?.candidates?.[0]?.content?.parts
+        ?.map((p) => p?.text || "")
+        .join("") || "";
     return String(text).trim();
   } finally {
     clearTimeout(t);
   }
+}
+
+async function generateAnswerOpenAI(params: {
+  apiKey: string;
+  systemPrompt?: string;
+  prompt: string;
+  timeoutMs?: number;
+  model?: string;
+}) {
+  const timeoutMs = params.timeoutMs ?? 20000;
+  const model =
+    params.model ?? process.env.OPENAI_CHAT_MODEL?.trim() ?? "gpt-4o-mini";
+  const client = new OpenAI({ apiKey: params.apiKey, timeout: timeoutMs });
+  const system = params.systemPrompt?.trim();
+  const res = await client.chat.completions.create({
+    model,
+    messages: [
+      ...(system ? [{ role: "system" as const, content: system }] : []),
+      { role: "user", content: params.prompt },
+    ],
+    temperature: 0.2,
+  });
+  return (res.choices[0]?.message?.content ?? "").trim();
+}
+
+async function generateAnswer(params: {
+  provider: ChatAiProvider;
+  apiKey: string;
+  systemPrompt?: string;
+  prompt: string;
+  timeoutMs?: number;
+}) {
+  if (params.provider === "openai") {
+    return generateAnswerOpenAI(params);
+  }
+  return generateAnswerGemini(params);
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -205,16 +345,67 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-export async function answerWithRag(params: { question: string }) {
+async function answerWithWebSearch(params: {
+  query: string;
+  provider: ChatAiProvider;
+  apiKey: string;
+}) {
+  const hits = await searchWebWithTavily(params.query);
+  const webContext = formatTavilyHitsForPrompt(hits);
+  const systemPrompt = getChatSystemPrompt();
+
+  const prompt = [
+    "WEB CONTEXT (kết quả tìm kiếm internet):",
+    webContext,
+    "",
+    "QUESTION:",
+    params.query,
+  ].join("\n");
+
+  const answer = await generateAnswer({
+    provider: params.provider,
+    apiKey: params.apiKey,
+    systemPrompt,
+    prompt,
+    timeoutMs: 25000,
+  });
+
+  return {
+    answer,
+    provider: params.provider,
+    mode: "web" as const,
+    sources: hits.map((h) => ({
+      source: h.url,
+      preview: `${h.title}: ${h.content.slice(0, 240)}`,
+    })),
+    rag: null,
+  };
+}
+
+export async function answerWithRag(params: {
+  question: string;
+  provider?: ChatAiProvider;
+}) {
   const question = params.question.trim();
   if (!question) throw new Error("Missing question");
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+  const provider: ChatAiProvider =
+    params.provider === "openai" ? "openai" : "gemini";
+  const apiKey = requireApiKey(provider);
 
-  const rag = await getRagSingleton();
+  const { isWebSearch, query: webQuery } = parseWebSearchQuestion(question);
+  if (isWebSearch) {
+    return answerWithWebSearch({ query: webQuery, provider, apiKey });
+  }
 
-  const qVec = await embedText({ apiKey, text: question, timeoutMs: 15000 });
+  const rag = await getRagSingleton(provider);
+
+  const qVec = await embedText({
+    provider,
+    apiKey,
+    text: question,
+    timeoutMs: 15000,
+  });
   const scored = rag.vectors.map((v, idx) => ({
     idx,
     score: cosineSimilarity(qVec, v),
@@ -224,7 +415,10 @@ export async function answerWithRag(params: { question: string }) {
   const sizeToken = sizeTokenMatch?.[0]?.toLowerCase() ?? null;
   const keywordMatchedIdx = sizeToken
     ? rag.docs
-        .map((d, idx) => ({ idx, has: d.pageContent.toLowerCase().includes(sizeToken) }))
+        .map((d, idx) => ({
+          idx,
+          has: d.pageContent.toLowerCase().includes(sizeToken),
+        }))
         .filter((x) => x.has)
         .map((x) => x.idx)
     : [];
@@ -249,11 +443,9 @@ export async function answerWithRag(params: { question: string }) {
     })
     .join("\n\n---\n\n");
 
+  const systemPrompt = getChatSystemPrompt();
   const prompt = [
-    "Bạn là NovaAi. Trả lời NGẮN GỌN, đúng trọng tâm, dựa trên CONTEXT.",
-    "Nếu CONTEXT không đủ thông tin, hãy nói rõ là không tìm thấy trong tài liệu và gợi ý người dùng bổ sung tài liệu.",
-    "",
-    "CONTEXT:",
+    "CONTEXT (tài liệu nội bộ):",
     context,
     "",
     "QUESTION:",
@@ -262,10 +454,15 @@ export async function answerWithRag(params: { question: string }) {
 
   let answer: string;
   try {
-    answer = await generateAnswer({ apiKey, prompt, timeoutMs: 20000 });
+    answer = await generateAnswer({
+      provider,
+      apiKey,
+      systemPrompt,
+      prompt,
+      timeoutMs: 20000,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // If quota/rate limited, still respond with best-effort excerpt so UI doesn't "hang".
     if (msg.includes("(429)") || msg.toLowerCase().includes("quota")) {
       const maxChars = 3500;
       let used = 0;
@@ -289,10 +486,13 @@ export async function answerWithRag(params: { question: string }) {
       }
 
       const sourcesLine = Array.from(sources).join(", ") || "unknown";
+      const name = providerDisplayName(provider);
       answer =
-        "Gemini đang bị giới hạn quota/rate-limit, nên mình trả lời tạm bằng trích đoạn tài liệu liên quan nhất.\n" +
+        `${name} đang bị giới hạn quota/rate-limit, nên mình trả lời tạm bằng trích đoạn tài liệu liên quan nhất.\n` +
         `Nguồn: ${sourcesLine}\n\n` +
-        (excerpts.length ? excerpts.join("\n\n---\n\n") : "Không có đoạn trích phù hợp trong tài liệu.");
+        (excerpts.length
+          ? excerpts.join("\n\n---\n\n")
+          : "Không có đoạn trích phù hợp trong tài liệu.");
     } else {
       throw err;
     }
@@ -300,6 +500,8 @@ export async function answerWithRag(params: { question: string }) {
 
   return {
     answer,
+    provider,
+    mode: "rag" as const,
     sources: retrieved.map((d: Document) => ({
       source:
         typeof d.metadata?.source === "string" ? d.metadata.source : "unknown",

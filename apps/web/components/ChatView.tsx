@@ -5,6 +5,13 @@ import { getYomediaDemoPreviewUrl } from "./OpenDemo";
 import { fetchJsonOrThrow } from "../lib/apiError";
 import { api } from "../lib/trpc/api";
 import { recordActivity } from "../lib/activityLog";
+import {
+  CHAT_AI_PROVIDER_OPTIONS,
+  chatProviderLabel,
+  loadChatAiProvider,
+  saveChatAiProvider,
+  type ChatAiProvider,
+} from "../lib/chatAiProvider";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import Button from './Button';
 
@@ -282,9 +289,15 @@ const ChatView = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [aiProvider, setAiProvider] = useState<ChatAiProvider>(loadChatAiProvider);
   const { handleApiError } = useError();
   const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const handleProviderChange = (next: ChatAiProvider) => {
+    setAiProvider(next);
+    saveChatAiProvider(next);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -429,9 +442,7 @@ const ChatView = () => {
     setIsLoading(true);
 
     try {
-      const baseUrl = serverApiOrigin();
-
-      const data = await api.rag.query(trimmedInput);
+      const data = await api.rag.query(trimmedInput, aiProvider);
 
       const modelMsg: ChatMessage = {
         id: (Date.now() + 2).toString(),
@@ -448,6 +459,7 @@ const ChatView = () => {
         metadata: {
           inputPreview: summarizePrompt(trimmedInput),
           responseLength: String(data.answer || "").length,
+          aiProvider,
         },
       });
     } catch (err) {
@@ -473,13 +485,40 @@ const ChatView = () => {
 
   return (
     <div className="max-w-4xl mx-auto h-[calc(100vh-6rem)] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl transition-colors duration-300">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-          <h2 className="font-bold text-slate-900 dark:text-white">
-            Gemini 3 Pro
-          </h2>
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-3 h-3 shrink-0 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="min-w-0">
+            <h2 className="font-bold text-slate-900 dark:text-white truncate">
+              NovaAi · {chatProviderLabel(aiProvider)}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {
+                CHAT_AI_PROVIDER_OPTIONS.find((o) => o.id === aiProvider)
+                  ?.description
+              }
+            </p>
+          </div>
         </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <label htmlFor="chat-ai-provider" className="sr-only">
+            AI provider
+          </label>
+          <select
+            id="chat-ai-provider"
+            value={aiProvider}
+            onChange={(e) =>
+              handleProviderChange(e.target.value as ChatAiProvider)
+            }
+            disabled={isLoading}
+            className="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+          >
+            {CHAT_AI_PROVIDER_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         <Button
           onClick={() => {
             if (messages.length > 0) {
@@ -498,6 +537,7 @@ const ChatView = () => {
         >
           Clear History
         </Button>
+        </div>
       </div>
 
       <div
@@ -511,7 +551,11 @@ const ChatView = () => {
               Start a conversation with NovaAi
             </p>
             <p className="text-sm">
-              NovaAi can help you with coding, writing, and logic.
+              Hỏi tài liệu nội bộ, hoặc gõ{" "}
+              <code className="text-xs px-1 rounded bg-slate-200 dark:bg-slate-800">
+                web - câu hỏi
+              </code>{" "}
+              để tìm trên internet.
             </p>
           </div>
         )}
@@ -555,7 +599,7 @@ const ChatView = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
+            placeholder='Hỏi tài liệu, hoặc "web - ..." để tìm web'
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-4 pr-12 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
           />
           <Button

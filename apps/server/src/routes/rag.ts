@@ -10,8 +10,14 @@ ragRouter.post(
   "/query",
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const body = (req.body || {}) as { question?: string };
-      const result = await answerWithRag({ question: body.question || "" });
+      const body = (req.body || {}) as {
+        question?: string;
+        provider?: "gemini" | "openai";
+      };
+      const result = await answerWithRag({
+        question: body.question || "",
+        provider: body.provider,
+      });
       res.json({ ok: true, ...result });
     } catch (error: unknown) {
       const message =

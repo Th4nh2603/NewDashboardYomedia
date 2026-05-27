@@ -122,7 +122,10 @@ export const api = {
       call(() => trpcClient.testData.update.mutate({ content })),
   },
   rag: {
-    query: (question: string) =>
-      call(() => trpcClient.rag.query.mutate({ question })),
+    query: (
+      question: string,
+      provider?: "gemini" | "openai",
+    ) =>
+      call(() => trpcClient.rag.query.mutate({ question, provider })),
   },
 };
