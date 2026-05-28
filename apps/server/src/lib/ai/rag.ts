@@ -14,6 +14,30 @@ import {
 } from "./tavily.js";
 
 export type ChatAiProvider = "gemini" | "openai";
+export type ChatAttachmentMeta = {
+  name: string;
+  relativePath?: string;
+  size: number;
+  mimeType?: string;
+};
+
+type UploadDemoActionPlan = {
+  intent: "upload_demo";
+  tool: "build_demo_convert_upload";
+  confidence: number;
+  remotePath: string | null;
+  brand: string | null;
+  demoId: string | null;
+  demoValue: string | null;
+  overwrite: boolean;
+  attachmentsSummary: {
+    fileCount: number;
+    totalBytes: number;
+    textCount: number;
+    binaryCount: number;
+  };
+  requiredInputs: string[];
+};
 
 type RagSingleton = {
   docs: Document[];
@@ -48,6 +72,109 @@ function requireApiKey(provider: ChatAiProvider): string {
 
 function providerDisplayName(provider: ChatAiProvider): string {
   return provider === "openai" ? "OpenAI" : "Gemini";
+}
+
+function detectUploadDemoIntent(question: string): boolean {
+  return /\b(upload\s*demo|demo\s*upload|convert\s+and\s+upload)\b/i.test(
+    question,
+  );
+}
+
+function extractRemotePath(question: string): string | null {
+  const m = question.match(
+    /(?:path|to|target)\s*[:=]\s*(\/?script\/demo\/[^\s,;]+|[0-9]{4}\/[^\s,;]+)/i,
+  );
+  if (!m?.[1]) return null;
+  return m[1]
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/^script\/demo\//i, "")
+    .replace(/\/+$/, "");
+}
+
+function extractBrand(question: string): string | null {
+  const explicit = question.match(
+    /\bbrand\s*[:=]\s*([a-z0-9][a-z0-9 _-]{1,60})\b/i,
+  );
+  if (explicit?.[1]) return explicit[1].trim();
+
+  const forBrand = question.match(
+    /\b(?:for|cho)\s+brand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i,
+  );
+  if (forBrand?.[1]) return forBrand[1].trim();
+
+  const afterIntent = question.match(
+    /\bupload\s*demo\b[\s:-]+([a-z0-9][a-z0-9 _-]{1,40})\b/i,
+  );
+  if (afterIntent?.[1]) {
+    const candidate = afterIntent[1].trim();
+    if (
+      !/\b(overwrite|replace|force|path|target|to|with|folder|files?)\b/i.test(
+        candidate,
+      )
+    ) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function extractDemoId(question: string): string | null {
+  const m = question.match(
+    /\b(?:demoId|demo_id|creativeId|creative_id)\s*[:=]\s*([a-z0-9_-]{2,40})\b/i,
+  );
+  if (!m?.[1]) return null;
+  return m[1].trim();
+}
+
+function extractDemoValue(question: string): string | null {
+  const m = question.match(
+    /\b(?:demoValue|demo_value|value|format)\s*[:=]\s*([a-z0-9][a-z0-9_-]{2,80})\b/i,
+  );
+  if (!m?.[1]) return null;
+  return m[1].trim();
+}
+
+function buildUploadDemoPlan(
+  question: string,
+  attachments: ChatAttachmentMeta[],
+): UploadDemoActionPlan {
+  const textCount = attachments.filter((a) => {
+    const ext = (a.name.split(".").pop() ?? "").toLowerCase();
+    return ["html", "htm", "js"].includes(ext);
+  }).length;
+  const videoCount = attachments.filter((a) => {
+    const ext = (a.name.split(".").pop() ?? "").toLowerCase();
+    return ["mp4", "webm", "mov"].includes(ext);
+  }).length;
+  const binaryCount = videoCount;
+  const totalBytes = attachments.reduce((sum, a) => sum + a.size, 0);
+  const overwrite = /\b(overwrite|replace|force)\b/i.test(question);
+  const remotePath = extractRemotePath(question);
+  const brand = extractBrand(question);
+  const demoId = extractDemoId(question);
+  const demoValue = extractDemoValue(question);
+  const requiredInputs: string[] = [];
+  if (!remotePath && !brand) requiredInputs.push("targetSourcePathOrBrand");
+  if (attachments.length === 0) requiredInputs.push("attachments");
+  if (!overwrite) requiredInputs.push("overwriteConfirmation");
+  return {
+    intent: "upload_demo",
+    tool: "build_demo_convert_upload",
+    confidence: attachments.length > 0 ? 0.95 : 0.6,
+    remotePath,
+    brand,
+    demoId,
+    demoValue,
+    overwrite,
+    attachmentsSummary: {
+      fileCount: attachments.length,
+      totalBytes,
+      textCount,
+      binaryCount,
+    },
+    requiredInputs,
+  };
 }
 
 async function loadDocsFromFolder(folderAbs: string): Promise<Document[]> {
@@ -89,7 +216,9 @@ async function loadJsonDoc(
   ];
 }
 
-async function getRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
+async function getRagSingleton(
+  provider: ChatAiProvider,
+): Promise<RagSingleton> {
   let promise = singletonByProvider.get(provider);
   if (!promise) {
     promise = buildRagSingleton(provider);
@@ -98,7 +227,9 @@ async function getRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> 
   return promise;
 }
 
-async function buildRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
+async function buildRagSingleton(
+  provider: ChatAiProvider,
+): Promise<RagSingleton> {
   const apiKey = requireApiKey(provider);
 
   const docsFolder = path.join(process.cwd(), "rag", "docs");
@@ -385,13 +516,47 @@ async function answerWithWebSearch(params: {
 export async function answerWithRag(params: {
   question: string;
   provider?: ChatAiProvider;
+  attachments?: ChatAttachmentMeta[];
 }) {
   const question = params.question.trim();
   if (!question) throw new Error("Missing question");
+  const attachments = params.attachments ?? [];
 
   const provider: ChatAiProvider =
     params.provider === "openai" ? "openai" : "gemini";
   const apiKey = requireApiKey(provider);
+
+  if (detectUploadDemoIntent(question)) {
+    const plan = buildUploadDemoPlan(question, attachments);
+    const missing = plan.requiredInputs;
+    const answer =
+      missing.length > 0
+        ? [
+            "Upload demo intent detected.",
+            `Tool selected: ${plan.tool}`,
+            `Attachments: ${plan.attachmentsSummary.fileCount} file(s), ${plan.attachmentsSummary.textCount} text, ${plan.attachmentsSummary.binaryCount} binary.`,
+            `Missing inputs: ${missing.join(", ")}`,
+            "Please provide missing inputs so execution can continue.",
+          ].join("\n")
+        : [
+            "Upload demo intent detected.",
+            `Tool selected: ${plan.tool}`,
+            `Remote path: ${plan.remotePath || "(auto from brand)"}`,
+            `Brand: ${plan.brand || "(not provided)"}`,
+            `DemoId: ${plan.demoId || "(not provided)"}`,
+            `DemoValue: ${plan.demoValue || "(not provided)"}`,
+            `Attachments: ${plan.attachmentsSummary.fileCount} file(s).`,
+            "Preflight passed. Ready to run convert + upload pipeline.",
+          ].join("\n");
+    return {
+      answer,
+      provider,
+      mode: "upload_demo" as const,
+      action: plan,
+      sources: [],
+      rag: null,
+    };
+  }
 
   const { isWebSearch, query: webQuery } = parseWebSearchQuestion(question);
   if (isWebSearch) {
@@ -471,7 +636,9 @@ export async function answerWithRag(params: {
 
       for (const d of retrieved) {
         const src =
-          typeof d.metadata?.source === "string" ? d.metadata.source : "unknown";
+          typeof d.metadata?.source === "string"
+            ? d.metadata.source
+            : "unknown";
         sources.add(src);
 
         const remaining = maxChars - used;
@@ -480,7 +647,8 @@ export async function answerWithRag(params: {
         const chunk = d.pageContent.trim();
         if (!chunk) continue;
 
-        const take = chunk.length > remaining ? chunk.slice(0, remaining) : chunk;
+        const take =
+          chunk.length > remaining ? chunk.slice(0, remaining) : chunk;
         excerpts.push(take);
         used += take.length + 10;
       }

@@ -11,6 +11,13 @@ import {
   type AccountStatus,
 } from "../form/schemas/adminAccount";
 
+type ChatAttachmentMeta = {
+  name: string;
+  relativePath?: string;
+  size: number;
+  mimeType?: string;
+};
+
 function normalizeApiRole(role: string): AccountRole {
   const normalized = role.trim().toLowerCase();
   const migrated = normalized === "adsopmanager" ? "manager" : normalized;
@@ -125,7 +132,10 @@ export const api = {
     query: (
       question: string,
       provider?: "gemini" | "openai",
+      attachments?: ChatAttachmentMeta[],
     ) =>
-      call(() => trpcClient.rag.query.mutate({ question, provider })),
+      call(() =>
+        trpcClient.rag.query.mutate({ question, provider, attachments }),
+      ),
   },
 };

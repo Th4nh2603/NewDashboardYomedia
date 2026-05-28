@@ -11,6 +11,16 @@ export const ragRouter = router({
       z.object({
         question: z.string().default(""),
         provider: chatAiProviderSchema.optional(),
+        attachments: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              relativePath: z.string().optional(),
+              size: z.number().int().nonnegative(),
+              mimeType: z.string().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .mutation(({ input }) =>
@@ -19,6 +29,7 @@ export const ragRouter = router({
           const result = await answerWithRag({
             question: input.question,
             provider: input.provider,
+            attachments: input.attachments,
           });
           return { ok: true as const, ...result };
         } catch (error: unknown) {
