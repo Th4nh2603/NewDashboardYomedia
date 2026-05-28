@@ -121,8 +121,8 @@ function replaceBundledDemoStaticImages(content: string): string {
       `'id': 'btn_play',\n            'src': '${BTN_PLAY_DATA_URL}'`,
     ],
     [
-      `'id': 'bg_videos', 'src':'images/htt.png'`,
-      `'id': 'bg_videos',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
+      `'id': 'bg_video', 'src':'images/htt.png'`,
+      `'id': 'bg_video',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
     ],
   ] as const;
   for (const [from, to] of sq) c = c.replaceAll(from, to);
@@ -357,8 +357,7 @@ function formatMediaSetupPath(value: string | null | undefined): string {
 const VIDEO_DEMO_FIXED_REL_PATH = "tvc.mp4";
 
 /** Offline ZIP: skip vendor/lib trees (manifest URLs are rewritten to CDN in converted HTML/JS). */
-const OFFLINE_PACKAGE_SKIP_REL_PATH_RE =
-  /(^|\/)(libs?|node_modules)(\/|$)/i;
+const OFFLINE_PACKAGE_SKIP_REL_PATH_RE = /(^|\/)(libs?|node_modules)(\/|$)/i;
 
 const DEMO_PUBLIC_VIDEO_ORIGIN = "https://demo.yomedia.vn";
 
@@ -1957,9 +1956,7 @@ const BuildDemo: React.FC = () => {
     if (config.demoFormat === "Video") {
       if (adminOfflineMode) {
         if (offlinePackageFiles.videoFiles.length !== 1) {
-          setSendError(
-            "Video format: upload exactly one MP4/WebM/MOV file.",
-          );
+          setSendError("Video format: upload exactly one MP4/WebM/MOV file.");
           return;
         }
       } else if (videoFiles.length !== 1 || files.length !== 1) {
