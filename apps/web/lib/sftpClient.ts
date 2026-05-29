@@ -17,7 +17,11 @@ type SftpClientOptions = {
 type ScopedRequestOptions = {
   scope?: SftpScope;
   headers?: Record<string, string>;
+  /** Abort upload after this many ms (default 20 min for large video + server compress). */
+  timeoutMs?: number;
 };
+
+const DEFAULT_BINARY_UPLOAD_TIMEOUT_MS = 20 * 60 * 1000;
 
 function buildScopeQuery(scope?: SftpScope): string {
   return scope === "media" ? `&scope=${encodeURIComponent("media")}` : "";
@@ -95,28 +99,47 @@ export function createSftpClient(options?: SftpClientOptions) {
       body: Blob | ArrayBuffer,
       options?: ScopedRequestOptions,
     ) {
-      return fetchJsonOrThrow<{
-        ok?: boolean;
-        error?: string;
-        video?: {
-          originalBytes?: number;
-          compressedBytes?: number;
-          videoCompressed?: boolean;
-        };
-      }>(
-        `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(path)}${buildScopeQuery(options?.scope)}`,
-        {
-          method: "POST",
-          headers: withRoleHeaders(
-            {
-              "Content-Type": "application/octet-stream",
-              ...(options?.headers ?? {}),
-            },
-            roleHeader,
-          ),
-          body,
-        },
-      );
+      const timeoutMs =
+        options?.timeoutMs ?? DEFAULT_BINARY_UPLOAD_TIMEOUT_MS;
+      const controller = new AbortController();
+      const timer =
+        timeoutMs > 0
+          ? setTimeout(() => controller.abort(), timeoutMs)
+          : null;
+      try {
+        return await fetchJsonOrThrow<{
+          ok?: boolean;
+          error?: string;
+          video?: {
+            originalBytes?: number;
+            compressedBytes?: number;
+            videoCompressed?: boolean;
+          };
+        }>(
+          `${baseUrl}/api/sftp/write-binary?path=${encodeURIComponent(path)}${buildScopeQuery(options?.scope)}`,
+          {
+            method: "POST",
+            headers: withRoleHeaders(
+              {
+                "Content-Type": "application/octet-stream",
+                ...(options?.headers ?? {}),
+              },
+              roleHeader,
+            ),
+            body,
+            signal: controller.signal,
+          },
+        );
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new Error(
+            `Video upload timed out after ${Math.round(timeoutMs / 60000)} minute(s). The file may be large or server compression is still running — try a smaller clip or retry.`,
+          );
+        }
+        throw err;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     },
     async remove(path: string, options?: ScopedRequestOptions) {
       return fetchJsonOrThrow<{ ok?: boolean; error?: string }>(

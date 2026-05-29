@@ -307,23 +307,6 @@
       "fla": false
     },
     {
-      "id": "0019",
-      "title": "Display Balloon Expandable",
-      "image": "https://picsum.photos/seed/demo99/800/600",
-      "size": ["472x325"],
-      "position": "-",
-      "fileType": "HTML5",
-      "file": "index.html",
-      "category": "Display",
-      "value": "display-balloon-expandable",
-      "video": "none",
-      "source": "yomedia/app/template/data/0019/banner",
-      "status": "active",
-      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_balloon_expandable.js",
-      "delivery-name-replace": "ads-balloon",
-      "fla": false
-    },
-    {
       "id": "0020",
       "title": "Display Big Balloon iTVC",
       "image": "https://picsum.photos/seed/demo103/800/600",
@@ -459,23 +442,7 @@
       "delivery-name-replace": "",
       "fla": false
     },
-    {
-      "id": "0028",
-      "title": "Display Balloon Expandable iTVC",
-      "image": "https://picsum.photos/seed/demo98/800/600",
-      "size": ["500x300"],
-      "position": "-",
-      "fileType": "HTML5",
-      "file": "index.html",
-      "category": "Display",
-      "value": "display-balloon-expandable-itvc",
-      "video": "mp4",
-      "source": "yomedia/app/template/data/0028/banner",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": "",
-      "fla": false
-    },
+    
     {
       "id": "0029",
       "title": "Display In Image With Inread Video",
@@ -1383,17 +1350,17 @@
       "id": "0082",
       "title": "Display Balloon Expandable",
       "image": "https://picsum.photos/seed/demo99/800/600",
-      "size": ["475x325"],
-      "position": "bottom right fixed",
+      "size": ["472x325"],
+      "position": "-",
       "fileType": "HTML5",
       "file": "index.html",
       "category": "Display",
       "value": "display-balloon-expandable",
       "video": "none",
-      "source": "yomedia/app/template/data/0082/banner",
-      "status": "inactive",
-      "delivery": "",
-      "delivery-name-replace": "",
+      "source": "yomedia/app/template/data/0019/banner",
+      "status": "active",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_balloon_expandable.js",
+      "delivery-name-replace": "ads-balloon",
       "fla": false
     },
     {
@@ -1409,8 +1376,8 @@
       "video": "mp4",
       "source": "yomedia/app/template/data/0083/banner",
       "status": "active",
-      "delivery": "",
-      "delivery-name-replace": "",
+      "delivery": "https://demo.yomedia.vn/yomedia/app/template/delivery/display/display_balloon_expandable.js",
+      "delivery-name-replace": "ads-balloon",
       "fla": false
     },
     {

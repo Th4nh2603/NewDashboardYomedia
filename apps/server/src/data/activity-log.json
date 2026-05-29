@@ -5,6 +5,367 @@
   ],
   "records": [
     {
+      "id": "act_1780036000623_bltfhi",
+      "createdAt": "2026-05-29T06:26:40.617Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "rename_path",
+      "area": "Manage Demo",
+      "description": "Renamed item on SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/384x683/videos/tvc.mp4",
+      "metadata": {
+        "previousPath": "/script/demo/2026/05/maxkleen/all/html/384x683/videos/15s.mp4",
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1780035987360_xxeov6",
+      "createdAt": "2026-05-29T06:26:27.355Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage Demo",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/384x683/videos",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "15s.mp4"
+        ]
+      }
+    },
+    {
+      "id": "act_1780035956244_dylz6a",
+      "createdAt": "2026-05-29T06:25:56.237Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted file from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/384x683/videos/tvc.mp4",
+      "metadata": {
+        "scope": "demo",
+        "isDir": false
+      }
+    },
+    {
+      "id": "act_1780035875719_xaxci7",
+      "createdAt": "2026-05-29T06:24:35.714Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "rename_path",
+      "area": "Manage Demo",
+      "description": "Renamed item on SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/600x125/tvc.mp4",
+      "metadata": {
+        "previousPath": "/script/demo/2026/05/maxkleen/all/html/600x125/6s.mp4",
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1780035853421_yp4b7e",
+      "createdAt": "2026-05-29T06:24:13.414Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted file from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/600x125/tvc.mp4",
+      "metadata": {
+        "scope": "demo",
+        "isDir": false
+      }
+    },
+    {
+      "id": "act_1780035765575_3vcmz8",
+      "createdAt": "2026-05-29T06:22:45.572Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage Demo",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/600x125",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "6s.mp4"
+        ]
+      }
+    },
+    {
+      "id": "act_1780032181569_9tllbw",
+      "createdAt": "2026-05-29T05:23:01.566Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "rename_path",
+      "area": "Manage Demo",
+      "description": "Renamed item on SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/970x250/videos/tvc.mp4",
+      "metadata": {
+        "previousPath": "/script/demo/2026/05/maxkleen/all/html/970x250/videos/15s.mp4",
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1780032173572_78lm1v",
+      "createdAt": "2026-05-29T05:22:53.570Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted file from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/970x250/videos/tvc.mp4",
+      "metadata": {
+        "scope": "demo",
+        "isDir": false
+      }
+    },
+    {
+      "id": "act_1780032156171_5mbt3k",
+      "createdAt": "2026-05-29T05:22:36.168Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage Demo",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/970x250/videos",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "15s.mp4"
+        ]
+      }
+    },
+    {
+      "id": "act_1780032091502_pbc0bx",
+      "createdAt": "2026-05-29T05:21:31.497Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "rename_path",
+      "area": "Manage Demo",
+      "description": "Renamed item on SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/480x270/videos/tvc.mp4",
+      "metadata": {
+        "previousPath": "/script/demo/2026/05/maxkleen/all/html/480x270/videos/15s.mp4",
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1780032081410_bpqv9z",
+      "createdAt": "2026-05-29T05:21:21.407Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted file from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/480x270/videos/tvc.mp4",
+      "metadata": {
+        "scope": "demo",
+        "isDir": false
+      }
+    },
+    {
+      "id": "act_1780032074975_x3oyeo",
+      "createdAt": "2026-05-29T05:21:14.974Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage Demo",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/480x270/videos",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "15s.mp4"
+        ]
+      }
+    },
+    {
+      "id": "act_1780031789945_9w5dpm",
+      "createdAt": "2026-05-29T05:16:29.939Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/480x270",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1779978781191_utp9ko",
+      "createdAt": "2026-05-28T14:33:01.190Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage SFTP",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/yomedia/app/template/json",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "creative-demos.json"
+        ]
+      }
+    },
+    {
+      "id": "act_1779978692133_9lfgbf",
+      "createdAt": "2026-05-28T14:31:32.130Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_files",
+      "area": "Manage SFTP",
+      "description": "Uploaded 1 file(s) to SFTP",
+      "target": "/script/demo/yomedia/app/template/json",
+      "metadata": {
+        "scope": "demo",
+        "fileCount": 1,
+        "files": [
+          "creative-demos.json"
+        ]
+      }
+    },
+    {
+      "id": "act_1779977669513_wzn2e7",
+      "createdAt": "2026-05-28T14:14:29.511Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/mobile-inpage",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1779976978828_dgc4sn",
+      "createdAt": "2026-05-28T14:02:58.814Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/html/384x683-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/05/yomedia/all/html/384x683-2",
+        "remoteBase": "/script/demo/2026/05/yomedia/all/html/384x683-2",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Interstitial FirstView",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1779975354772_qogpiy",
+      "createdAt": "2026-05-28T13:35:54.765Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "brand : yomedia",
+      "metadata": {
+        "inputPreview": "brand : yomedia",
+        "responseLength": 241,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1779973592363_klucqf",
+      "createdAt": "2026-05-28T13:06:32.360Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1779973573090_csalvy",
+      "createdAt": "2026-05-28T13:06:13.086Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/mobile-inpage",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1779972830486_0vdjwq",
+      "createdAt": "2026-05-28T12:53:50.470Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1779972772676_2pvqbh",
+      "createdAt": "2026-05-28T12:52:52.671Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hello",
+      "metadata": {
+        "inputPreview": "hello",
+        "responseLength": 36,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1779971987938_q4xpqq",
+      "createdAt": "2026-05-28T12:39:47.897Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
       "id": "act_1779868018220_ipl5yu",
       "createdAt": "2026-05-27T07:46:58.218Z",
       "userName": "Thanh Minh",

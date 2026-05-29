@@ -24,6 +24,7 @@ export type ChatAttachmentMeta = {
 type UploadDemoActionPlan = {
   intent: "upload_demo";
   tool: "build_demo_convert_upload";
+  uploadKind: "html" | "video";
   confidence: number;
   remotePath: string | null;
   brand: string | null;
@@ -75,9 +76,25 @@ function providerDisplayName(provider: ChatAiProvider): string {
 }
 
 function detectUploadDemoIntent(question: string): boolean {
-  return /\b(upload\s*demo|demo\s*upload|convert\s+and\s+upload)\b/i.test(
+  return /\b(upload\s*demo|demo\s*upload|upload\s*video\s*demo|video\s*demo\s*upload|convert\s+and\s+upload)\b/i.test(
     question,
   );
+}
+
+function detectUploadDemoKindFromAttachments(
+  attachments: ChatAttachmentMeta[],
+): "html" | "video" {
+  if (attachments.length === 0) return "html";
+  const videoCount = attachments.filter((a) => {
+    const ext = (a.name.split(".").pop() ?? "").toLowerCase();
+    return ["mp4", "webm", "mov"].includes(ext);
+  }).length;
+  const textCount = attachments.filter((a) => {
+    const ext = (a.name.split(".").pop() ?? "").toLowerCase();
+    return ["html", "htm", "js"].includes(ext);
+  }).length;
+  if (videoCount > 0 && textCount === 0) return "video";
+  return "html";
 }
 
 function extractRemotePath(question: string): string | null {
@@ -92,30 +109,32 @@ function extractRemotePath(question: string): string | null {
     .replace(/\/+$/, "");
 }
 
+function extractBrandFromRemotePath(remotePath: string | null): string | null {
+  if (!remotePath) return null;
+  const parts = remotePath
+    .replace(/^\/+/, "")
+    .replace(/^script\/demo\//i, "")
+    .split("/")
+    .filter(Boolean);
+  // Expected shape: year/month/brand/...
+  if (parts.length < 3) return null;
+  const candidate = (parts[2] ?? "").trim();
+  return candidate || null;
+}
+
 function extractBrand(question: string): string | null {
   const explicit = question.match(
     /\bbrand\s*[:=]\s*([a-z0-9][a-z0-9 _-]{1,60})\b/i,
   );
   if (explicit?.[1]) return explicit[1].trim();
 
+  const plain = question.match(/\bbrand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i);
+  if (plain?.[1]) return plain[1].trim();
+
   const forBrand = question.match(
     /\b(?:for|cho)\s+brand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i,
   );
   if (forBrand?.[1]) return forBrand[1].trim();
-
-  const afterIntent = question.match(
-    /\bupload\s*demo\b[\s:-]+([a-z0-9][a-z0-9 _-]{1,40})\b/i,
-  );
-  if (afterIntent?.[1]) {
-    const candidate = afterIntent[1].trim();
-    if (
-      !/\b(overwrite|replace|force|path|target|to|with|folder|files?)\b/i.test(
-        candidate,
-      )
-    ) {
-      return candidate;
-    }
-  }
   return null;
 }
 
@@ -128,11 +147,16 @@ function extractDemoId(question: string): string | null {
 }
 
 function extractDemoValue(question: string): string | null {
-  const m = question.match(
-    /\b(?:demoValue|demo_value|value|format)\s*[:=]\s*([a-z0-9][a-z0-9_-]{2,80})\b/i,
+  const explicit = question.match(
+    /\b(?:demoValue|demo_value|value|format)\s*[:=]\s*([a-z0-9][a-z0-9 _-]{2,80})\b/i,
   );
-  if (!m?.[1]) return null;
-  return m[1].trim();
+  if (explicit?.[1]) return explicit[1].trim();
+
+  const plain = question.match(
+    /\b(?:demoValue|demo_value|value|format)\s+([a-z0-9][a-z0-9 _-]{2,80})\b/i,
+  );
+  if (!plain?.[1]) return null;
+  return plain[1].trim();
 }
 
 function buildUploadDemoPlan(
@@ -149,18 +173,27 @@ function buildUploadDemoPlan(
   }).length;
   const binaryCount = videoCount;
   const totalBytes = attachments.reduce((sum, a) => sum + a.size, 0);
-  const overwrite = /\b(overwrite|replace|force)\b/i.test(question);
+  const overwrite = false;
   const remotePath = extractRemotePath(question);
-  const brand = extractBrand(question);
+  const explicitBrand = extractBrand(question);
+  const inferredBrand = extractBrandFromRemotePath(remotePath);
+  const brand = explicitBrand || inferredBrand;
   const demoId = extractDemoId(question);
   const demoValue = extractDemoValue(question);
+  const uploadKind = detectUploadDemoKindFromAttachments(attachments);
   const requiredInputs: string[] = [];
-  if (!remotePath && !brand) requiredInputs.push("targetSourcePathOrBrand");
+  if (!brand) requiredInputs.push("brand");
+  if (uploadKind !== "video" && !demoId && !demoValue) {
+    requiredInputs.push("format");
+  }
   if (attachments.length === 0) requiredInputs.push("attachments");
-  if (!overwrite) requiredInputs.push("overwriteConfirmation");
+  if (uploadKind === "video" && videoCount !== 1) {
+    requiredInputs.push("single_video");
+  }
   return {
     intent: "upload_demo",
     tool: "build_demo_convert_upload",
+    uploadKind,
     confidence: attachments.length > 0 ? 0.95 : 0.6,
     remotePath,
     brand,
@@ -529,17 +562,25 @@ export async function answerWithRag(params: {
   if (detectUploadDemoIntent(question)) {
     const plan = buildUploadDemoPlan(question, attachments);
     const missing = plan.requiredInputs;
+    const pipelineLabel =
+      plan.uploadKind === "video"
+        ? "video demo (1 MP4/WebM/MOV → tvc.mp4 + make-vast.xml)"
+        : "HTML demo (convert base64 + upload)";
     const answer =
       missing.length > 0
         ? [
             "Upload demo intent detected.",
+            `Pipeline: ${pipelineLabel}`,
             `Tool selected: ${plan.tool}`,
-            `Attachments: ${plan.attachmentsSummary.fileCount} file(s), ${plan.attachmentsSummary.textCount} text, ${plan.attachmentsSummary.binaryCount} binary.`,
+            `Attachments: ${plan.attachmentsSummary.fileCount} file(s), ${plan.attachmentsSummary.textCount} text, ${plan.attachmentsSummary.binaryCount} video.`,
             `Missing inputs: ${missing.join(", ")}`,
-            "Please provide missing inputs so execution can continue.",
+            plan.uploadKind === "video"
+              ? "Video flow: attach exactly one video (previews: outstream + instream are generated automatically)."
+              : "Please provide missing inputs so execution can continue.",
           ].join("\n")
         : [
             "Upload demo intent detected.",
+            `Pipeline: ${pipelineLabel}`,
             `Tool selected: ${plan.tool}`,
             `Remote path: ${plan.remotePath || "(auto from brand)"}`,
             `Brand: ${plan.brand || "(not provided)"}`,

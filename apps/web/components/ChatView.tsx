@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import JSZip from "jszip";
 import { useError } from "../contexts/ErrorContext";
 import { useAuth } from "../contexts/AuthContext";
 import { getYomediaDemoPreviewUrl } from "./OpenDemo";
@@ -15,6 +16,11 @@ import {
 } from "../lib/chatAiProvider";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import { createSftpClient } from "../lib/sftpClient";
+import { getBuildDemoBrandOptions } from "../lib/buildDemoBrands";
+import {
+  buildVideoMakeVastXml,
+  VIDEO_DEMO_FIXED_REL_PATH,
+} from "../lib/buildDemoAssets";
 import Button from "./Button";
 
 type ChatMessage = {
@@ -27,6 +33,24 @@ type ChatAttachment = {
   id: string;
   file: File;
   relativePath: string;
+};
+
+type UploadDemoKind = "html" | "video";
+
+type PendingUploadDemoAction = {
+  tool: "build_demo_convert_upload";
+  uploadKind?: UploadDemoKind;
+  remotePath?: string | null;
+  brand?: string | null;
+  demoId?: string | null;
+  demoValue?: string | null;
+  overwrite?: boolean;
+  requiredInputs?: string[];
+};
+
+type UploadProgressState = {
+  percent: number;
+  label: string;
 };
 
 const S_ON_DATA_URL =
@@ -56,6 +80,10 @@ const DEMO_MANIFEST_VIDEO_JS_SRC =
   "https://demo.yomedia.vn/yomedia/components/video/src/video.js?1726036079413";
 const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
   "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
+const BUILD_DEMO_BRAND_OPTIONS = getBuildDemoBrandOptions();
+const BUILD_DEMO_BRAND_BY_KEY = new Map(
+  BUILD_DEMO_BRAND_OPTIONS.map((item) => [normalizePathToken(item.id), item.id]),
+);
 
 function isBundledDemoAssetImageName(name: string): boolean {
   const leaf = (name.split(/[/\\]/).pop() ?? name).trim().toLowerCase();
@@ -473,17 +501,75 @@ function extractSizeTokenFromRemotePath(remotePath: string): string | null {
   return null;
 }
 
+function hasDemoSizeMatch(
+  demoSize: string | string[] | undefined,
+  sizeToken: string,
+): boolean {
+  const key = sizeToken.toLowerCase();
+  if (Array.isArray(demoSize)) {
+    return demoSize.some((entry) => String(entry ?? "").trim().toLowerCase() === key);
+  }
+  return String(demoSize ?? "").trim().toLowerCase() === key;
+}
+
+function resolveFormatValueFromCatalog(
+  demos: Awaited<ReturnType<typeof loadCreativeDemos>>,
+  rawInput: string,
+): string | undefined {
+  const needle = normalizePathToken(rawInput);
+  if (!needle) return undefined;
+
+  const score = (
+    item: Awaited<ReturnType<typeof loadCreativeDemos>>[number],
+  ): number => {
+    const value = normalizePathToken(String(item.value ?? ""));
+    const format = normalizePathToken(String(item.format ?? ""));
+    const title = normalizePathToken(String(item.title ?? ""));
+    const id = normalizePathToken(String(item.id ?? ""));
+    if (needle === value) return 100;
+    if (needle === format) return 95;
+    if (needle === id) return 90;
+    if (needle === title) return 85;
+    if (value.includes(needle) || needle.includes(value)) return 70;
+    if (format.includes(needle) || needle.includes(format)) return 65;
+    if (title.includes(needle) || needle.includes(title)) return 60;
+    return 0;
+  };
+
+  const best = demos
+    .map((item) => ({ item, s: score(item) }))
+    .filter((entry) => entry.s > 0)
+    .sort((a, b) => b.s - a.s)[0]?.item;
+  const value = String(best?.value ?? "").trim();
+  return value || undefined;
+}
+
 async function resolveFormatForPreview(params: {
   remotePath: string;
   demoId?: string | null;
   demoValue?: string | null;
 }): Promise<{ formatValue?: string; suggestions: string[] }> {
   const explicitValue = String(params.demoValue ?? "").trim();
+  const demos = await loadCreativeDemos();
+  const size = extractSizeTokenFromRemotePath(params.remotePath);
+  const scopedBySize = size
+    ? demos.filter((item) => hasDemoSizeMatch(item.size, size))
+    : demos;
+
   if (explicitValue) {
-    return { formatValue: explicitValue, suggestions: [] };
+    const mappedFromScoped = resolveFormatValueFromCatalog(
+      scopedBySize,
+      explicitValue,
+    );
+    if (mappedFromScoped) {
+      return { formatValue: mappedFromScoped, suggestions: [] };
+    }
+    const mappedFromAll = resolveFormatValueFromCatalog(demos, explicitValue);
+    if (mappedFromAll) {
+      return { formatValue: mappedFromAll, suggestions: [] };
+    }
   }
 
-  const demos = await loadCreativeDemos();
   const explicitId = String(params.demoId ?? "").trim();
   if (explicitId) {
     const byId = demos.find((item) => String(item.id).trim() === explicitId);
@@ -491,16 +577,9 @@ async function resolveFormatForPreview(params: {
     if (value) return { formatValue: value, suggestions: [] };
   }
 
-  const size = extractSizeTokenFromRemotePath(params.remotePath);
   if (!size) return { suggestions: [] };
   const key = size.toLowerCase();
-  const matchedBySize = demos.filter((item) => {
-    const raw = item.size;
-    if (Array.isArray(raw)) {
-      return raw.some((entry) => String(entry ?? "").trim().toLowerCase() === key);
-    }
-    return String(raw ?? "").trim().toLowerCase() === key;
-  });
+  const matchedBySize = demos.filter((item) => hasDemoSizeMatch(item.size, key));
   if (matchedBySize.length === 0) return { suggestions: [] };
 
   const preferred =
@@ -543,6 +622,164 @@ function guessMimeFromName(name: string): string {
   return "application/octet-stream";
 }
 
+function extractBrandFromInput(input: string): string | null {
+  const explicit = input.match(
+    /\bbrand\s*[:=]\s*([a-z0-9][a-z0-9 _-]{1,60})\b/i,
+  );
+  if (explicit?.[1]) return explicit[1].trim();
+
+  const plain = input.match(/\bbrand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i);
+  if (plain?.[1]) return plain[1].trim();
+
+  const forBrand = input.match(
+    /\b(?:for|cho)\s+brand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i,
+  );
+  if (forBrand?.[1]) return forBrand[1].trim();
+
+  return null;
+}
+
+function resolveAllowedBuildDemoBrand(value: string): string | null {
+  const key = normalizePathToken(value);
+  if (!key) return null;
+  return BUILD_DEMO_BRAND_BY_KEY.get(key) ?? null;
+}
+
+function suggestBuildDemoBrands(rawInput: string): string[] {
+  const key = normalizePathToken(rawInput);
+  const options = BUILD_DEMO_BRAND_OPTIONS.map((item) => item.id);
+  if (!key) return options.slice(0, 5);
+  const ranked = options
+    .map((id) => {
+      const normalized = normalizePathToken(id);
+      let score = 0;
+      if (normalized === key) score = 100;
+      else if (normalized.startsWith(key) || key.startsWith(normalized)) score = 80;
+      else if (normalized.includes(key) || key.includes(normalized)) score = 60;
+      return { id, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+  if (ranked.length > 0) return ranked.slice(0, 5).map((entry) => entry.id);
+  return options.slice(0, 5);
+}
+
+const VIDEO_FORMAT_ALIASES: Record<string, string> = {
+  oustream: "outstream",
+  outsteam: "outstream",
+  insteam: "instream",
+};
+
+function normalizeVideoFormatInput(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  return VIDEO_FORMAT_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
+
+function extractFormatFromInput(input: string): string | null {
+  const explicit = input.match(
+    /\b(?:format|demoValue|demo_value|value)\s*[:=]\s*([a-z0-9][a-z0-9 _-]{2,80})\b/i,
+  );
+  if (explicit?.[1]) return normalizeVideoFormatInput(explicit[1]);
+
+  const plain = input.match(
+    /\b(?:format|demoValue|demo_value|value)\s+([a-z0-9][a-z0-9 _-]{2,80})\b/i,
+  );
+  if (plain?.[1]) return normalizeVideoFormatInput(plain[1]);
+  return null;
+}
+
+function computePendingUploadMissingInputs(
+  action: PendingUploadDemoAction,
+  attachmentCount: number,
+  uploadKind: UploadDemoKind = action.uploadKind ?? "html",
+): string[] {
+  const required = new Set(action.requiredInputs ?? []);
+  const missing: string[] = [];
+  const validBrand = resolveAllowedBuildDemoBrand(String(action.brand ?? "").trim());
+  const hasBrandValue = Boolean(String(action.brand ?? "").trim());
+  if ((required.has("brand") || hasBrandValue) && !validBrand) {
+    missing.push("brand");
+  }
+  if (
+    uploadKind !== "video" &&
+    required.has("format") &&
+    !String(action.demoValue ?? "").trim() &&
+    !String(action.demoId ?? "").trim()
+  ) {
+    missing.push("format");
+  }
+  if (required.has("attachments") && attachmentCount === 0) {
+    missing.push("attachments");
+  }
+  if (uploadKind === "video" && attachmentCount !== 1) {
+    missing.push("single_video");
+  }
+  return missing;
+}
+
+function formatMissingUploadInputs(missing: string[]): {
+  labels: string;
+  examples: string;
+} {
+  const uniq = Array.from(new Set(missing));
+  const labelMap: Record<string, string> = {
+    brand: "brand",
+    format: "format",
+    attachments: "file đính kèm",
+  };
+  const exampleMap: Record<string, string> = {
+    brand: "`brand: yomedia`",
+    format: "`format: 300x250`",
+    attachments: "đính kèm folder/file demo",
+  };
+  const labels = uniq.map((k) => labelMap[k] ?? k).join(", ");
+  const examples = uniq
+    .map((k) => exampleMap[k])
+    .filter((x): x is string => Boolean(x))
+    .join(", ");
+  return { labels, examples };
+}
+
+function buildMissingUploadInputsMessage(
+  action: PendingUploadDemoAction,
+  missing: string[],
+): string {
+  const hasMissingBrand = missing.includes("brand");
+  const rawBrand = String(action.brand ?? "").trim();
+  if (hasMissingBrand && rawBrand) {
+    const suggestions = suggestBuildDemoBrands(rawBrand);
+    return `Brand \`${rawBrand}\` không có trong danh sách. Vui lòng nhập lại brand hợp lệ${
+      suggestions.length > 0 ? ` (gợi ý: ${suggestions.join(", ")})` : ""
+    }.`;
+  }
+  const hint = formatMissingUploadInputs(missing);
+  return `Còn thiếu: ${hint.labels}. Ví dụ: ${hint.examples}.`;
+}
+
+function extractPendingUploadSupplements(
+  input: string,
+  pending: PendingUploadDemoAction,
+): Partial<PendingUploadDemoAction> {
+  const updates: Partial<PendingUploadDemoAction> = {};
+  const explicitBrand = extractBrandFromInput(input);
+  if (explicitBrand) {
+    updates.brand = resolveAllowedBuildDemoBrand(explicitBrand) ?? explicitBrand;
+  } else if (
+    (pending.requiredInputs ?? []).includes("brand") &&
+    /^[a-z0-9][a-z0-9 _-]{1,60}$/i.test(input.trim())
+  ) {
+    updates.brand = resolveAllowedBuildDemoBrand(input.trim()) ?? input.trim();
+  }
+
+  const explicitFormat = extractFormatFromInput(input);
+  if (explicitFormat) {
+    updates.demoValue = explicitFormat;
+  }
+
+  return updates;
+}
+
 function isUploadDemoTextFile(file: File): boolean {
   const ext = (file.name.split(".").pop() ?? "").toLowerCase();
   return ["html", "htm", "js"].includes(ext);
@@ -566,6 +803,89 @@ function isVideoFile(file: File): boolean {
   return file.type.startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
 }
 
+function isCreativeVideoDemo(
+  item: Awaited<ReturnType<typeof loadCreativeDemos>>[number],
+): boolean {
+  return String(item.fileType ?? "").trim().toLowerCase() === "video";
+}
+
+/** Video-only when every attachment is a video file (BuildDemo format Video). */
+function detectUploadDemoKind(items: ChatAttachment[]): UploadDemoKind {
+  if (items.length === 0) return "html";
+  const videos = items.filter((item) => isVideoFile(item.file));
+  if (videos.length === items.length) return "video";
+  return "html";
+}
+
+/** Build Demo video flow: always offer In-read (outstream) + Pre-roll (instream) previews. */
+const DEFAULT_VIDEO_PREVIEW_SPECS = [
+  { formatValue: "outstream", title: "Video In-read" },
+  { formatValue: "instream", title: "Video Pre-roll" },
+] as const;
+
+type VideoPreviewLink = {
+  label: string;
+  formatValue: string;
+  previewUrl: string | null;
+};
+
+async function buildDefaultVideoPreviewLinks(
+  remotePath: string,
+): Promise<VideoPreviewLink[]> {
+  const demos = await loadCreativeDemos();
+  const serverApiUrl = serverApiOrigin();
+  const out: VideoPreviewLink[] = [];
+
+  for (const spec of DEFAULT_VIDEO_PREVIEW_SPECS) {
+    const row =
+      demos.find(
+        (item) =>
+          isCreativeVideoDemo(item) &&
+          String(item.value ?? "").trim() === spec.formatValue &&
+          String(item.status ?? "").trim().toLowerCase() !== "inactive",
+      ) ?? null;
+    const title = String(row?.title ?? spec.title).trim() || spec.title;
+    const label = `${title} · ${spec.formatValue}`;
+    const instreamVideo =
+      String(row?.category ?? "").trim().toLowerCase() === "video";
+    const previewUrl = await getYomediaDemoPreviewUrl({
+      remotePath,
+      serverApiUrl,
+      formatValue: spec.formatValue,
+      instreamVideo,
+    });
+    out.push({
+      label,
+      formatValue: spec.formatValue,
+      previewUrl,
+    });
+  }
+
+  return out;
+}
+
+async function resolveAvailableRemotePath(
+  sftpClient: ReturnType<typeof createSftpClient>,
+  prefixSegments: string[],
+  baseSeg: string,
+): Promise<string> {
+  const MAX_TRIES = 500;
+  for (let i = 0; i < MAX_TRIES; i++) {
+    const seg = i === 0 ? baseSeg : `${baseSeg}-${i}`;
+    const candidate = [...prefixSegments, seg].filter(Boolean).join("/");
+    const existsData = await sftpClient.exists(`/script/demo/${candidate}`, "demo");
+    if (!(existsData?.ok && existsData.exists)) {
+      return candidate;
+    }
+  }
+  return [...prefixSegments, baseSeg].filter(Boolean).join("/");
+}
+
+function isZipFile(file: File): boolean {
+  const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+  return ext === "zip" || file.type === "application/zip";
+}
+
 function stripRedundantRelativeFolderPrefix(
   relativePath: string,
   opts: { remoteLeaf: string; uploadBaseToken: string },
@@ -580,6 +900,19 @@ function stripRedundantRelativeFolderPrefix(
     return parts.slice(1).join("/");
   }
   return normalized;
+}
+
+function inferUploadBaseToken(items: ChatAttachment[]): string {
+  const firstSegments = items
+    .map((item) => toPosixPath(item.relativePath || item.file.name))
+    .map((value) => value.replace(/^\/+/, "").split("/").filter(Boolean))
+    .filter((parts) => parts.length > 1)
+    .map((parts) => normalizePathToken(parts[0] || ""));
+  if (firstSegments.length === 0) return "";
+  const first = firstSegments[0] || "";
+  if (!first) return "";
+  const same = firstSegments.every((seg) => seg === first);
+  return same ? first : "";
 }
 
 function compressImageToDataUrl(file: File, quality = 0.7): Promise<string> {
@@ -663,11 +996,26 @@ const ChatView = () => {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [aiProvider, setAiProvider] =
     useState<ChatAiProvider>(loadChatAiProvider);
+  const [pendingUploadAction, setPendingUploadAction] =
+    useState<PendingUploadDemoAction | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(
+    null,
+  );
   const { handleApiError } = useError();
   const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const normalizedRole = String(user?.role ?? "")
+    .trim()
+    .toLowerCase();
+  const sftpClient = React.useMemo(
+    () =>
+      createSftpClient({
+        roleHeader: normalizedRole || undefined,
+      }),
+    [normalizedRole],
+  );
 
   const handleProviderChange = (next: ChatAiProvider) => {
     setAiProvider(next);
@@ -680,19 +1028,50 @@ const ChatView = () => {
     }
   }, [messages]);
 
-  const handlePickAttachments = (fileList: FileList | null) => {
+  const handlePickAttachments = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
-    const next = Array.from(fileList).map((file, idx) => {
-      const rel = (
-        (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-        file.name
-      ).trim();
-      return {
-        id: `${Date.now()}-${idx}-${file.name}`,
-        file,
-        relativePath: toPosixPath(rel || file.name),
-      };
-    });
+    const pickedFiles = Array.from(fileList);
+    const next: ChatAttachment[] = [];
+
+    for (const [idx, file] of pickedFiles.entries()) {
+      if (!isZipFile(file)) {
+        const rel = (
+          (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
+          file.name
+        ).trim();
+        next.push({
+          id: `${Date.now()}-${idx}-${file.name}`,
+          file,
+          relativePath: toPosixPath(rel || file.name),
+        });
+        continue;
+      }
+
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const zipBase = file.name.replace(/\.zip$/i, "").trim() || "archive";
+        let zipItemIndex = 0;
+
+        for (const [entryName, entry] of Object.entries(zip.files)) {
+          if (entry.dir) continue;
+          const fileBlob = await entry.async("blob");
+          const entryLeaf = entryName.split("/").pop() || "file";
+          const entryFile = new File([fileBlob], entryLeaf, {
+            type: guessMimeFromName(entryLeaf),
+          });
+          next.push({
+            id: `${Date.now()}-${idx}-${zipItemIndex++}-${entryLeaf}`,
+            file: entryFile,
+            relativePath: toPosixPath(`${zipBase}/${entryName}`),
+          });
+        }
+      } catch (err) {
+        const reason =
+          err instanceof Error ? err.message : "Unknown zip parse error";
+        handleApiError(new Error(`Cannot read zip "${file.name}": ${reason}`));
+      }
+    }
+
     setAttachments((prev) => {
       const seen = new Set(prev.map((x) => x.relativePath));
       const merged = [...prev];
@@ -701,6 +1080,36 @@ const ChatView = () => {
         merged.push(item);
         seen.add(item.relativePath);
       }
+
+      const pickedVideos = merged.filter((item) => isVideoFile(item.file));
+      const pickedText = merged.filter((item) => isUploadDemoTextFile(item.file));
+      const isVideoOnly =
+        pickedVideos.length > 0 && pickedText.length === 0;
+
+      if (isVideoOnly) {
+        if (pickedVideos.length > 1) {
+          handleApiError(
+            new Error(
+              "Upload demo video: chỉ được đính kèm đúng 1 file MP4/WebM/MOV.",
+            ),
+          );
+          return [pickedVideos[pickedVideos.length - 1]!];
+        }
+        return pickedVideos;
+      }
+
+      if (pickedVideos.length > 1) {
+        handleApiError(
+          new Error(
+            "HTML demo: tối đa 1 video tùy chọn. Đã giữ file video mới nhất.",
+          ),
+        );
+        const keepVideoId = pickedVideos[pickedVideos.length - 1]!.id;
+        return merged.filter(
+          (item) => !isVideoFile(item.file) || item.id === keepVideoId,
+        );
+      }
+
       return merged;
     });
   };
@@ -710,8 +1119,160 @@ const ChatView = () => {
   };
 
   const handleAttachmentButtonClick = () => {
-    // Use a single picker action to avoid double dialog popups.
-    folderInputRef.current?.click();
+    attachmentInputRef.current?.click();
+  };
+
+  const runVideoBuildDemoUpload = async (plan: {
+    remotePath?: string | null;
+    brand?: string | null;
+    demoId?: string | null;
+    demoValue?: string | null;
+    overwrite?: boolean;
+  }) => {
+    const setProgress = (percent: number, label: string) => {
+      setUploadProgress({
+        percent: Math.max(0, Math.min(100, Math.round(percent))),
+        label,
+      });
+    };
+
+    setProgress(5, "Preparing video demo...");
+    const videoItems = attachments.filter((item) => isVideoFile(item.file));
+    if (videoItems.length !== 1) {
+      throw new Error(
+        "Video demo: upload exactly one MP4/WebM/MOV file (no HTML/JS or other assets).",
+      );
+    }
+    const extraFiles = attachments.filter(
+      (item) => !isVideoFile(item.file),
+    );
+    if (extraFiles.length > 0) {
+      throw new Error(
+        "Video demo: remove non-video attachments. Only one MP4/WebM/MOV is allowed.",
+      );
+    }
+
+    const selectedVideo = videoItems[0]!;
+    const logs: string[] = [];
+
+    const normalizedBrand = resolveAllowedBuildDemoBrand(
+      String(plan.brand || "").trim(),
+    );
+    if (!normalizedBrand) {
+      const hints = suggestBuildDemoBrands(String(plan.brand || "").trim()).join(
+        ", ",
+      );
+      throw new Error(
+        `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
+      );
+    }
+    const brandToken = normalizePathToken(normalizedBrand).replace(
+      /^brand-+/,
+      "",
+    );
+    if (!brandToken) {
+      throw new Error(
+        "Missing brand. Use `brand: <name>` (or include brand in `path:`).",
+      );
+    }
+
+    setProgress(20, "Resolving video demo path...");
+    const requestedRemotePath = String(plan.remotePath || "").trim();
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const demoFormatSeg = "video";
+    const pathPrefix = [year, month, brandToken, "all"];
+
+    let resolvedRemotePath =
+      requestedRemotePath ||
+      [...pathPrefix, demoFormatSeg].filter(Boolean).join("/");
+
+    if (!requestedRemotePath) {
+      const parts = resolvedRemotePath.split("/").filter(Boolean);
+      const baseSeg = parts.pop() ?? demoFormatSeg;
+      const prefix = parts.length > 0 ? parts : pathPrefix;
+      resolvedRemotePath = await resolveAvailableRemotePath(
+        sftpClient,
+        prefix,
+        baseSeg,
+      );
+    }
+
+    const remoteBase = `/script/demo/${resolvedRemotePath}`
+      .replace(/\/{2,}/g, "/")
+      .replace(/\/+$/, "");
+
+    setProgress(38, "Ensuring remote folder on SFTP...");
+    const mkdirRes = await sftpClient.mkdir(remoteBase, { scope: "demo" });
+    if (mkdirRes?.ok === false && mkdirRes.error) {
+      throw new Error(mkdirRes.error);
+    }
+
+    const videoRemotePath = `${remoteBase}/${VIDEO_DEMO_FIXED_REL_PATH}`.replace(
+      /\/{2,}/g,
+      "/",
+    );
+    const fileSizeMb = selectedVideo.file.size / (1024 * 1024);
+    setProgress(
+      42,
+      fileSizeMb > 4
+        ? `Uploading video (${fileSizeMb.toFixed(1)} MB) — server may compress, please wait…`
+        : "Uploading video as tvc.mp4…",
+    );
+
+    let pulsePercent = 42;
+    const pulseTimer = window.setInterval(() => {
+      pulsePercent = Math.min(68, pulsePercent + 1);
+      setProgress(
+        pulsePercent,
+        fileSizeMb > 4
+          ? `Processing video on server (${fileSizeMb.toFixed(1)} MB) — compression can take several minutes…`
+          : "Uploading video as tvc.mp4…",
+      );
+    }, 4000);
+
+    let videoRes: Awaited<ReturnType<typeof sftpClient.writeBinary>>;
+    try {
+      videoRes = await sftpClient.writeBinary(
+        videoRemotePath,
+        selectedVideo.file,
+        { scope: "demo" },
+      );
+    } finally {
+      window.clearInterval(pulseTimer);
+    }
+    if (!videoRes?.ok) {
+      throw new Error(videoRes?.error || "Video upload failed.");
+    }
+    logs.push(`Uploaded video: ${videoRemotePath}`);
+
+    setProgress(70, "Uploading make-vast.xml...");
+    const xmlRemotePath = `${remoteBase}/make-vast.xml`.replace(/\/{2,}/g, "/");
+    const xmlRes = await sftpClient.write({
+      path: xmlRemotePath,
+      content: buildVideoMakeVastXml(resolvedRemotePath),
+    });
+    if (!xmlRes?.ok) {
+      throw new Error(xmlRes?.error || "make-vast.xml upload failed.");
+    }
+    logs.push(`Uploaded VAST: ${xmlRemotePath}`);
+
+    setProgress(92, "Generating preview URLs...");
+    const videoPreviews = await buildDefaultVideoPreviewLinks(resolvedRemotePath);
+
+    setProgress(100, "Video demo upload completed.");
+
+    return {
+      remoteBase,
+      remotePath: resolvedRemotePath,
+      uploaded: 2,
+      logs,
+      videoPreviews,
+      previewUrl: videoPreviews.find((p) => p.previewUrl)?.previewUrl ?? null,
+      formatValue: videoPreviews.map((p) => p.formatValue).join(", "),
+      formatSuggestions: [],
+    };
   };
 
   const runBuildDemoUploadTool = async (plan: {
@@ -721,10 +1282,22 @@ const ChatView = () => {
     demoValue?: string | null;
     overwrite?: boolean;
   }) => {
+    const uploadKind = detectUploadDemoKind(attachments);
+    if (uploadKind === "video") {
+      return runVideoBuildDemoUpload(plan);
+    }
+
+    const setProgress = (percent: number, label: string) => {
+      setUploadProgress({
+        percent: Math.max(0, Math.min(100, Math.round(percent))),
+        label,
+      });
+    };
+
+    setProgress(5, "Preparing build demo files...");
     if (attachments.length === 0) {
       throw new Error("No attached files found for upload.");
     }
-    const sftpClient = createSftpClient();
     const logs: string[] = [];
     let uploaded = 0;
     const imageItems = attachments.filter((item) => isImageFile(item.file));
@@ -734,6 +1307,7 @@ const ChatView = () => {
       return ext === "js";
     });
     const videoItems = attachments.filter((item) => isVideoFile(item.file));
+    setProgress(15, "Analyzing attachments...");
 
     const imageBase64ByName = new Map<string, string>();
     for (const item of imageItems) {
@@ -751,6 +1325,7 @@ const ChatView = () => {
       }
       logs.push(`Embedded image: ${item.relativePath || item.file.name}`);
     }
+    setProgress(35, "Converting image assets...");
 
     const selectedHtml = htmlItems[0] ?? null;
     const selectedJs = jsItems[0] ?? null;
@@ -761,15 +1336,23 @@ const ChatView = () => {
         "Missing required files. Upload demo needs exactly: 1 HTML + 1 JS (base64). Video is optional.",
       );
     }
+    setProgress(45, "Validating required files...");
 
     const requestedRemotePath = String(plan.remotePath || "").trim();
-    const brandToken = normalizePathToken(String(plan.brand || "").trim()).replace(
+    const normalizedBrand = resolveAllowedBuildDemoBrand(String(plan.brand || "").trim());
+    if (!normalizedBrand) {
+      const hints = suggestBuildDemoBrands(String(plan.brand || "").trim()).join(", ");
+      throw new Error(
+        `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
+      );
+    }
+    const brandToken = normalizePathToken(normalizedBrand).replace(
       /^brand-+/,
       "",
     );
-    if (!requestedRemotePath && !brandToken) {
+    if (!brandToken) {
       throw new Error(
-        "Missing brand for auto path. Use `brand: <name>` or provide full `path:`.",
+        "Missing brand. Use `brand: <name>` (or include brand in `path:` like `YYYY/MM/<brand>/...`).",
       );
     }
     const inferredUploadToken = normalizePathToken(
@@ -794,6 +1377,7 @@ const ChatView = () => {
         "Missing target source path. Provide `path:` or `brand:` in your prompt.",
       );
     }
+    setProgress(60, "Resolving remote path...");
 
     if (!requestedRemotePath) {
       const parts = resolvedRemotePath.split("/").filter(Boolean);
@@ -833,9 +1417,15 @@ const ChatView = () => {
       .replace(/\/{2,}/g, "/")
       .replace(/\/+$/, "");
     const sftpRemoteLeaf = resolvedRemotePath.split("/").filter(Boolean).pop() ?? "";
-    const sftpUploadBaseForStrip = "";
+    const sftpUploadBaseForStrip = inferUploadBaseToken(
+      [selectedHtml, selectedJs, selectedVideo].filter(
+        (item): item is ChatAttachment => Boolean(item),
+      ),
+    );
 
     const uploadTextItems = [selectedHtml, selectedJs];
+    const totalUploadItems = uploadTextItems.length + (selectedVideo ? 1 : 0);
+    let uploadedItems = 0;
     for (const item of uploadTextItems) {
       const rel = stripRedundantRelativeFolderPrefix(
         toPosixPath(item.relativePath || item.file.name),
@@ -860,6 +1450,11 @@ const ChatView = () => {
       });
       if (!res?.ok) throw new Error(res?.error || `Upload failed: ${rel}`);
       uploaded++;
+      uploadedItems++;
+      setProgress(
+        60 + Math.round((uploadedItems / Math.max(1, totalUploadItems)) * 25),
+        "Uploading converted files...",
+      );
       logs.push(`Uploaded text: ${remoteFilePath}`);
     }
 
@@ -875,6 +1470,11 @@ const ChatView = () => {
       );
       if (!res?.ok) throw new Error(res?.error || `Upload failed: ${rel}`);
       uploaded++;
+      uploadedItems++;
+      setProgress(
+        60 + Math.round((uploadedItems / Math.max(1, totalUploadItems)) * 25),
+        "Uploading media file...",
+      );
       logs.push(`Uploaded video: ${remoteFilePath}`);
     }
 
@@ -896,6 +1496,7 @@ const ChatView = () => {
         "No uploadable files found. Only .html/.htm, .js, and video files are uploaded.",
       );
     }
+    setProgress(92, "Generating preview URL...");
 
     const previewFormat = await resolveFormatForPreview({
       remotePath: resolvedRemotePath,
@@ -909,6 +1510,7 @@ const ChatView = () => {
         ? { formatValue: previewFormat.formatValue }
         : {}),
     });
+    setProgress(100, "Build demo upload completed.");
 
     return {
       remoteBase,
@@ -919,6 +1521,80 @@ const ChatView = () => {
       formatValue: previewFormat.formatValue,
       formatSuggestions: previewFormat.suggestions,
     };
+  };
+
+  const executeUploadDemoPlan = async (plan: PendingUploadDemoAction) => {
+    setUploadProgress({
+      percent: 1,
+      label: "Starting build demo pipeline...",
+    });
+    try {
+      const runResult = await runBuildDemoUploadTool(plan);
+      const isVideoUpload = plan.uploadKind === "video";
+      const videoPreviewLines =
+        isVideoUpload &&
+        "videoPreviews" in runResult &&
+        Array.isArray(
+          (runResult as { videoPreviews?: VideoPreviewLink[] }).videoPreviews,
+        )
+          ? (
+              (runResult as { videoPreviews: VideoPreviewLink[] }).videoPreviews
+            ).flatMap((item) => [
+              `**${item.label}**`,
+              item.previewUrl
+                ? `Preview: ${item.previewUrl}`
+                : `Preview: could not generate URL (${item.formatValue})`,
+            ])
+          : [];
+
+      const okMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: [
+          isVideoUpload
+            ? "Video demo upload completed (tvc.mp4 + make-vast.xml)."
+            : "BuildDemo upload completed.",
+          `Remote: ${runResult.remoteBase}`,
+          `Uploaded files: ${runResult.uploaded}`,
+          isVideoUpload && videoPreviewLines.length > 0
+            ? null
+            : runResult.formatValue
+              ? `Format: ${runResult.formatValue}`
+              : null,
+          ...(isVideoUpload ? videoPreviewLines : []),
+          !isVideoUpload
+            ? runResult.previewUrl
+              ? `Preview: ${runResult.previewUrl}`
+              : `Preview: could not generate URL for ${runResult.remotePath}`
+            : null,
+          !isVideoUpload &&
+          !runResult.formatValue &&
+          runResult.formatSuggestions?.length
+            ? `Suggestions: ${runResult.formatSuggestions.join(", ")}`
+            : null,
+        ]
+          .filter((line): line is string => Boolean(line))
+          .join("\n"),
+      };
+      setMessages((prev) => [...prev, okMsg]);
+      setAttachments([]);
+      setPendingUploadAction(null);
+      return true;
+    } catch (toolErr) {
+      const msg =
+        toolErr instanceof Error
+          ? toolErr.message
+          : "BuildDemo upload tool failed.";
+      const failMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: `Upload demo tool failed: ${msg}`,
+      };
+      setMessages((prev) => [...prev, failMsg]);
+      return true;
+    } finally {
+      setUploadProgress(null);
+    }
   };
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -934,6 +1610,86 @@ const ChatView = () => {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+
+    if (pendingUploadAction?.tool === "build_demo_convert_upload") {
+      const requestedBrand = extractBrandFromInput(trimmedInput);
+      if (requestedBrand) {
+        const normalizedBrand = resolveAllowedBuildDemoBrand(requestedBrand);
+        if (!normalizedBrand) {
+          const suggestions = suggestBuildDemoBrands(requestedBrand);
+          const invalidBrandMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: `Brand \`${requestedBrand}\` không có trong danh sách. Vui lòng nhập lại brand hợp lệ${
+              suggestions.length > 0 ? ` (gợi ý: ${suggestions.join(", ")})` : ""
+            }.`,
+          };
+          setMessages((prev) => [...prev, invalidBrandMsg]);
+          setInput("");
+          return;
+        }
+      }
+
+      const updates = extractPendingUploadSupplements(
+        trimmedInput,
+        pendingUploadAction,
+      );
+      const hasUpdate = Object.keys(updates).length > 0;
+      const mergedAction: PendingUploadDemoAction = {
+        ...pendingUploadAction,
+        ...updates,
+      };
+      const uploadKind = detectUploadDemoKind(attachments);
+      const remaining = computePendingUploadMissingInputs(
+        { ...mergedAction, uploadKind },
+        attachments.length,
+        uploadKind,
+      );
+      const canContinue = remaining.length === 0;
+
+      if (hasUpdate && !canContinue) {
+        setPendingUploadAction({
+          ...mergedAction,
+          uploadKind,
+          requiredInputs: remaining,
+        });
+        const promptMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content: `Đã lưu thông tin bổ sung. ${buildMissingUploadInputsMessage(mergedAction, remaining)}`,
+        };
+        setMessages((prev) => [...prev, promptMsg]);
+        setInput("");
+        return;
+      }
+
+      if (!hasUpdate) {
+        const reminderMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content:
+            uploadKind === "video"
+              ? "Mình đang chờ thông tin để upload video demo. Ví dụ: `brand: yomedia` + đính kèm đúng 1 file MP4/WebM/MOV (sau upload sẽ có preview outstream + instream)."
+              : "Mình đang chờ thông tin còn thiếu để tiếp tục upload demo. Ví dụ: `brand: yomedia`, `format: 300x250`.",
+        };
+        setMessages((prev) => [...prev, reminderMsg]);
+        setInput("");
+        return;
+      }
+
+      setInput("");
+      setIsLoading(true);
+      try {
+        await executeUploadDemoPlan({
+          ...mergedAction,
+          uploadKind,
+          requiredInputs: remaining,
+        });
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
     // URL with b=...index.html → extract path for user, skip AI request.
     try {
@@ -1081,61 +1837,33 @@ const ChatView = () => {
         }
       ).action;
       if (action?.tool === "build_demo_convert_upload") {
-        if (
-          Array.isArray(action.requiredInputs) &&
-          action.requiredInputs.includes("targetSourcePathOrBrand")
-        ) {
+        const nextPending = action as PendingUploadDemoAction;
+        const uploadKind =
+          nextPending.uploadKind ?? detectUploadDemoKind(attachments);
+        const mergedPending = { ...nextPending, uploadKind };
+        const missing = computePendingUploadMissingInputs(
+          mergedPending,
+          attachments.length,
+          uploadKind,
+        );
+        if (missing.length > 0) {
+          setPendingUploadAction({
+            ...mergedPending,
+            requiredInputs: missing,
+          });
           const missingMsg: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
-            content:
-              "Thiếu thông tin path/brand. Hãy gửi: `upload demo brand: <brand>` hoặc `upload demo path: <year>/<month>/<brand>/...`",
+            content: buildMissingUploadInputsMessage(mergedPending, missing),
           };
           setMessages((prev) => [...prev, missingMsg]);
           setIsLoading(false);
           return;
         }
-        try {
-          const runResult = await runBuildDemoUploadTool(action);
-          const okMsg: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: "model",
-            content: [
-              "BuildDemo upload completed.",
-              `Remote: ${runResult.remoteBase}`,
-              `Uploaded files: ${runResult.uploaded}`,
-              runResult.formatValue ? `Format: ${runResult.formatValue}` : null,
-              runResult.previewUrl
-                ? `Preview: ${runResult.previewUrl}`
-                : `Preview: could not generate URL for ${runResult.remotePath}`,
-              !runResult.formatValue && runResult.formatSuggestions?.length
-                ? `Suggestions: ${runResult.formatSuggestions.join(", ")}`
-                : null,
-            ]
-              .filter((line): line is string => Boolean(line))
-              .join("\n"),
-          };
-          setMessages((prev) => [...prev, okMsg]);
-          if (runResult.previewUrl) {
-            window.open(runResult.previewUrl, "_blank", "noopener,noreferrer");
-          }
-          setAttachments([]);
-          setIsLoading(false);
-          return;
-        } catch (toolErr) {
-          const msg =
-            toolErr instanceof Error
-              ? toolErr.message
-              : "BuildDemo upload tool failed.";
-          const failMsg: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: "model",
-            content: `Upload demo tool failed: ${msg}`,
-          };
-          setMessages((prev) => [...prev, failMsg]);
-          setIsLoading(false);
-          return;
-        }
+        setPendingUploadAction(null);
+        await executeUploadDemoPlan(mergedPending);
+        setIsLoading(false);
+        return;
       }
 
       const modelMsg: ChatMessage = {
@@ -1274,11 +2002,28 @@ const ChatView = () => {
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-200 dark:border-slate-700 shadow-sm">
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-              </div>
+              {uploadProgress ? (
+                <div className="w-72 space-y-2">
+                  <div className="text-xs text-slate-700 dark:text-slate-200">
+                    {uploadProgress.label}
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {uploadProgress.percent}%
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
+                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1293,9 +2038,10 @@ const ChatView = () => {
           type="file"
           multiple
           className="hidden"
-          onChange={(e) => {
-            handlePickAttachments(e.target.files);
-            e.currentTarget.value = "";
+          onChange={async (e) => {
+            const inputEl = e.currentTarget;
+            await handlePickAttachments(e.target.files);
+            inputEl.value = "";
           }}
         />
         <input
@@ -1303,9 +2049,10 @@ const ChatView = () => {
           type="file"
           multiple
           className="hidden"
-          onChange={(e) => {
-            handlePickAttachments(e.target.files);
-            e.currentTarget.value = "";
+          onChange={async (e) => {
+            const inputEl = e.currentTarget;
+            await handlePickAttachments(e.target.files);
+            inputEl.value = "";
           }}
           {...({
             webkitdirectory: "true",
@@ -1336,7 +2083,7 @@ const ChatView = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder='Hỏi tài liệu, hoặc "upload demo path:2026/.../300x250" + attach folder'
+            placeholder='Hỏi tài liệu, "upload demo brand: yomedia format: instream" + 1 video, hoặc HTML/JS folder'
             className="flex-1 min-w-0 h-11 bg-transparent border-none rounded-xl px-3 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-0"
           />
           <Button
