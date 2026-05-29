@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Button from "../components/Button";
+import InputPopup from "../components/InputPopup";
 import NoticePopup from "../components/NoticePopup";
 import { useAuth } from "../contexts/AuthContext";
 import brandColors from "../data/brandColors.json";
@@ -21,6 +22,7 @@ import {
   SignalIcon,
   ArrowsRightLeftIcon,
   CloudArrowUpIcon,
+  FolderPlusIcon,
 } from "@heroicons/react/24/outline";
 import {
   fetchSftpList,
@@ -153,6 +155,7 @@ type SftpManageRolePermissions = Record<
       canSftpUploadBinary?: boolean;
       canSftpWriteFile?: boolean;
       canSftpDelete?: boolean;
+      canSftpMkdir?: boolean;
     };
     creativeShowcase?: {
       canDownload?: boolean;
@@ -243,6 +246,7 @@ const ManageSftp: React.FC = () => {
         manageDemo: {
           canSftpWriteFile: false,
           canSftpDelete: false,
+          canSftpMkdir: false,
         },
       },
     });
@@ -269,6 +273,7 @@ const ManageSftp: React.FC = () => {
   const canSftpWriteFile = mdSftp?.canSftpWriteFile === true;
   const canSftpUploadBinary = mdSftp?.canSftpUploadBinary === true;
   const canSftpDelete = mdSftp?.canSftpDelete === true;
+  const canSftpMkdir = mdSftp?.canSftpMkdir === true;
   const canSetupMediaSftp = mdSftp?.canSetupMediaSftp === true;
   const canDropUpload = canSftpUploadBinary && canSftpWriteFile;
   const sftpClient = React.useMemo(
@@ -349,6 +354,8 @@ const ManageSftp: React.FC = () => {
   const [uploadingDropFiles, setUploadingDropFiles] = React.useState(false);
   const [uploadSummary, setUploadSummary] = React.useState<string | null>(null);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = React.useState(false);
+  const [createFolderOpen, setCreateFolderOpen] = React.useState(false);
   const filesInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const isEditableFileName = React.useCallback((name: string) => {
@@ -573,6 +580,53 @@ const ManageSftp: React.FC = () => {
 
   const parentPath = getParentPath(sftpPath);
   const listBusy = loadingList;
+
+  const performCreateFolder = React.useCallback(
+    async (folderName: string) => {
+      if (!canSftpMkdir || creatingFolder || useRecursiveSearch) return;
+      const targetPath = joinPath(sftpPath, folderName);
+      setCreatingFolder(true);
+      setActionBanner(null);
+      try {
+        const data = await sftpClient.mkdir(targetPath, {
+          scope: sftpScope,
+        });
+
+        if (!data?.ok) {
+          setActionBanner(data?.error || "Unable to create folder");
+          return;
+        }
+
+        void recordActivity({
+          user,
+          action: "create_folder",
+          area: "Manage SFTP",
+          description: "Created folder on SFTP",
+          target: targetPath,
+          metadata: { scope: sftpScope },
+        });
+        setActionBanner("Folder created.");
+        refreshFileQueries();
+      } catch (err) {
+        setActionBanner(
+          err instanceof Error ? err.message : "Error while creating folder.",
+        );
+      } finally {
+        setCreatingFolder(false);
+      }
+    },
+    [
+      canSftpMkdir,
+      creatingFolder,
+      useRecursiveSearch,
+      sftpPath,
+      sftpClient,
+      sftpScope,
+      user,
+      refreshFileQueries,
+    ],
+  );
+
   const sftpPathForDisplay = React.useMemo(
     () => logicalManagePathToDisplayPath(sftpPath, sftpScope),
     [sftpPath, sftpScope],
@@ -1158,6 +1212,23 @@ const ManageSftp: React.FC = () => {
                   </Button>
                 </>
               )}
+              {canSftpMkdir && !useRecursiveSearch && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!canSftpMkdir || creatingFolder || listBusy) return;
+                    setCreateFolderOpen(true);
+                  }}
+                  disabled={creatingFolder || listBusy}
+                  variant="violet"
+                  size="md"
+                  className="inline-flex items-center gap-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-violet-400/30"
+                  title={`Create folder in ${sftpPathForDisplay}`}
+                >
+                  <FolderPlusIcon className="h-4 w-4" />
+                  {creatingFolder ? "Creating…" : "Create folder"}
+                </Button>
+              )}
               {canSetupMediaSftp && (
                 <Button
                   type="button"
@@ -1287,6 +1358,7 @@ const ManageSftp: React.FC = () => {
               className={`text-xs px-1 ${
                 actionBanner === "File saved." ||
                 actionBanner === "Deleted." ||
+                actionBanner === "Folder created." ||
                 actionBanner === "Folder ZIP ready." ||
                 actionBanner.startsWith("Connected to media SFTP") ||
                 actionBanner.startsWith("Đã đồng bộ")
@@ -1762,6 +1834,25 @@ const ManageSftp: React.FC = () => {
           </div>
         </div>
       ) : null}
+
+      <InputPopup
+        open={createFolderOpen}
+        onClose={() => setCreateFolderOpen(false)}
+        title="New folder"
+        label="Folder name"
+        submitLabel="Create"
+        placeholder="folder-name"
+        initialValue=""
+        validate={(v) => {
+          if (!v.trim()) return "Enter a folder name.";
+          if (v.includes("/") || v.includes("\\") || v === "." || v === "..")
+            return "Invalid folder name.";
+          return null;
+        }}
+        onSubmit={async (folderName) => {
+          await performCreateFolder(folderName);
+        }}
+      />
     </div>
   );
 };

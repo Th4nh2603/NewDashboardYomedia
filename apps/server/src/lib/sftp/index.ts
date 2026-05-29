@@ -893,14 +893,14 @@ export async function findExistingTargetDirectoriesUnderSource(
       | "d"
       | "-"
       | "l";
-    if (sourceType !== "d" && sourceType !== "D") return;
+    if (sourceType !== "d") return;
 
     const targetType = (await (targetClient as any).exists(toDir)) as
       | false
       | "d"
       | "-"
       | "l";
-    if (targetType === "d" || targetType === "D") {
+    if (targetType === "d") {
       existing.push(sftpDirRelativeKey(fromDir, normalizedSourcePath));
     }
 
@@ -939,7 +939,7 @@ export async function findExistingTargetDirectoriesUnderSource(
     if (!sourceType) {
       throw new Error(`Source path does not exist: ${normalizedSourcePath}`);
     }
-    if (sourceType !== "d" && sourceType !== "D") {
+    if (sourceType !== "d") {
       const targetType = (await (targetClient as any).exists(
         normalizedTargetPath,
       )) as false | "d" | "-" | "l";
@@ -1064,7 +1064,7 @@ export async function copySftpPathBetweenConfigs(
       throw new Error(`Destination path is not a directory: ${toDir}`);
     }
 
-    const targetIsDir = targetExists === "d" || targetExists === "D";
+    const targetIsDir = targetExists === "d";
     const shouldSkipSubtree =
       options.skipExistingDirectories === true &&
       targetIsDir &&
@@ -1134,8 +1134,8 @@ export async function copySftpPathBetweenConfigs(
       if (!allowExistingTarget) {
         throw new Error(`Destination path already exists: ${normalizedTargetPath}`);
       }
-      const sourceIsDir = sourceType === "d" || sourceType === "D";
-      const targetIsDir = targetType === "d" || targetType === "D";
+      const sourceIsDir = sourceType === "d";
+      const targetIsDir = targetType === "d";
       if (sourceIsDir && !targetIsDir) {
         throw new Error(
           `Cannot merge directory into non-directory: ${normalizedTargetPath}`,
@@ -1148,7 +1148,7 @@ export async function copySftpPathBetweenConfigs(
       }
     }
 
-    if (sourceType === "d" || sourceType === "D") {
+    if (sourceType === "d") {
       await copyDirectoryRecursive(
         normalizedSourcePath,
         normalizedTargetPath,
