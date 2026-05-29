@@ -31,6 +31,10 @@ import {
   loadPersistedBuildDemoUploadResult,
   persistBuildDemoUploadResult,
 } from "../lib/buildDemoUploadResultStorage";
+import {
+  buildVideoMakeVastXml,
+  VIDEO_DEMO_FIXED_REL_PATH,
+} from "../lib/makeVastXml";
 
 type BuildDemoRolePermissions = Record<
   string,
@@ -353,62 +357,8 @@ function formatMediaSetupPath(value: string | null | undefined): string {
     .replace(/^\/+/, "");
 }
 
-/** Demo format Video: luôn ghi file dưới thư mục demo với đường dẫn cố định này (SFTP + ZIP offline). */
-const VIDEO_DEMO_FIXED_REL_PATH = "tvc.mp4";
-
 /** Offline ZIP: skip vendor/lib trees (manifest URLs are rewritten to CDN in converted HTML/JS). */
 const OFFLINE_PACKAGE_SKIP_REL_PATH_RE = /(^|\/)(libs?|node_modules)(\/|$)/i;
-
-const DEMO_PUBLIC_VIDEO_ORIGIN = "https://demo.yomedia.vn";
-
-/** VAST 2.0 for make-vast.xml; `targetDemoPath` is the public path segment (e.g. 2026/04/brand/.../tvc). */
-function buildVideoMakeVastXml(targetDemoPath: string): string {
-  const dir = targetDemoPath
-    .trim()
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("/");
-  const mediaUrl = `${DEMO_PUBLIC_VIDEO_ORIGIN}/${dir}/${VIDEO_DEMO_FIXED_REL_PATH}`;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<VAST version="2.0">
-    <Ad id="239e6a5992e5442c836c1980894e8dc0">
-        <InLine>
-            <AdSystem>Yomedia</AdSystem>
-            <AdTitle></AdTitle>
-            <Description/>
-            <Survey/>
-            <Error></Error>
-            <Impression><![CDATA[]]></Impression>
-            <Creatives>
-                <Creative sequence="1" AdID="">
-                    <Linear skipoffset="00:00:05">
-                        <Duration>00:00:15</Duration>
-                        <TrackingEvents>
-                            <Tracking event="start"><![CDATA[]]></Tracking>
-                            <Tracking event="firstQuartile"><![CDATA[]]></Tracking>
-                            <Tracking event="midpoint"><![CDATA[]]></Tracking>
-                            <Tracking event="thirdQuartile"><![CDATA[]]></Tracking>
-                            <Tracking event="complete"><![CDATA[]]></Tracking>
-                            <Tracking event="mute"><![CDATA[]]></Tracking>
-                            <Tracking event="unmute"><![CDATA[]]></Tracking>
-                            <Tracking event="pause"><![CDATA[]]></Tracking>
-                            <Tracking event="resume"><![CDATA[]]></Tracking>
-                        </TrackingEvents>
-                        <VideoClicks>
-                            <ClickThrough><![CDATA[https://www.yomedia.vn/]]></ClickThrough>
-                        </VideoClicks>
-                        <MediaFiles>
-                            <MediaFile bitrate="" delivery="progressive" height="" width="" maintainAspectRatio="true" scalable="true" type="video/mp4" minSuggestedDuration="Ads By Yomedia"><![CDATA[${mediaUrl}]]></MediaFile>
-                        </MediaFiles>
-                    </Linear>
-                </Creative>
-            </Creatives>
-        </InLine>
-    </Ad>
-</VAST>
-`;
-}
 
 /** Unique basenames at zip root (avoid collisions when flattening paths). */
 function uniquifyZipEntryNames(wanted: string[]): string[] {

@@ -16,9 +16,15 @@ import {
 } from "../lib/chatAiProvider";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import { createSftpClient } from "../lib/sftpClient";
-import { getBuildDemoBrandOptions } from "../lib/buildDemoBrands";
+import {
+  getBuildDemoBrandOptions,
+  isBuildDemoBrandAllowed,
+} from "../lib/buildDemoBrands";
 import {
   buildVideoMakeVastXml,
+  isBundledDemoAssetImageName,
+  replaceBundledDemoStaticImages,
+  replaceDemoManifestScriptUrls,
   VIDEO_DEMO_FIXED_REL_PATH,
 } from "../lib/buildDemoAssets";
 import Button from "./Button";
@@ -53,164 +59,10 @@ type UploadProgressState = {
   label: string;
 };
 
-const S_ON_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzACXMChfymT9mWbJMv3+McuXYpbWoq14AAAHlSURBVEjHvZaJjoMwDES9gYSE+5j//9alpsaUhk1opbVUIIWn8Tgn/cSitEbC2jL6CcUgOoWxZRK0FA9zRimJKXoJlheIonHQUDLKM6hyKVEFlcsKewYN3SRJuXsk5XLe7xVS0FI65u61QJRZmAZoXkjKNNgDGI7J0pXg2PujPybrgyTFBX0HVNKo3cPfAhQHSYoKBgf9zLvN3wT0KkkRQb8AO6j+AjDvkiv4xtUzDmC7/oa1td4LYNxHAb1lWgECsr+BGGlYsttzJSv5hUcQERTcjbUsuTYcPeOHNoujA8cJZH3Xcv8PXNiwcXuiCy5A6vih5mvQPrJqLA5Klo6zPJhMgZJlAbDjOR/sWaYCiPF8MPDTf4Ljp+DCfdDxu/kOOAGjDBr5M9WPMnS4Nwu+NgI+NfsYKC8qxgduDDLkRLMpOM5gWO+z57ncslFZPc7T6gyODq7mAjX0wCepTWQiD+5lPjb1im9TpDqM8djS0XYHkGHHheV8xWJ8sQqTgML1JPlymKvl0VfQGeRnDFudnBfB6wW5LRBIyFHyFcE/twApvOa7kAqmNx3lGmnYG9ucn5UztzZWv3NUfruVc5SfHB5uaZbvJyubxyl4gzRXh0CTY+/7Y+f3B11NOI0peH0sN/HT/C/3pivwmDak6QAAAABJRU5ErkJggg==";
-const S_OFF_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzAJkmGWYOsj8H8thZf+W/jHJMzPy/nOYAAAFuSURBVEjHrdZZkoMwDATQJhIGk7CO7n/WgTKgYrxhMv2TBR4CF7aFKhTDTHuYTfAUH1om/AmxzUJGOGQ8mGNKo9AgHbJhyMjGBqDFnbBCdSVSIaFQQl2ZRHhc8iOEYgc6oUVZ+ICEwhgHDUJppzp5s4gUrAeRJVUSwYLtS9a8UiURKjgPkoawK/TLjSI5yBWM93SdXGEPveZ83iv4BFsW4CUKXf3mdG85rlKB3F8/+7ke3A40pxOp93E9ykkMfrpDfga9BjgNVernLajHmqsD3YDo3U91eahSXQF0QytdWwwb9/vdFkB1TpbASUdVJedhv4/LVfJecwlD5/TNUWmOmmMMNtd3tfu479608iCay+yYz2lVPZqPvEIOLzj5pcPAyzJmIEWXx3obwSkKTWJBnrp3vGByC6jbeMGnm86X21yxtA+3cvN186CyoJ7Cm89pn7VkFGkCLaUdP2w77f82uhpDPsu01mpZMSjczf8CCMYlsaG5I9IAAAAASUVORK5CYII=";
-const BTN_REPLAY_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAM1BMVEUAAAD///////////////////////////////////////////////////////////////+3leKCAAAAEHRSTlMAf+8/Dx8vv49vX9+fT6/P7uaPeAAAANZJREFUOMvtkd0SxBAMRiOon6rm/Z92TadEo2bc7MXO7LkThy8BfhebXDRr6oGU1lS7Ex5L5oZEatmMMkdfBHXR+qTBNCcxZys7IrRDTMNxtayyCA8sdhPsZbk9s5HFwOV8LxlFjO7KrRPOYIw4/5iFOoDxUjyIcTJo1mLmsqWpGBOprjwXNaQo3sy9Prcq289RyPeiriJuQ4yGHqzmXk3r7wJMfga9NiVf1aMHyL8e4VFklyNoQBJevQ1G/OglC29EFNcpmGB8r3XXjdjg8LJytPDnC3wA/ZYX0JaBReoAAAAASUVORK5CYII=";
-const BTN_PLAY_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEMAAABOCAMAAABMilufAAAAVFBMVEUAAAD///////////////////////////////////////////////////////////////////////////////////////////////////////////8wXzyWAAAAG3RSTlMADPUc33ftqifPtpVRQuZrODHVx7+djIRiWRRgp4d+AAABBklEQVRYw6TQyRWCQAAEUQYERxBZ3O3887QvvA6gKoB/qGasDU6aCjc0LNhw+4wNh7bo6FWogbZI6TJjw50rMbKFG7p9iJEtwMiWjhtq3wUY2QKMbFmJkS3EyBZquNMXG+6+EiNbuKG2L8DIFmBky4YN9+yIkS3Y8JYrNtxjI0a2ACNbiJEtxMgWbLjpxw0NPTeULSKNFRrZItiw2MDt/2bM5AagEASiEcMSDvjN96D9N2oRHmYa4EBglkcxw5Rgpxn4GzMl+Lk18RokSqDJa+I9SrThPfv/8BlGtOEz3Xu2rEOQtb3ju0dtgi7mHd9NaxN0dQ88u7BBwHIy8GzLBgHry3fmeAH5pBXvjExH/QAAAABJRU5ErkJggg==";
-const BG_VIDEOS_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAQMAAABrVFYkAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAACZJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAACIOkBWAAFeWY6hAAAAAElFTkSuQmCC";
-const BUNDLED_DEMO_ASSET_IMAGE_BASENAMES = new Set(
-  [
-    "s_on copy.png",
-    "s_off copy.png",
-    "preplaytvc0001.png",
-    "playbtn0001.png",
-    "htt.png",
-  ].map((s) => s.toLowerCase()),
-);
-const DEMO_MANIFEST_JQUERY_SRC =
-  "https://media.yomedia.vn/createjs/jquery-2022.min.js?1726036079413";
-const DEMO_MANIFEST_ANWIDGET_SRC =
-  "https://demo.yomedia.vn/yomedia/components/sdk/anwidget.js?1726036079413";
-const DEMO_MANIFEST_VIDEO_JS_SRC =
-  "https://demo.yomedia.vn/yomedia/components/video/src/video.js?1726036079413";
-const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
-  "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
 const BUILD_DEMO_BRAND_OPTIONS = getBuildDemoBrandOptions();
 const BUILD_DEMO_BRAND_BY_KEY = new Map(
   BUILD_DEMO_BRAND_OPTIONS.map((item) => [normalizePathToken(item.id), item.id]),
 );
-
-function isBundledDemoAssetImageName(name: string): boolean {
-  const leaf = (name.split(/[/\\]/).pop() ?? name).trim().toLowerCase();
-  return BUNDLED_DEMO_ASSET_IMAGE_BASENAMES.has(leaf);
-}
-
-function replaceBundledDemoStaticImages(content: string): string {
-  let c = content;
-  for (const [from, to] of [
-    [
-      `"id": "s_on", "src": "images/s_on%20copy.png"`,
-      `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_on", "src":"images/s_on%20copy.png"`,
-      `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_on", "src": "images/s_on copy.png"`,
-      `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_on", "src":"images/s_on copy.png"`,
-      `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_off", "src": "images/s_off%20copy.png"`,
-      `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_off", "src":"images/s_off%20copy.png"`,
-      `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_off", "src": "images/s_off copy.png"`,
-      `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`,
-    ],
-    [
-      `"id": "s_off", "src":"images/s_off copy.png"`,
-      `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`,
-    ],
-    [
-      `"id": "btn_replay", "src": "images/preplaytvc0001.png"`,
-      `"id": "btn_replay",\n            "src": "${BTN_REPLAY_DATA_URL}"`,
-    ],
-    [
-      `"id": "btn_replay", "src":"images/preplaytvc0001.png"`,
-      `"id": "btn_replay",\n            "src": "${BTN_REPLAY_DATA_URL}"`,
-    ],
-    [
-      `"id": "btn_play", "src": "images/playBtn0001.png"`,
-      `"id": "btn_play",\n            "src": "${BTN_PLAY_DATA_URL}"`,
-    ],
-    [
-      `"id": "btn_play", "src":"images/playBtn0001.png"`,
-      `"id": "btn_play",\n            "src": "${BTN_PLAY_DATA_URL}"`,
-    ],
-    [
-      `"id": "bg_videos", "src": "images/htt.png"`,
-      `"id": "bg_videos",\n            "src": "${BG_VIDEOS_DATA_URL}"`,
-    ],
-    [
-      `"id": "bg_videos", "src":"images/htt.png"`,
-      `"id": "bg_videos",\n            "src": "${BG_VIDEOS_DATA_URL}"`,
-    ],
-  ] as const) {
-    c = c.replaceAll(from, to);
-  }
-  c = c.replace(
-    /(id\s*:\s*["']s_on["'][\s\S]*?src\s*:\s*["'])images\/s_on(?:%20| )copy\.png(["'])/g,
-    `$1${S_ON_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']s_off["'][\s\S]*?src\s*:\s*["'])images\/s_off(?:%20| )copy\.png(["'])/g,
-    `$1${S_OFF_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']btn_replay["'][\s\S]*?src\s*:\s*["'])images\/preplaytvc0001\.png(["'])/g,
-    `$1${BTN_REPLAY_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']btn_play["'][\s\S]*?src\s*:\s*["'])images\/playBtn0001\.png(["'])/g,
-    `$1${BTN_PLAY_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']bg_videos["'][\s\S]*?src\s*:\s*["'])images\/htt\.png(["'])/g,
-    `$1${BG_VIDEOS_DATA_URL}$2`,
-  );
-  return c;
-}
-
-function replaceDemoManifestScriptUrls(content: string): string {
-  let c = content;
-  c = c.replace(
-    /src:\s*"https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/sdk\/anwidget\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/sdk\/anwidget\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/video\/src\/video\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/video\/src\/video\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/ui\/src\/image\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/ui\/src\/image\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
-  );
-  return c;
-}
 
 /** Relative demo path (e.g. `2026/03/.../384x683`) — same as Open Demo input. */
 function tryExtractDemoRemotePath(raw: string): string | null {
@@ -664,6 +516,46 @@ function suggestBuildDemoBrands(rawInput: string): string[] {
   return options.slice(0, 5);
 }
 
+function buildBuildDemoBrandPermissionDeniedMessage(
+  brandId: string,
+  allowed: string[] | null | undefined,
+): string {
+  const label = brandId.trim() || "brand này";
+  if (allowed && allowed.length > 0) {
+    return `Bạn không có quyền upload/build demo cho brand \`${label}\`. Brand được phép: ${allowed.join(", ")}. Liên hệ admin nếu cần thêm quyền.`;
+  }
+  return `Bạn không có quyền upload/build demo cho brand \`${label}\`. Liên hệ admin để được cấp quyền.`;
+}
+
+function checkBuildDemoBrandUserPermission(
+  brandId: string,
+  allowed: string[] | null | undefined,
+): string | null {
+  const normalized = String(brandId || "").trim();
+  if (!normalized) return null;
+  if (isBuildDemoBrandAllowed(normalized, allowed)) return null;
+  return buildBuildDemoBrandPermissionDeniedMessage(normalized, allowed);
+}
+
+function tryGetUploadDemoBrandPermissionError(
+  action: PendingUploadDemoAction,
+  allowed: string[] | null | undefined,
+): string | null {
+  const raw = String(action.brand ?? "").trim();
+  if (!raw) return null;
+  const canonical = resolveAllowedBuildDemoBrand(raw);
+  if (!canonical) return null;
+  return checkBuildDemoBrandUserPermission(canonical, allowed);
+}
+
+function assertBuildDemoBrandUserPermission(
+  brandId: string,
+  allowed: string[] | null | undefined,
+): void {
+  const denied = checkBuildDemoBrandUserPermission(brandId, allowed);
+  if (denied) throw new Error(denied);
+}
+
 const VIDEO_FORMAT_ALIASES: Record<string, string> = {
   oustream: "outstream",
   outsteam: "outstream",
@@ -801,6 +693,185 @@ function isImageFile(file: File): boolean {
 function isVideoFile(file: File): boolean {
   const ext = (file.name.split(".").pop() ?? "").toLowerCase();
   return file.type.startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
+}
+
+/** Relative path when drag-dropping folders (webkitRelativePath is read-only on File). */
+const chatDropRelativePathByFile = new WeakMap<File, string>();
+
+function readAllDirEntries(
+  reader: FileSystemDirectoryReader,
+): Promise<FileSystemEntry[]> {
+  return new Promise((resolve, reject) => {
+    const acc: FileSystemEntry[] = [];
+    const readBatch = () => {
+      reader.readEntries(
+        (batch) => {
+          if (batch.length === 0) {
+            resolve(acc);
+            return;
+          }
+          acc.push(...batch);
+          readBatch();
+        },
+        (err) => reject(err),
+      );
+    };
+    readBatch();
+  });
+}
+
+function readDroppedEntry(
+  entry: FileSystemEntry,
+  pathPrefix: string,
+): Promise<File[]> {
+  return new Promise((resolve, reject) => {
+    if (entry.isFile) {
+      (entry as FileSystemFileEntry).file(
+        (file: File) => {
+          chatDropRelativePathByFile.set(file, `${pathPrefix}${file.name}`);
+          resolve([file]);
+        },
+        (err) => reject(err),
+      );
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      const dirPath = `${pathPrefix}${entry.name}/`;
+      void readAllDirEntries(reader)
+        .then(async (entries) => {
+          const nested = await Promise.all(
+            entries.map((e) => readDroppedEntry(e, dirPath)),
+          );
+          resolve(nested.flat());
+        })
+        .catch(reject);
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+function isDroppedFolderPlaceholder(file: File): boolean {
+  if (file.size !== 0) return false;
+  const base = file.name.split(/[/\\]/).pop() ?? file.name;
+  if (base.includes(".")) return false;
+  const t = file.type || "";
+  if (t !== "" && t !== "application/octet-stream") return false;
+  return true;
+}
+
+function attachmentRelativePath(file: File): string {
+  return (
+    chatDropRelativePathByFile.get(file)?.trim() ||
+    (file as File & { webkitRelativePath?: string }).webkitRelativePath?.trim() ||
+    file.name
+  );
+}
+
+function mergeDroppedChatFiles(list: File[]): File[] {
+  const seen = new Set<string>();
+  const out: File[] = [];
+  for (const f of list) {
+    const rel = attachmentRelativePath(f);
+    const k = `${rel}\0${f.size}\0${f.lastModified}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(f);
+  }
+  return out;
+}
+
+async function collectFilesFromDataTransfer(
+  dataTransfer: DataTransfer,
+): Promise<File[]> {
+  const fileListFallback = Array.from(dataTransfer.files ?? []).filter(
+    (f) => !isDroppedFolderPlaceholder(f),
+  );
+
+  type DropSnapshot =
+    | { kind: "entry"; entry: FileSystemEntry }
+    | { kind: "file"; file: File };
+
+  const snapshots: DropSnapshot[] = [];
+  const items = dataTransfer.items;
+  if (items?.length) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const entry = (
+        item as DataTransferItem & {
+          webkitGetAsEntry?: () => FileSystemEntry | null;
+        }
+      ).webkitGetAsEntry?.();
+      if (entry) {
+        snapshots.push({ kind: "entry", entry });
+      } else if (item.kind === "file") {
+        const f = item.getAsFile();
+        if (f && !isDroppedFolderPlaceholder(f)) {
+          snapshots.push({ kind: "file", file: f });
+        }
+      }
+    }
+  }
+
+  const allFiles: File[] = [];
+  for (const snap of snapshots) {
+    if (snap.kind === "entry") {
+      try {
+        const files = await readDroppedEntry(snap.entry, "");
+        allFiles.push(...files);
+      } catch {
+        /* ignore */
+      }
+    } else {
+      allFiles.push(snap.file);
+    }
+  }
+
+  return mergeDroppedChatFiles([...allFiles, ...fileListFallback]);
+}
+
+async function collectFilesFromDirectoryHandle(
+  dir: FileSystemDirectoryHandle,
+  pathPrefix = "",
+): Promise<File[]> {
+  const files: File[] = [];
+  for await (const entry of dir.values()) {
+    const rel = `${pathPrefix}${entry.name}`;
+    if (entry.kind === "file") {
+      const file = await entry.getFile();
+      chatDropRelativePathByFile.set(file, rel);
+      files.push(file);
+    } else if (entry.kind === "directory") {
+      files.push(
+        ...(await collectFilesFromDirectoryHandle(entry, `${rel}/`)),
+      );
+    }
+  }
+  return mergeDroppedChatFiles(files);
+}
+
+type DirectoryPickerWindow = Window & {
+  showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
+};
+
+function getDirectoryPicker(): (() => Promise<FileSystemDirectoryHandle>) | null {
+  const picker = (window as DirectoryPickerWindow).showDirectoryPicker;
+  return typeof picker === "function" ? picker.bind(window) : null;
+}
+
+async function pickFolderAttachments(): Promise<FileList | null> {
+  const showDirectoryPicker = getDirectoryPicker();
+  if (!showDirectoryPicker) return null;
+  try {
+    const dir = await showDirectoryPicker();
+    const files = await collectFilesFromDirectoryHandle(dir);
+    if (files.length === 0) return null;
+    const dt = new DataTransfer();
+    files.forEach((file) => dt.items.add(file));
+    return dt.files;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") return null;
+    throw err;
+  }
 }
 
 function isCreativeVideoDemo(
@@ -1003,9 +1074,11 @@ const ChatView = () => {
   );
   const { handleApiError } = useError();
   const { user } = useAuth();
+  const allowedBuildDemoBrands = user?.allowedBuildDemoBrands;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
-  const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentPickerRef = useRef<HTMLDivElement | null>(null);
+  const [attachmentPickerOpen, setAttachmentPickerOpen] = useState(false);
   const normalizedRole = String(user?.role ?? "")
     .trim()
     .toLowerCase();
@@ -1028,6 +1101,16 @@ const ChatView = () => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (!attachmentPickerOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (attachmentPickerRef.current?.contains(e.target as Node)) return;
+      setAttachmentPickerOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [attachmentPickerOpen]);
+
   const handlePickAttachments = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     const pickedFiles = Array.from(fileList);
@@ -1035,10 +1118,7 @@ const ChatView = () => {
 
     for (const [idx, file] of pickedFiles.entries()) {
       if (!isZipFile(file)) {
-        const rel = (
-          (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-          file.name
-        ).trim();
+        const rel = attachmentRelativePath(file);
         next.push({
           id: `${Date.now()}-${idx}-${file.name}`,
           file,
@@ -1118,8 +1198,41 @@ const ChatView = () => {
     setAttachments((prev) => prev.filter((x) => x.id !== id));
   };
 
-  const handleAttachmentButtonClick = () => {
+  const openFilePicker = () => {
+    setAttachmentPickerOpen(false);
     attachmentInputRef.current?.click();
+  };
+
+  const openFolderPicker = async () => {
+    setAttachmentPickerOpen(false);
+    try {
+      const files = await pickFolderAttachments();
+      if (!files) {
+        if (!getDirectoryPicker()) {
+          handleApiError(
+            new Error(
+              "Trình duyệt không hỗ trợ chọn folder. Hãy kéo-thả folder vào ô chat hoặc đính kèm file .zip.",
+            ),
+          );
+        }
+        return;
+      }
+      await handlePickAttachments(files);
+    } catch (err) {
+      const reason =
+        err instanceof Error ? err.message : "Không đọc được folder.";
+      handleApiError(new Error(reason));
+    }
+  };
+
+  const handleChatDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = await collectFilesFromDataTransfer(e.dataTransfer);
+    if (files.length === 0) return;
+    const dt = new DataTransfer();
+    files.forEach((file) => dt.items.add(file));
+    await handlePickAttachments(dt.files);
   };
 
   const runVideoBuildDemoUpload = async (plan: {
@@ -1166,6 +1279,7 @@ const ChatView = () => {
         `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
       );
     }
+    assertBuildDemoBrandUserPermission(normalizedBrand, allowedBuildDemoBrands);
     const brandToken = normalizePathToken(normalizedBrand).replace(
       /^brand-+/,
       "",
@@ -1346,6 +1460,7 @@ const ChatView = () => {
         `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
       );
     }
+    assertBuildDemoBrandUserPermission(normalizedBrand, allowedBuildDemoBrands);
     const brandToken = normalizePathToken(normalizedBrand).replace(
       /^brand-+/,
       "",
@@ -1628,6 +1743,20 @@ const ChatView = () => {
           setInput("");
           return;
         }
+        const brandPermissionDenied = checkBuildDemoBrandUserPermission(
+          normalizedBrand,
+          allowedBuildDemoBrands,
+        );
+        if (brandPermissionDenied) {
+          const deniedMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: brandPermissionDenied,
+          };
+          setMessages((prev) => [...prev, deniedMsg]);
+          setInput("");
+          return;
+        }
       }
 
       const updates = extractPendingUploadSupplements(
@@ -1646,6 +1775,21 @@ const ChatView = () => {
         uploadKind,
       );
       const canContinue = remaining.length === 0;
+      const brandPermissionBlocker = tryGetUploadDemoBrandPermissionError(
+        mergedAction,
+        allowedBuildDemoBrands,
+      );
+
+      if (brandPermissionBlocker) {
+        const deniedMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content: brandPermissionBlocker,
+        };
+        setMessages((prev) => [...prev, deniedMsg]);
+        setInput("");
+        return;
+      }
 
       if (hasUpdate && !canContinue) {
         setPendingUploadAction({
@@ -1846,6 +1990,20 @@ const ChatView = () => {
           attachments.length,
           uploadKind,
         );
+        const brandPermissionBlocker = tryGetUploadDemoBrandPermissionError(
+          mergedPending,
+          allowedBuildDemoBrands,
+        );
+        if (brandPermissionBlocker) {
+          const deniedMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: brandPermissionBlocker,
+          };
+          setMessages((prev) => [...prev, deniedMsg]);
+          setIsLoading(false);
+          return;
+        }
         if (missing.length > 0) {
           setPendingUploadAction({
             ...mergedPending,
@@ -2031,6 +2189,13 @@ const ChatView = () => {
 
       <form
         onSubmit={handleSend}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          void handleChatDrop(e);
+        }}
         className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
       >
         <input
@@ -2043,21 +2208,6 @@ const ChatView = () => {
             await handlePickAttachments(e.target.files);
             inputEl.value = "";
           }}
-        />
-        <input
-          ref={folderInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={async (e) => {
-            const inputEl = e.currentTarget;
-            await handlePickAttachments(e.target.files);
-            inputEl.value = "";
-          }}
-          {...({
-            webkitdirectory: "true",
-            directory: "true",
-          } as Record<string, string>)}
         />
         {attachments.length > 0 && (
           <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2 space-y-1 max-h-28 overflow-auto">
@@ -2086,15 +2236,43 @@ const ChatView = () => {
             placeholder='Hỏi tài liệu, "upload demo brand: yomedia format: instream" + 1 video, hoặc HTML/JS folder'
             className="flex-1 min-w-0 h-11 bg-transparent border-none rounded-xl px-3 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-0"
           />
-          <Button
-            type="button"
-            onClick={handleAttachmentButtonClick}
-            className="shrink-0 h-10 px-3 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors text-xs font-semibold"
-          >
-            {attachments.length > 0
-              ? `Attachment (${attachments.length})`
-              : "Attachment"}
-          </Button>
+          <div ref={attachmentPickerRef} className="relative shrink-0">
+            <Button
+              type="button"
+              onClick={() => setAttachmentPickerOpen((open) => !open)}
+              title="Đính kèm file, zip hoặc folder demo"
+              className="h-10 px-3 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors text-xs font-semibold"
+            >
+              {attachments.length > 0
+                ? `Attachment (${attachments.length})`
+                : "Attachment"}
+            </Button>
+            {attachmentPickerOpen && (
+              <div
+                role="menu"
+                className="absolute bottom-full right-0 mb-2 min-w-[11rem] rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg py-1 z-20"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={openFilePicker}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  File / zip
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    void openFolderPicker();
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  Folder demo
+                </button>
+              </div>
+            )}
+          </div>
           <Button
             type="submit"
             disabled={!input.trim() || isLoading}

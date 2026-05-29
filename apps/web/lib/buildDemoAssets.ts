@@ -10,9 +10,13 @@ const BG_VIDEOS_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAQMAAABrVFYkAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAACZJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAACIOkBWAAFeWY6hAAAAAElFTkSuQmCC";
 
 const BUNDLED_DEMO_ASSET_IMAGE_BASENAMES = new Set(
-  ["s_on copy.png", "s_off copy.png", "preplaytvc0001.png", "playbtn0001.png", "htt.png"].map((s) =>
-    s.toLowerCase(),
-  ),
+  [
+    "s_on copy.png",
+    "s_off copy.png",
+    "preplaytvc0001.png",
+    "playbtn0001.png",
+    "htt.png",
+  ].map((s) => s.toLowerCase()),
 );
 
 const DEMO_MANIFEST_JQUERY_SRC =
@@ -24,29 +28,57 @@ const DEMO_MANIFEST_VIDEO_JS_SRC =
 const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
   "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
 
-export const VIDEO_DEMO_FIXED_REL_PATH = "tvc.mp4";
-const DEMO_PUBLIC_VIDEO_ORIGIN = "https://demo.yomedia.vn";
+export {
+  VIDEO_DEMO_FIXED_REL_PATH,
+  buildVideoMakeVastXml,
+} from "./makeVastXml";
 
 export type ImageBase64Entry = {
   name: string;
   base64: string;
 };
 
-function isBundledDemoAssetImageName(name: string): boolean {
+export function isBundledDemoAssetImageName(name: string): boolean {
   const leaf = (name.split(/[/\\]/).pop() ?? name).trim().toLowerCase();
   return BUNDLED_DEMO_ASSET_IMAGE_BASENAMES.has(leaf);
 }
 
-function replaceBundledDemoStaticImages(content: string): string {
+/** Replace canonical manifest images with fixed data URLs (single/double quotes, %20 or space). */
+export function replaceBundledDemoStaticImages(content: string): string {
   let c = content;
   const sq = [
-    [`'id': 's_on', 'src':'images/s_on%20copy.png'`, `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`],
-    [`'id': 's_on', 'src':'images/s_on copy.png'`, `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`],
-    [`'id': 's_off', 'src':'images/s_off%20copy.png'`, `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`],
-    [`'id': 's_off', 'src':'images/s_off copy.png'`, `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`],
-    [`'id': 'btn_replay', 'src':'images/preplaytvc0001.png'`, `'id': 'btn_replay',\n            'src': '${BTN_REPLAY_DATA_URL}'`],
-    [`'id': 'btn_play', 'src':'images/playBtn0001.png'`, `'id': 'btn_play',\n            'src': '${BTN_PLAY_DATA_URL}'`],
-    [`'id': 'bg_videos', 'src':'images/htt.png'`, `'id': 'bg_videos',\n            'src': '${BG_VIDEOS_DATA_URL}'`],
+    [
+      `'id': 's_on', 'src':'images/s_on%20copy.png'`,
+      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_on', 'src':'images/s_on copy.png'`,
+      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_off', 'src':'images/s_off%20copy.png'`,
+      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
+    ],
+    [
+      `'id': 's_off', 'src':'images/s_off copy.png'`,
+      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
+    ],
+    [
+      `'id': 'btn_replay', 'src':'images/preplaytvc0001.png'`,
+      `'id': 'btn_replay',\n            'src': '${BTN_REPLAY_DATA_URL}'`,
+    ],
+    [
+      `'id': 'btn_play', 'src':'images/playBtn0001.png'`,
+      `'id': 'btn_play',\n            'src': '${BTN_PLAY_DATA_URL}'`,
+    ],
+    [
+      `'id': 'bg_video', 'src':'images/htt.png'`,
+      `'id': 'bg_video',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
+    ],
+    [
+      `'id': 'bg_videos', 'src':'images/htt.png'`,
+      `'id': 'bg_videos',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
+    ],
   ] as const;
   for (const [from, to] of sq) c = c.replaceAll(from, to);
 
@@ -96,7 +128,7 @@ function replaceBundledDemoStaticImages(content: string): string {
   return c;
 }
 
-function replaceDemoManifestScriptUrls(content: string): string {
+export function replaceDemoManifestScriptUrls(content: string): string {
   let c = content;
   c = c.replace(
     /src:\s*"https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^"]*"/g,
@@ -169,7 +201,8 @@ export function replaceImagesToBase64(
           ? line.slice(afterNameIndex)
           : line.slice(nextQuoteIndex + 1);
       const leadingWs = line.match(/^\s*/)?.[0] ?? "";
-      lines[i] = `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
+      lines[i] =
+        `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
       break;
     }
   }
@@ -181,52 +214,4 @@ export function sanitizeFilenameSegment(value: string): string {
     .trim()
     .replace(/[<>:"|?*/\\]/g, "_")
     .replace(/\s+/g, "_");
-}
-
-export function buildVideoMakeVastXml(targetDemoPath: string): string {
-  const dir = targetDemoPath
-    .trim()
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter(Boolean)
-    .join("/");
-  const mediaUrl = `${DEMO_PUBLIC_VIDEO_ORIGIN}/${dir}/${VIDEO_DEMO_FIXED_REL_PATH}`;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<VAST version="2.0">
-    <Ad id="239e6a5992e5442c836c1980894e8dc0">
-        <InLine>
-            <AdSystem>Yomedia</AdSystem>
-            <AdTitle></AdTitle>
-            <Description/>
-            <Survey/>
-            <Error></Error>
-            <Impression><![CDATA[]]></Impression>
-            <Creatives>
-                <Creative sequence="1" AdID="">
-                    <Linear skipoffset="00:00:07">
-                        <Duration>00:00:15</Duration>
-                        <TrackingEvents>
-                            <Tracking event="start"><![CDATA[]]></Tracking>
-                            <Tracking event="firstQuartile"><![CDATA[]]></Tracking>
-                            <Tracking event="midpoint"><![CDATA[]]></Tracking>
-                            <Tracking event="thirdQuartile"><![CDATA[]]></Tracking>
-                            <Tracking event="complete"><![CDATA[]]></Tracking>
-                            <Tracking event="mute"><![CDATA[]]></Tracking>
-                            <Tracking event="unmute"><![CDATA[]]></Tracking>
-                            <Tracking event="pause"><![CDATA[]]></Tracking>
-                            <Tracking event="resume"><![CDATA[]]></Tracking>
-                        </TrackingEvents>
-                        <VideoClicks>
-                            <ClickThrough><![CDATA[https://www.yomedia.vn/]]></ClickThrough>
-                        </VideoClicks>
-                        <MediaFiles>
-                            <MediaFile bitrate="" delivery="progressive" height="" width="" maintainAspectRatio="true" scalable="true" type="video/mp4" minSuggestedDuration="Ads By Yomedia"><![CDATA[${mediaUrl}]]></MediaFile>
-                        </MediaFiles>
-                    </Linear>
-                </Creative>
-            </Creatives>
-        </InLine>
-    </Ad>
-</VAST>
-`;
 }

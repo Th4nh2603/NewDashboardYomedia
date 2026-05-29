@@ -81,6 +81,19 @@ function detectUploadDemoIntent(question: string): boolean {
   );
 }
 
+/** User asks how to upload — answer from RAG docs, do not start the upload tool. */
+function isUploadDemoHelpQuestion(question: string): boolean {
+  if (!detectUploadDemoIntent(question)) return false;
+  return (
+    /\b(how\s+to|how\s+do\s+i|instructions?|tutorial|guide|help\s+with)\b/i.test(
+      question,
+    ) ||
+    /(như\s*thế\s*nào|hướng\s*dẫn|cách\s+(upload|tải|đẩy)|làm\s+sa[ou]|làm\s+thế\s+nào|giải\s*thích|cho\s*biết\s*cách)/i.test(
+      question,
+    )
+  );
+}
+
 function detectUploadDemoKindFromAttachments(
   attachments: ChatAttachmentMeta[],
 ): "html" | "video" {
@@ -559,7 +572,7 @@ export async function answerWithRag(params: {
     params.provider === "openai" ? "openai" : "gemini";
   const apiKey = requireApiKey(provider);
 
-  if (detectUploadDemoIntent(question)) {
+  if (detectUploadDemoIntent(question) && !isUploadDemoHelpQuestion(question)) {
     const plan = buildUploadDemoPlan(question, attachments);
     const missing = plan.requiredInputs;
     const pipelineLabel =
