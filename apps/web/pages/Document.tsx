@@ -15,7 +15,7 @@ const routes: RouteInfo[] = [
     name: "Login",
     group: "Auth",
     description:
-      "Google OAuth sign-in; verifies role and creates a session before entering the dashboard.",
+      "Clerk sign-in; verifies role and creates a session before entering the dashboard.",
     usage:
       "Use when starting a session or after the token expires. Without sign-in, dashboard routes are blocked by PrivateRoute.",
     note: "Only public route; not listed in the Sidebar.",

@@ -43,13 +43,9 @@ const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
-const clientId = (import.meta.env as any).VITE_GOOGLE_CLIENT_ID as
-  | string
-  | undefined;
 const clerkPublishableKey = (import.meta.env as any)
   .VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 const missingConfigKeys = [
-  !clientId ? "VITE_GOOGLE_CLIENT_ID" : null,
   !clerkPublishableKey ? "VITE_CLERK_PUBLISHABLE_KEY" : null,
 ].filter(Boolean) as string[];
 

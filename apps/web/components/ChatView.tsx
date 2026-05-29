@@ -829,20 +829,28 @@ async function collectFilesFromDataTransfer(
   return mergeDroppedChatFiles([...allFiles, ...fileListFallback]);
 }
 
+/** Chromium File System Access API — `values()` is not in the default DOM lib. */
+type FileSystemDirectoryHandleWithValues = FileSystemDirectoryHandle & {
+  values(): AsyncIterable<FileSystemHandle>;
+};
+
 async function collectFilesFromDirectoryHandle(
   dir: FileSystemDirectoryHandle,
   pathPrefix = "",
 ): Promise<File[]> {
   const files: File[] = [];
-  for await (const entry of dir.values()) {
+  for await (const entry of (dir as FileSystemDirectoryHandleWithValues).values()) {
     const rel = `${pathPrefix}${entry.name}`;
     if (entry.kind === "file") {
-      const file = await entry.getFile();
+      const file = await (entry as FileSystemFileHandle).getFile();
       chatDropRelativePathByFile.set(file, rel);
       files.push(file);
     } else if (entry.kind === "directory") {
       files.push(
-        ...(await collectFilesFromDirectoryHandle(entry, `${rel}/`)),
+        ...(await collectFilesFromDirectoryHandle(
+          entry as FileSystemDirectoryHandle,
+          `${rel}/`,
+        )),
       );
     }
   }
@@ -872,6 +880,53 @@ async function pickFolderAttachments(): Promise<FileList | null> {
     if (err instanceof DOMException && err.name === "AbortError") return null;
     throw err;
   }
+}
+
+type WindowWithOpenFilePicker = Window & {
+  showOpenFilePicker?: (options?: {
+    multiple?: boolean;
+  }) => Promise<FileSystemFileHandle[]>;
+};
+
+function waitForInputFiles(input: HTMLInputElement): Promise<FileList | null> {
+  return new Promise((resolve) => {
+    const onChange = () => {
+      input.removeEventListener("change", onChange);
+      resolve(input.files);
+    };
+    input.addEventListener("change", onChange);
+    input.click();
+  });
+}
+
+/**
+ * One attachment action: native file picker when available, else directory picker
+ * (folder), else hidden `<input type="file">`. Upload kind is inferred in handlePickAttachments.
+ */
+async function pickUnifiedAttachments(
+  fileInput: HTMLInputElement | null,
+): Promise<FileList | null> {
+  const showOpenFilePicker = (window as WindowWithOpenFilePicker).showOpenFilePicker;
+  if (typeof showOpenFilePicker === "function") {
+    try {
+      const handles = await showOpenFilePicker({ multiple: true });
+      const dt = new DataTransfer();
+      for (const handle of handles) {
+        dt.items.add(await handle.getFile());
+      }
+      return dt.files;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return null;
+      throw err;
+    }
+  }
+
+  if (getDirectoryPicker()) {
+    return pickFolderAttachments();
+  }
+
+  if (!fileInput) return null;
+  return waitForInputFiles(fileInput);
 }
 
 function isCreativeVideoDemo(
@@ -1077,8 +1132,6 @@ const ChatView = () => {
   const allowedBuildDemoBrands = user?.allowedBuildDemoBrands;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
-  const attachmentPickerRef = useRef<HTMLDivElement | null>(null);
-  const [attachmentPickerOpen, setAttachmentPickerOpen] = useState(false);
   const normalizedRole = String(user?.role ?? "")
     .trim()
     .toLowerCase();
@@ -1100,16 +1153,6 @@ const ChatView = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
-
-  useEffect(() => {
-    if (!attachmentPickerOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (attachmentPickerRef.current?.contains(e.target as Node)) return;
-      setAttachmentPickerOpen(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [attachmentPickerOpen]);
 
   const handlePickAttachments = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -1198,29 +1241,14 @@ const ChatView = () => {
     setAttachments((prev) => prev.filter((x) => x.id !== id));
   };
 
-  const openFilePicker = () => {
-    setAttachmentPickerOpen(false);
-    attachmentInputRef.current?.click();
-  };
-
-  const openFolderPicker = async () => {
-    setAttachmentPickerOpen(false);
+  const openAttachmentPicker = async () => {
     try {
-      const files = await pickFolderAttachments();
-      if (!files) {
-        if (!getDirectoryPicker()) {
-          handleApiError(
-            new Error(
-              "Trình duyệt không hỗ trợ chọn folder. Hãy kéo-thả folder vào ô chat hoặc đính kèm file .zip.",
-            ),
-          );
-        }
-        return;
-      }
+      const files = await pickUnifiedAttachments(attachmentInputRef.current);
+      if (!files) return;
       await handlePickAttachments(files);
     } catch (err) {
       const reason =
-        err instanceof Error ? err.message : "Không đọc được folder.";
+        err instanceof Error ? err.message : "Không chọn được file đính kèm.";
       handleApiError(new Error(reason));
     }
   };
@@ -2236,43 +2264,18 @@ const ChatView = () => {
             placeholder='Hỏi tài liệu, "upload demo brand: yomedia format: instream" + 1 video, hoặc HTML/JS folder'
             className="flex-1 min-w-0 h-11 bg-transparent border-none rounded-xl px-3 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-0"
           />
-          <div ref={attachmentPickerRef} className="relative shrink-0">
-            <Button
-              type="button"
-              onClick={() => setAttachmentPickerOpen((open) => !open)}
-              title="Đính kèm file, zip hoặc folder demo"
-              className="h-10 px-3 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors text-xs font-semibold"
-            >
-              {attachments.length > 0
-                ? `Attachment (${attachments.length})`
-                : "Attachment"}
-            </Button>
-            {attachmentPickerOpen && (
-              <div
-                role="menu"
-                className="absolute bottom-full right-0 mb-2 min-w-[11rem] rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg py-1 z-20"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={openFilePicker}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  File / zip
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    void openFolderPicker();
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  Folder demo
-                </button>
-              </div>
-            )}
-          </div>
+          <Button
+            type="button"
+            onClick={() => {
+              void openAttachmentPicker();
+            }}
+            title="Đính kèm file, zip hoặc folder demo (tự nhận diện)"
+            className="shrink-0 h-10 px-3 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors text-xs font-semibold"
+          >
+            {attachments.length > 0
+              ? `Attachment (${attachments.length})`
+              : "Attachment"}
+          </Button>
           <Button
             type="submit"
             disabled={!input.trim() || isLoading}

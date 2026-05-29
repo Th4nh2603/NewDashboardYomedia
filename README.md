@@ -23,7 +23,7 @@ Kiến trúc chi tiết: [Sơ đồ chức năng mô hình](#sơ-đồ-chức-n�
 | **Admin Users** | Quản lý tài khoản, role, route và brand được phép |
 | **Mobile** | Ứng dụng Expo (phát triển song song) |
 
-Xác thực: **Clerk** + **Google OAuth**. Phân quyền: `admin`, `guest`, và danh sách `allowedRoutes` / `allowedBuildDemoBrands` theo từng user.
+Xác thực: **Clerk**. Phân quyền: `admin`, `guest`, và danh sách `allowedRoutes` / `allowedBuildDemoBrands` theo từng user.
 
 ---
 
@@ -56,7 +56,6 @@ Xác thực: **Clerk** + **Google OAuth**. Phân quyền: `admin`, `guest`, và 
 | `@google/genai` | Gọi Google Gemini phía client cho chat/vision. |
 | `@heroicons/react` | Bộ icon SVG cho React components. |
 | `@hookform/resolvers` | Kết nối React Hook Form với schema validator (Zod). |
-| `@react-oauth/google` | Hỗ trợ đăng nhập Google OAuth phía client. |
 | `@tanstack/react-query` | Cache/fetch state cho API calls và đồng bộ dữ liệu UI. |
 | `@trpc/client` | Client tRPC gọi procedure backend theo type-safe API. |
 | `@trpc/react-query` | Tích hợp tRPC với React Query hooks. |
@@ -567,7 +566,6 @@ pnpm --filter web preview
 | Biến | Bắt buộc | Mô tả |
 |------|----------|--------|
 | `VITE_CLERK_PUBLISHABLE_KEY` | Có | Clerk publishable key |
-| `VITE_GOOGLE_CLIENT_ID` | Có | Google OAuth client ID |
 | `GEMINI_API_KEY` | Có* | API Gemini (inject qua Vite `define`) |
 | `VITE_SERVER_URL` | Production | URL API (vd. `http://host:3001`). Dev để trống → proxy `/api` |
 | `VITE_API_PORT` | Không | Ghi đè port API khi dev (mặc định đọc `.dev-api-port`) |

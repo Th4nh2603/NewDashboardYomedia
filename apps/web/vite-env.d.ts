@@ -22,7 +22,6 @@ declare interface ImportMetaEnv {
   readonly API_KEY: string;
   readonly VITE_API_KEY?: string;
   readonly VITE_SERVER_URL?: string;
-  readonly VITE_GOOGLE_CLIENT_ID?: string;
 }
 
 declare interface ImportMeta {
