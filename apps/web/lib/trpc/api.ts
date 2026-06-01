@@ -128,6 +128,9 @@ export const api = {
     update: (content: string | Record<string, unknown>) =>
       call(() => trpcClient.testData.update.mutate({ content })),
   },
+  toolTest: {
+    platformBanner: () => call(() => trpcClient.toolTest.platformBanner.query()),
+  },
   rag: {
     query: (
       question: string,

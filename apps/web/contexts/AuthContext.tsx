@@ -134,13 +134,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               ? data.user.allowedRoutes
               : [],
             allowedBuildDemoBrands:
-              "allowedBuildDemoBrands" in data.user &&
-              Array.isArray(data.user.allowedBuildDemoBrands)
-                ? data.user.allowedBuildDemoBrands
-                : "allowedBuildDemoBrands" in data.user &&
-                    data.user.allowedBuildDemoBrands === null
+              "allowedBuildDemoBrands" in data.user
+                ? data.user.allowedBuildDemoBrands === null
                   ? null
-                  : nextUser?.allowedBuildDemoBrands,
+                  : Array.isArray(data.user.allowedBuildDemoBrands)
+                    ? data.user.allowedBuildDemoBrands
+                    : nextUser?.allowedBuildDemoBrands
+                : nextUser?.allowedBuildDemoBrands,
           };
         } else if (isSignedIn && clerkUser && emailFromClerk) {
           nextUser = {

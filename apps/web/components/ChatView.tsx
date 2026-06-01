@@ -17,16 +17,25 @@ import {
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 import { createSftpClient } from "../lib/sftpClient";
 import {
+  extractUploadDemoBrandFromText,
   getBuildDemoBrandOptions,
+  getPermittedBuildDemoBrandOptions,
   isBuildDemoBrandAllowed,
+  resolveCanonicalBuildDemoBrand,
 } from "../lib/buildDemoBrands";
 import {
-  buildVideoMakeVastXml,
-  isBundledDemoAssetImageName,
-  replaceBundledDemoStaticImages,
-  replaceDemoManifestScriptUrls,
-  VIDEO_DEMO_FIXED_REL_PATH,
-} from "../lib/buildDemoAssets";
+  compressImageToDataUrl,
+  convertTextFileWithBase64Images,
+  resolveAvailableRemotePath,
+  stripRedundantRelativeFolderPrefix,
+  uploadVideoDemo,
+  type VideoPreviewLink,
+} from "../lib/buildDemo";
+import {
+  detectDeleteDemoIntent,
+  extractDeleteDemoPathFromInput,
+  isDeleteDemoHelpQuestion,
+} from "../lib/chatDemoCommands";
 import Button from "./Button";
 
 type ChatMessage = {
@@ -52,7 +61,112 @@ type PendingUploadDemoAction = {
   demoValue?: string | null;
   overwrite?: boolean;
   requiredInputs?: string[];
+  /** User must re-pick format after a failed format mapping. */
+  pendingFormatReselect?: boolean;
+  /** Numbered format choices from the last mismatch prompt. */
+  pendingFormatOptions?: FormatPickerOption[];
+  /** Brand choices the current user is allowed to upload. */
+  pendingBrandOptions?: BrandPickerOption[];
 };
+
+type LastUploadedDemoSession = {
+  remoteBase: string;
+  remotePath: string;
+  brand: string | null;
+  uploadKind: UploadDemoKind;
+  uploadedAt: number;
+};
+
+type DeleteUploadedDemoAction = {
+  tool: "delete_uploaded_demo";
+  remotePath?: string | null;
+};
+
+const LAST_UPLOADED_DEMO_STORAGE_PREFIX = "yomedia-chat-last-demo:";
+
+function lastUploadedDemoStorageKey(email: string): string {
+  return `${LAST_UPLOADED_DEMO_STORAGE_PREFIX}${email.trim().toLowerCase()}`;
+}
+
+function loadLastUploadedDemoFromSession(
+  email: string,
+): LastUploadedDemoSession | null {
+  if (!email.trim()) return null;
+  try {
+    const raw = sessionStorage.getItem(lastUploadedDemoStorageKey(email));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LastUploadedDemoSession;
+    if (!parsed?.remoteBase || !parsed?.remotePath) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveLastUploadedDemoToSession(
+  email: string,
+  demo: LastUploadedDemoSession | null,
+): void {
+  if (!email.trim()) return;
+  const key = lastUploadedDemoStorageKey(email);
+  if (!demo) {
+    sessionStorage.removeItem(key);
+    return;
+  }
+  sessionStorage.setItem(key, JSON.stringify(demo));
+}
+
+function normalizeDemoRemoteTarget(raw: string): {
+  remoteBase: string;
+  remotePath: string;
+} {
+  const trimmed = String(raw || "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
+  if (!trimmed) {
+    return { remoteBase: "", remotePath: "" };
+  }
+  if (trimmed.startsWith("/script/demo/")) {
+    const remoteBase = trimmed.replace(/\/{2,}/g, "/");
+    return {
+      remoteBase,
+      remotePath: remoteBase.replace(/^\/script\/demo\//i, ""),
+    };
+  }
+  const remotePath = trimmed
+    .replace(/^\/+/, "")
+    .replace(/^script\/demo\//i, "");
+  return {
+    remotePath,
+    remoteBase: `/script/demo/${remotePath}`.replace(/\/{2,}/g, "/"),
+  };
+}
+
+function extractBrandFromDemoRemotePath(remotePath: string): string | null {
+  const { remotePath: rel } = normalizeDemoRemoteTarget(remotePath);
+  const parts = rel.split("/").filter(Boolean);
+  if (parts.length < 3) return null;
+  return resolveCanonicalBuildDemoBrand(parts[2] ?? "") ?? parts[2] ?? null;
+}
+
+type FormatCatalogMatch = {
+  item: Awaited<ReturnType<typeof loadCreativeDemos>>[number];
+  score: number;
+};
+
+type FormatPickerOption = {
+  value: string;
+  title: string;
+  sizes: string;
+};
+
+type BrandPickerOption = {
+  id: string;
+  label: string;
+};
+
+const MIN_CONFIDENT_FORMAT_MATCH_SCORE = 70;
 
 type UploadProgressState = {
   percent: number;
@@ -364,36 +478,298 @@ function hasDemoSizeMatch(
   return String(demoSize ?? "").trim().toLowerCase() === key;
 }
 
+function scoreFormatCatalogItem(
+  item: Awaited<ReturnType<typeof loadCreativeDemos>>[number],
+  needle: string,
+): number {
+  const value = normalizePathToken(String(item.value ?? ""));
+  const format = normalizePathToken(String(item.format ?? ""));
+  const title = normalizePathToken(String(item.title ?? ""));
+  const id = normalizePathToken(String(item.id ?? ""));
+  if (needle === value) return 100;
+  if (needle === format) return 95;
+  if (needle === id) return 90;
+  if (needle === title) return 85;
+  if (value.includes(needle) || needle.includes(value)) return 70;
+  if (format && (format.includes(needle) || needle.includes(format))) return 65;
+  if (title.includes(needle) || needle.includes(title)) return 60;
+  return 0;
+}
+
+function rankFormatCatalogMatches(
+  demos: Awaited<ReturnType<typeof loadCreativeDemos>>,
+  rawInput: string,
+): FormatCatalogMatch[] {
+  const needle = normalizePathToken(rawInput);
+  if (!needle) return [];
+  return demos
+    .map((item) => ({ item, score: scoreFormatCatalogItem(item, needle) }))
+    .filter((entry) => entry.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        String(a.item.title ?? "").localeCompare(String(b.item.title ?? "")),
+    );
+}
+
 function resolveFormatValueFromCatalog(
+  demos: Awaited<ReturnType<typeof loadCreativeDemos>>,
+  rawInput: string,
+): string | undefined {
+  const best = rankFormatCatalogMatches(demos, rawInput)[0];
+  const value = String(best?.item.value ?? "").trim();
+  return value || undefined;
+}
+
+function findExactCatalogFormatValue(
   demos: Awaited<ReturnType<typeof loadCreativeDemos>>,
   rawInput: string,
 ): string | undefined {
   const needle = normalizePathToken(rawInput);
   if (!needle) return undefined;
-
-  const score = (
-    item: Awaited<ReturnType<typeof loadCreativeDemos>>[number],
-  ): number => {
-    const value = normalizePathToken(String(item.value ?? ""));
-    const format = normalizePathToken(String(item.format ?? ""));
-    const title = normalizePathToken(String(item.title ?? ""));
-    const id = normalizePathToken(String(item.id ?? ""));
-    if (needle === value) return 100;
-    if (needle === format) return 95;
-    if (needle === id) return 90;
-    if (needle === title) return 85;
-    if (value.includes(needle) || needle.includes(value)) return 70;
-    if (format.includes(needle) || needle.includes(format)) return 65;
-    if (title.includes(needle) || needle.includes(title)) return 60;
-    return 0;
-  };
-
-  const best = demos
-    .map((item) => ({ item, s: score(item) }))
-    .filter((entry) => entry.s > 0)
-    .sort((a, b) => b.s - a.s)[0]?.item;
-  const value = String(best?.value ?? "").trim();
+  const row = demos.find(
+    (item) => normalizePathToken(String(item.value ?? "")) === needle,
+  );
+  const value = String(row?.value ?? "").trim();
   return value || undefined;
+}
+
+function formatDemoSizeLabel(
+  demoSize: string | string[] | undefined,
+): string {
+  if (Array.isArray(demoSize)) {
+    const parts = demoSize
+      .map((entry) => String(entry ?? "").trim())
+      .filter((entry) => entry && entry !== "-");
+    return parts.length > 0 ? parts.join(", ") : "-";
+  }
+  const single = String(demoSize ?? "").trim();
+  return single && single !== "-" ? single : "-";
+}
+
+function buildFormatPickerOptions(
+  matches: FormatCatalogMatch[],
+  limit = 8,
+): FormatPickerOption[] {
+  const seen = new Set<string>();
+  const options: FormatPickerOption[] = [];
+  for (const match of matches) {
+    const value = String(match.item.value ?? "").trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    options.push({
+      value,
+      title: String(match.item.title ?? value).trim() || value,
+      sizes: formatDemoSizeLabel(match.item.size),
+    });
+    if (options.length >= limit) break;
+  }
+  return options;
+}
+
+function buildFormatMismatchOptions(
+  demos: Awaited<ReturnType<typeof loadCreativeDemos>>,
+  userInput: string,
+  pathSize: string | null,
+  keywordMatches: FormatCatalogMatch[],
+): FormatPickerOption[] {
+  let merged: FormatCatalogMatch[] = pathSize
+    ? keywordMatches.filter((entry) =>
+        hasDemoSizeMatch(entry.item.size, pathSize),
+      )
+    : [...keywordMatches];
+
+  if (pathSize) {
+    const seen = new Set(
+      merged.map((entry) => String(entry.item.value ?? "").trim()),
+    );
+    for (const item of demos) {
+      if (!hasDemoSizeMatch(item.size, pathSize)) continue;
+      const value = String(item.value ?? "").trim();
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      merged.push({ item, score: 55 });
+    }
+  }
+
+  merged.sort(
+    (a, b) =>
+      b.score - a.score ||
+      String(a.item.title ?? "").localeCompare(String(b.item.title ?? "")),
+  );
+  return buildFormatPickerOptions(merged, 10);
+}
+
+function buildFormatMismatchMessage(params: {
+  userInput: string;
+  pathSize: string | null;
+  reason: "no_match" | "size_incompatible";
+  options: FormatPickerOption[];
+}): string {
+  const sizeHint = params.pathSize ? ` (size demo: ${params.pathSize})` : "";
+  const intro =
+    params.reason === "size_incompatible"
+      ? `Format \`${params.userInput}\` không phù hợp với demo này${sizeHint}. Format bạn chọn không khớp kích thước hoặc loại placement của file demo.`
+      : `Format \`${params.userInput}\` không khớp danh sách format hỗ trợ${sizeHint}.`;
+  const list =
+    params.options.length > 0
+      ? params.options
+          .map(
+            (option, index) =>
+              `${index + 1}. \`${option.value}\` — ${option.title} (${option.sizes})`,
+          )
+          .join("\n")
+      : "Không tìm thấy format gợi ý. Thử nhập đúng `value` từ Creative Showcase.";
+  return [
+    intro,
+    "",
+    "Vui lòng chọn một format bên dưới và gõ lại, ví dụ:",
+    `\`format: ${params.options[0]?.value ?? "display-balloon-standard"}\``,
+    params.options.length > 0
+      ? `Hoặc gõ số thứ tự (1–${params.options.length}).`
+      : null,
+    "",
+    list,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
+async function validateUploadDemoFormat(params: {
+  remotePath: string;
+  demoId?: string | null;
+  demoValue?: string | null;
+}): Promise<
+  | { ok: true; formatValue: string }
+  | {
+      ok: false;
+      userInput: string;
+      reason: "no_match" | "size_incompatible";
+      options: FormatPickerOption[];
+    }
+> {
+  const explicitValue = String(params.demoValue ?? "").trim();
+  const demos = await loadCreativeDemos();
+  const pathSize = extractSizeTokenFromRemotePath(params.remotePath);
+
+  const explicitId = String(params.demoId ?? "").trim();
+  if (explicitId) {
+    const byId = demos.find((item) => String(item.id).trim() === explicitId);
+    const value = String(byId?.value ?? "").trim();
+    if (value) return { ok: true, formatValue: value };
+  }
+
+  if (!explicitValue) {
+    const resolved = await resolveFormatForPreview(params);
+    if (resolved.formatValue) {
+      return { ok: true, formatValue: resolved.formatValue };
+    }
+    const sizeMatches = pathSize
+      ? demos
+          .filter((item) => hasDemoSizeMatch(item.size, pathSize))
+          .map((item) => ({ item, score: 55 }))
+      : [];
+    return {
+      ok: false,
+      userInput: explicitValue,
+      reason: "no_match",
+      options: buildFormatPickerOptions(sizeMatches, 10),
+    };
+  }
+
+  const exactValue = findExactCatalogFormatValue(demos, explicitValue);
+  if (exactValue) {
+    return { ok: true, formatValue: exactValue };
+  }
+
+  const keywordMatches = rankFormatCatalogMatches(demos, explicitValue);
+  const best = keywordMatches[0];
+  if (!best || best.score < MIN_CONFIDENT_FORMAT_MATCH_SCORE) {
+    return {
+      ok: false,
+      userInput: explicitValue,
+      reason: "no_match",
+      options: buildFormatMismatchOptions(
+        demos,
+        explicitValue,
+        pathSize,
+        keywordMatches,
+      ),
+    };
+  }
+
+  const matchedValue = String(best.item.value ?? "").trim();
+  if (pathSize && !hasDemoSizeMatch(best.item.size, pathSize)) {
+    return {
+      ok: false,
+      userInput: explicitValue,
+      reason: "size_incompatible",
+      options: buildFormatMismatchOptions(
+        demos,
+        explicitValue,
+        pathSize,
+        keywordMatches,
+      ),
+    };
+  }
+
+  if (!matchedValue) {
+    return {
+      ok: false,
+      userInput: explicitValue,
+      reason: "no_match",
+      options: buildFormatMismatchOptions(
+        demos,
+        explicitValue,
+        pathSize,
+        keywordMatches,
+      ),
+    };
+  }
+
+  return { ok: true, formatValue: matchedValue };
+}
+
+function inferUploadRemotePathFromAttachments(
+  plan: {
+    remotePath?: string | null;
+    brand?: string | null;
+  },
+  attachmentItems: ChatAttachment[],
+): string {
+  const requestedRemotePath = String(plan.remotePath || "").trim();
+  if (requestedRemotePath) return requestedRemotePath;
+
+  const htmlItems = attachmentItems.filter((item) => isHtmlFile(item.file));
+  const jsItems = attachmentItems.filter((item) => {
+    const ext = (item.file.name.split(".").pop() ?? "").toLowerCase();
+    return ext === "js";
+  });
+  const videoItems = attachmentItems.filter((item) => isVideoFile(item.file));
+  const selectedHtml = htmlItems[0] ?? null;
+  const selectedJs = jsItems[0] ?? null;
+  const selectedVideo = videoItems[0] ?? null;
+
+  const normalizedBrand = resolveAllowedBuildDemoBrand(
+    String(plan.brand || "").trim(),
+  );
+  const brandToken = normalizePathToken(normalizedBrand || "")
+    .replace(/^brand-+/g, "")
+    .trim();
+  const inferredUploadToken = normalizePathToken(
+    (
+      selectedHtml?.file.name ||
+      selectedJs?.file.name ||
+      selectedVideo?.file.name ||
+      "upload"
+    ).replace(/\.[^.]+$/, ""),
+  );
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return [year, month, brandToken, "all", "html", inferredUploadToken]
+    .filter(Boolean)
+    .join("/");
 }
 
 async function resolveFormatForPreview(params: {
@@ -404,21 +780,22 @@ async function resolveFormatForPreview(params: {
   const explicitValue = String(params.demoValue ?? "").trim();
   const demos = await loadCreativeDemos();
   const size = extractSizeTokenFromRemotePath(params.remotePath);
-  const scopedBySize = size
-    ? demos.filter((item) => hasDemoSizeMatch(item.size, size))
-    : demos;
 
   if (explicitValue) {
-    const mappedFromScoped = resolveFormatValueFromCatalog(
-      scopedBySize,
-      explicitValue,
-    );
-    if (mappedFromScoped) {
-      return { formatValue: mappedFromScoped, suggestions: [] };
+    const exactValue = findExactCatalogFormatValue(demos, explicitValue);
+    if (exactValue) {
+      return { formatValue: exactValue, suggestions: [] };
     }
-    const mappedFromAll = resolveFormatValueFromCatalog(demos, explicitValue);
-    if (mappedFromAll) {
-      return { formatValue: mappedFromAll, suggestions: [] };
+    const keywordMatches = rankFormatCatalogMatches(demos, explicitValue);
+    const best = keywordMatches[0];
+    if (best && best.score >= MIN_CONFIDENT_FORMAT_MATCH_SCORE) {
+      const matchedValue = String(best.item.value ?? "").trim();
+      if (
+        matchedValue &&
+        (!size || hasDemoSizeMatch(best.item.size, size))
+      ) {
+        return { formatValue: matchedValue, suggestions: [] };
+      }
     }
   }
 
@@ -475,31 +852,25 @@ function guessMimeFromName(name: string): string {
 }
 
 function extractBrandFromInput(input: string): string | null {
-  const explicit = input.match(
-    /\bbrand\s*[:=]\s*([a-z0-9][a-z0-9 _-]{1,60})\b/i,
-  );
-  if (explicit?.[1]) return explicit[1].trim();
-
-  const plain = input.match(/\bbrand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i);
-  if (plain?.[1]) return plain[1].trim();
-
-  const forBrand = input.match(
-    /\b(?:for|cho)\s+brand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i,
-  );
-  if (forBrand?.[1]) return forBrand[1].trim();
-
-  return null;
+  return extractUploadDemoBrandFromText(input);
 }
 
 function resolveAllowedBuildDemoBrand(value: string): string | null {
-  const key = normalizePathToken(value);
-  if (!key) return null;
-  return BUILD_DEMO_BRAND_BY_KEY.get(key) ?? null;
+  return resolveCanonicalBuildDemoBrand(value);
 }
 
-function suggestBuildDemoBrands(rawInput: string): string[] {
+function suggestBuildDemoBrands(
+  rawInput: string,
+  allowed?: string[] | null,
+): string[] {
   const key = normalizePathToken(rawInput);
-  const options = BUILD_DEMO_BRAND_OPTIONS.map((item) => item.id);
+  const permitted = getPermittedBuildDemoBrandOptions(allowed);
+  const options =
+    permitted.length > 0
+      ? permitted.map((item) => item.id)
+      : allowed === null
+        ? BUILD_DEMO_BRAND_OPTIONS.map((item) => item.id)
+        : [];
   if (!key) return options.slice(0, 5);
   const ranked = options
     .map((id) => {
@@ -514,6 +885,49 @@ function suggestBuildDemoBrands(rawInput: string): string[] {
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
   if (ranked.length > 0) return ranked.slice(0, 5).map((entry) => entry.id);
   return options.slice(0, 5);
+}
+
+function buildPendingBrandOptions(
+  allowed: string[] | null | undefined,
+): BrandPickerOption[] {
+  return getPermittedBuildDemoBrandOptions(allowed).map((item) => ({
+    id: item.id,
+    label: item.label || item.id,
+  }));
+}
+
+function buildBrandSelectionMessage(options: BrandPickerOption[]): string {
+  if (options.length === 0) {
+    return "Bạn chưa được cấp quyền upload demo cho brand nào. Liên hệ admin để được cấp quyền.";
+  }
+  const list = options
+    .map(
+      (option, index) =>
+        `${index + 1}. \`${option.id}\`${option.label !== option.id ? ` — ${option.label}` : ""}`,
+    )
+    .join("\n");
+  return [
+    "Chọn brand bạn được phép upload:",
+    "",
+    "Ví dụ:",
+    `\`brand: ${options[0]?.id ?? "yomedia"}\``,
+    options.length > 0 ? `Hoặc gõ số thứ tự (1–${options.length}).` : null,
+    "",
+    list,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
+function resolveBrandFromOptionSelection(
+  input: string,
+  options: BrandPickerOption[] | undefined,
+): string | null {
+  if (!options || options.length === 0) return null;
+  const index = extractFormatOptionIndexFromInput(input);
+  if (index == null || index > options.length) return null;
+  const id = String(options[index - 1]?.id ?? "").trim();
+  return id || null;
 }
 
 function buildBuildDemoBrandPermissionDeniedMessage(
@@ -581,21 +995,46 @@ function extractFormatFromInput(input: string): string | null {
   return null;
 }
 
+function extractFormatOptionIndexFromInput(input: string): number | null {
+  const match = input.trim().match(/^#?(\d{1,2})$/);
+  if (!match?.[1]) return null;
+  const index = Number.parseInt(match[1], 10);
+  return Number.isFinite(index) && index > 0 ? index : null;
+}
+
+function resolveFormatFromOptionSelection(
+  input: string,
+  options: FormatPickerOption[] | undefined,
+): string | null {
+  if (!options || options.length === 0) return null;
+  const index = extractFormatOptionIndexFromInput(input);
+  if (index == null || index > options.length) return null;
+  const value = String(options[index - 1]?.value ?? "").trim();
+  return value || null;
+}
+
 function computePendingUploadMissingInputs(
   action: PendingUploadDemoAction,
   attachmentCount: number,
   uploadKind: UploadDemoKind = action.uploadKind ?? "html",
+  allowedBuildDemoBrands?: string[] | null,
 ): string[] {
   const required = new Set(action.requiredInputs ?? []);
   const missing: string[] = [];
-  const validBrand = resolveAllowedBuildDemoBrand(String(action.brand ?? "").trim());
-  const hasBrandValue = Boolean(String(action.brand ?? "").trim());
+  const rawBrand = String(action.brand ?? "").trim();
+  const validBrand = resolveAllowedBuildDemoBrand(rawBrand);
+  const hasBrandValue = Boolean(rawBrand);
   if ((required.has("brand") || hasBrandValue) && !validBrand) {
+    missing.push("brand");
+  } else if (
+    validBrand &&
+    checkBuildDemoBrandUserPermission(validBrand, allowedBuildDemoBrands)
+  ) {
     missing.push("brand");
   }
   if (
     uploadKind !== "video" &&
-    required.has("format") &&
+    (required.has("format") || action.pendingFormatReselect) &&
     !String(action.demoValue ?? "").trim() &&
     !String(action.demoId ?? "").trim()
   ) {
@@ -636,37 +1075,131 @@ function formatMissingUploadInputs(missing: string[]): {
 function buildMissingUploadInputsMessage(
   action: PendingUploadDemoAction,
   missing: string[],
+  allowed?: string[] | null,
 ): string {
   const hasMissingBrand = missing.includes("brand");
   const rawBrand = String(action.brand ?? "").trim();
+  const canonicalBrand = resolveAllowedBuildDemoBrand(rawBrand);
+  if (hasMissingBrand && rawBrand && canonicalBrand) {
+    const denied = checkBuildDemoBrandUserPermission(canonicalBrand, allowed);
+    if (denied) {
+      return [denied, "", buildBrandSelectionMessage(buildPendingBrandOptions(allowed))].join(
+        "\n",
+      );
+    }
+  }
   if (hasMissingBrand && rawBrand) {
-    const suggestions = suggestBuildDemoBrands(rawBrand);
+    const suggestions = suggestBuildDemoBrands(rawBrand, allowed);
     return `Brand \`${rawBrand}\` không có trong danh sách. Vui lòng nhập lại brand hợp lệ${
       suggestions.length > 0 ? ` (gợi ý: ${suggestions.join(", ")})` : ""
     }.`;
+  }
+  if (hasMissingBrand) {
+    return buildBrandSelectionMessage(buildPendingBrandOptions(allowed));
   }
   const hint = formatMissingUploadInputs(missing);
   return `Còn thiếu: ${hint.labels}. Ví dụ: ${hint.examples}.`;
 }
 
+function tryGetBrandInputPermissionError(
+  input: string,
+  pending: PendingUploadDemoAction,
+  allowed?: string[] | null,
+): string | null {
+  const explicitBrand = extractBrandFromInput(input);
+  const selectedBrandFromList = resolveBrandFromOptionSelection(
+    input,
+    pending.pendingBrandOptions,
+  );
+  const brandCandidate =
+    explicitBrand ??
+    selectedBrandFromList ??
+    ((pending.requiredInputs ?? []).includes("brand") &&
+    /^[a-z0-9][a-z0-9 _-]{1,60}$/i.test(input.trim())
+      ? input.trim()
+      : null);
+  if (!brandCandidate) return null;
+  const canonical = resolveAllowedBuildDemoBrand(brandCandidate);
+  if (!canonical) return null;
+  return checkBuildDemoBrandUserPermission(canonical, allowed);
+}
+
+function withBrandRequirement(
+  action: PendingUploadDemoAction,
+  allowed: string[] | null | undefined,
+): PendingUploadDemoAction {
+  return {
+    ...action,
+    brand: null,
+    pendingBrandOptions: buildPendingBrandOptions(allowed),
+    requiredInputs: Array.from(new Set([...(action.requiredInputs ?? []), "brand"])),
+  };
+}
+
+function applyPendingBrandOptionsIfNeeded(
+  action: PendingUploadDemoAction,
+  missing: string[],
+  allowed: string[] | null | undefined,
+): PendingUploadDemoAction {
+  if (!missing.includes("brand")) return action;
+  return {
+    ...action,
+    pendingBrandOptions: buildPendingBrandOptions(allowed),
+  };
+}
+
 function extractPendingUploadSupplements(
   input: string,
   pending: PendingUploadDemoAction,
+  allowed?: string[] | null,
 ): Partial<PendingUploadDemoAction> {
   const updates: Partial<PendingUploadDemoAction> = {};
   const explicitBrand = extractBrandFromInput(input);
-  if (explicitBrand) {
-    updates.brand = resolveAllowedBuildDemoBrand(explicitBrand) ?? explicitBrand;
-  } else if (
-    (pending.requiredInputs ?? []).includes("brand") &&
+  const selectedBrandFromList = resolveBrandFromOptionSelection(
+    input,
+    pending.pendingBrandOptions,
+  );
+  const brandCandidate =
+    explicitBrand ??
+    selectedBrandFromList ??
+    ((pending.requiredInputs ?? []).includes("brand") &&
     /^[a-z0-9][a-z0-9 _-]{1,60}$/i.test(input.trim())
-  ) {
-    updates.brand = resolveAllowedBuildDemoBrand(input.trim()) ?? input.trim();
+      ? input.trim()
+      : null);
+
+  if (brandCandidate) {
+    const canonical = resolveAllowedBuildDemoBrand(brandCandidate) ?? brandCandidate;
+    if (isBuildDemoBrandAllowed(canonical, allowed)) {
+      updates.brand = canonical;
+      updates.pendingBrandOptions = [];
+    }
   }
 
   const explicitFormat = extractFormatFromInput(input);
   if (explicitFormat) {
     updates.demoValue = explicitFormat;
+    updates.pendingFormatReselect = false;
+    updates.pendingFormatOptions = [];
+  } else if (
+    (pending.requiredInputs ?? []).includes("format") ||
+    pending.pendingFormatReselect
+  ) {
+    const selectedFormat = resolveFormatFromOptionSelection(
+      input,
+      pending.pendingFormatOptions,
+    );
+    if (selectedFormat) {
+      updates.demoValue = selectedFormat;
+      updates.pendingFormatReselect = false;
+      updates.pendingFormatOptions = [];
+    } else {
+      const trimmed = input.trim();
+      if (/^[a-z0-9][a-z0-9 _-]{2,80}$/i.test(trimmed)) {
+        updates.demoValue = normalizeVideoFormatInput(trimmed);
+        updates.pendingFormatReselect = false;
+        updates.pendingFormatOptions = [];
+      }
+    }
   }
 
   return updates;
@@ -943,89 +1476,9 @@ function detectUploadDemoKind(items: ChatAttachment[]): UploadDemoKind {
   return "html";
 }
 
-/** Build Demo video flow: always offer In-read (outstream) + Pre-roll (instream) previews. */
-const DEFAULT_VIDEO_PREVIEW_SPECS = [
-  { formatValue: "outstream", title: "Video In-read" },
-  { formatValue: "instream", title: "Video Pre-roll" },
-] as const;
-
-type VideoPreviewLink = {
-  label: string;
-  formatValue: string;
-  previewUrl: string | null;
-};
-
-async function buildDefaultVideoPreviewLinks(
-  remotePath: string,
-): Promise<VideoPreviewLink[]> {
-  const demos = await loadCreativeDemos();
-  const serverApiUrl = serverApiOrigin();
-  const out: VideoPreviewLink[] = [];
-
-  for (const spec of DEFAULT_VIDEO_PREVIEW_SPECS) {
-    const row =
-      demos.find(
-        (item) =>
-          isCreativeVideoDemo(item) &&
-          String(item.value ?? "").trim() === spec.formatValue &&
-          String(item.status ?? "").trim().toLowerCase() !== "inactive",
-      ) ?? null;
-    const title = String(row?.title ?? spec.title).trim() || spec.title;
-    const label = `${title} · ${spec.formatValue}`;
-    const instreamVideo =
-      String(row?.category ?? "").trim().toLowerCase() === "video";
-    const previewUrl = await getYomediaDemoPreviewUrl({
-      remotePath,
-      serverApiUrl,
-      formatValue: spec.formatValue,
-      instreamVideo,
-    });
-    out.push({
-      label,
-      formatValue: spec.formatValue,
-      previewUrl,
-    });
-  }
-
-  return out;
-}
-
-async function resolveAvailableRemotePath(
-  sftpClient: ReturnType<typeof createSftpClient>,
-  prefixSegments: string[],
-  baseSeg: string,
-): Promise<string> {
-  const MAX_TRIES = 500;
-  for (let i = 0; i < MAX_TRIES; i++) {
-    const seg = i === 0 ? baseSeg : `${baseSeg}-${i}`;
-    const candidate = [...prefixSegments, seg].filter(Boolean).join("/");
-    const existsData = await sftpClient.exists(`/script/demo/${candidate}`, "demo");
-    if (!(existsData?.ok && existsData.exists)) {
-      return candidate;
-    }
-  }
-  return [...prefixSegments, baseSeg].filter(Boolean).join("/");
-}
-
 function isZipFile(file: File): boolean {
   const ext = (file.name.split(".").pop() ?? "").toLowerCase();
   return ext === "zip" || file.type === "application/zip";
-}
-
-function stripRedundantRelativeFolderPrefix(
-  relativePath: string,
-  opts: { remoteLeaf: string; uploadBaseToken: string },
-): string {
-  const normalized = relativePath.replace(/\\+/g, "/").replace(/^\/+/, "");
-  const parts = normalized.split("/").filter(Boolean);
-  if (parts.length < 2) return normalized;
-  const first = parts[0] ?? "";
-  const leaf = opts.remoteLeaf.trim();
-  const base = opts.uploadBaseToken.trim();
-  if ((leaf && first === leaf) || (base && first === base)) {
-    return parts.slice(1).join("/");
-  }
-  return normalized;
 }
 
 function inferUploadBaseToken(items: ChatAttachment[]): string {
@@ -1041,80 +1494,6 @@ function inferUploadBaseToken(items: ChatAttachment[]): string {
   return same ? first : "";
 }
 
-function compressImageToDataUrl(file: File, quality = 0.7): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Canvas 2D context not available"));
-        return;
-      }
-      ctx.drawImage(img, 0, 0);
-      try {
-        resolve(canvas.toDataURL("image/webp", quality));
-      } catch (err) {
-        reject(
-          err instanceof Error ? err : new Error("Image compression failed"),
-        );
-      }
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Image load failed"));
-    };
-    img.src = objectUrl;
-  });
-}
-
-async function convertTextWithBase64Images(
-  file: File,
-  imageByName: Map<string, string>,
-): Promise<string> {
-  let content = await file.text();
-  content = replaceDemoManifestScriptUrls(content);
-  content = replaceBundledDemoStaticImages(content);
-  const lines = content.split(/\r?\n/);
-  for (const [name, base64] of imageByName.entries()) {
-    if (isBundledDemoAssetImageName(name)) continue;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i] ?? "";
-      if (!line.includes(name)) continue;
-      const idx = line.indexOf(name);
-      if (idx === -1) continue;
-      const afterNameIndex = idx + name.length;
-      const nextDoubleQuoteIndex = line.indexOf('"', afterNameIndex);
-      const nextSingleQuoteIndex = line.indexOf("'", afterNameIndex);
-      const nextQuoteIndex =
-        nextDoubleQuoteIndex === -1
-          ? nextSingleQuoteIndex
-          : nextSingleQuoteIndex === -1
-            ? nextDoubleQuoteIndex
-            : Math.min(nextDoubleQuoteIndex, nextSingleQuoteIndex);
-      const quoteChar =
-        nextQuoteIndex === -1
-          ? '"'
-          : nextQuoteIndex === nextSingleQuoteIndex
-            ? "'"
-            : '"';
-      const suffixAfterQuote =
-        nextQuoteIndex === -1
-          ? line.slice(afterNameIndex)
-          : line.slice(nextQuoteIndex + 1);
-      const leadingWs = line.match(/^\s*/)?.[0] ?? "";
-      lines[i] =
-        `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${base64}${quoteChar}${suffixAfterQuote}`;
-      break;
-    }
-  }
-  return lines.join("\n");
-}
-
 const ChatView = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -1124,6 +1503,8 @@ const ChatView = () => {
     useState<ChatAiProvider>(loadChatAiProvider);
   const [pendingUploadAction, setPendingUploadAction] =
     useState<PendingUploadDemoAction | null>(null);
+  const [lastUploadedDemo, setLastUploadedDemo] =
+    useState<LastUploadedDemoSession | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(
     null,
   );
@@ -1135,6 +1516,7 @@ const ChatView = () => {
   const normalizedRole = String(user?.role ?? "")
     .trim()
     .toLowerCase();
+  const isAdminUser = normalizedRole === "admin";
   const sftpClient = React.useMemo(
     () =>
       createSftpClient({
@@ -1153,6 +1535,30 @@ const ChatView = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const email = String(user?.email ?? "").trim();
+    if (!email) {
+      setLastUploadedDemo(null);
+      return;
+    }
+    setLastUploadedDemo(loadLastUploadedDemoFromSession(email));
+  }, [user?.email]);
+
+  const rememberLastUploadedDemo = React.useCallback(
+    (demo: LastUploadedDemoSession) => {
+      setLastUploadedDemo(demo);
+      const email = String(user?.email ?? "").trim();
+      if (email) saveLastUploadedDemoToSession(email, demo);
+    },
+    [user?.email],
+  );
+
+  const clearLastUploadedDemo = React.useCallback(() => {
+    setLastUploadedDemo(null);
+    const email = String(user?.email ?? "").trim();
+    if (email) saveLastUploadedDemoToSession(email, null);
+  }, [user?.email]);
 
   const handlePickAttachments = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -1293,16 +1699,14 @@ const ChatView = () => {
       );
     }
 
-    const selectedVideo = videoItems[0]!;
-    const logs: string[] = [];
-
     const normalizedBrand = resolveAllowedBuildDemoBrand(
       String(plan.brand || "").trim(),
     );
     if (!normalizedBrand) {
-      const hints = suggestBuildDemoBrands(String(plan.brand || "").trim()).join(
-        ", ",
-      );
+      const hints = suggestBuildDemoBrands(
+        String(plan.brand || "").trim(),
+        allowedBuildDemoBrands,
+      ).join(", ");
       throw new Error(
         `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
       );
@@ -1312,108 +1716,19 @@ const ChatView = () => {
       /^brand-+/,
       "",
     );
-    if (!brandToken) {
-      throw new Error(
-        "Missing brand. Use `brand: <name>` (or include brand in `path:`).",
-      );
-    }
 
-    setProgress(20, "Resolving video demo path...");
-    const requestedRemotePath = String(plan.remotePath || "").trim();
-    const now = new Date();
-    const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const demoFormatSeg = "video";
-    const pathPrefix = [year, month, brandToken, "all"];
-
-    let resolvedRemotePath =
-      requestedRemotePath ||
-      [...pathPrefix, demoFormatSeg].filter(Boolean).join("/");
-
-    if (!requestedRemotePath) {
-      const parts = resolvedRemotePath.split("/").filter(Boolean);
-      const baseSeg = parts.pop() ?? demoFormatSeg;
-      const prefix = parts.length > 0 ? parts : pathPrefix;
-      resolvedRemotePath = await resolveAvailableRemotePath(
-        sftpClient,
-        prefix,
-        baseSeg,
-      );
-    }
-
-    const remoteBase = `/script/demo/${resolvedRemotePath}`
-      .replace(/\/{2,}/g, "/")
-      .replace(/\/+$/, "");
-
-    setProgress(38, "Ensuring remote folder on SFTP...");
-    const mkdirRes = await sftpClient.mkdir(remoteBase, { scope: "demo" });
-    if (mkdirRes?.ok === false && mkdirRes.error) {
-      throw new Error(mkdirRes.error);
-    }
-
-    const videoRemotePath = `${remoteBase}/${VIDEO_DEMO_FIXED_REL_PATH}`.replace(
-      /\/{2,}/g,
-      "/",
-    );
-    const fileSizeMb = selectedVideo.file.size / (1024 * 1024);
-    setProgress(
-      42,
-      fileSizeMb > 4
-        ? `Uploading video (${fileSizeMb.toFixed(1)} MB) — server may compress, please wait…`
-        : "Uploading video as tvc.mp4…",
-    );
-
-    let pulsePercent = 42;
-    const pulseTimer = window.setInterval(() => {
-      pulsePercent = Math.min(68, pulsePercent + 1);
-      setProgress(
-        pulsePercent,
-        fileSizeMb > 4
-          ? `Processing video on server (${fileSizeMb.toFixed(1)} MB) — compression can take several minutes…`
-          : "Uploading video as tvc.mp4…",
-      );
-    }, 4000);
-
-    let videoRes: Awaited<ReturnType<typeof sftpClient.writeBinary>>;
-    try {
-      videoRes = await sftpClient.writeBinary(
-        videoRemotePath,
-        selectedVideo.file,
-        { scope: "demo" },
-      );
-    } finally {
-      window.clearInterval(pulseTimer);
-    }
-    if (!videoRes?.ok) {
-      throw new Error(videoRes?.error || "Video upload failed.");
-    }
-    logs.push(`Uploaded video: ${videoRemotePath}`);
-
-    setProgress(70, "Uploading make-vast.xml...");
-    const xmlRemotePath = `${remoteBase}/make-vast.xml`.replace(/\/{2,}/g, "/");
-    const xmlRes = await sftpClient.write({
-      path: xmlRemotePath,
-      content: buildVideoMakeVastXml(resolvedRemotePath),
+    const result = await uploadVideoDemo({
+      sftpClient,
+      videoFile: videoItems[0]!.file,
+      brandToken,
+      requestedRemotePath: String(plan.remotePath || "").trim(),
+      autoResolvePath: !String(plan.remotePath || "").trim(),
+      onProgress: setProgress,
     });
-    if (!xmlRes?.ok) {
-      throw new Error(xmlRes?.error || "make-vast.xml upload failed.");
-    }
-    logs.push(`Uploaded VAST: ${xmlRemotePath}`);
-
-    setProgress(92, "Generating preview URLs...");
-    const videoPreviews = await buildDefaultVideoPreviewLinks(resolvedRemotePath);
-
-    setProgress(100, "Video demo upload completed.");
 
     return {
-      remoteBase,
-      remotePath: resolvedRemotePath,
-      uploaded: 2,
-      logs,
-      videoPreviews,
-      previewUrl: videoPreviews.find((p) => p.previewUrl)?.previewUrl ?? null,
-      formatValue: videoPreviews.map((p) => p.formatValue).join(", "),
-      formatSuggestions: [],
+      ...result,
+      formatSuggestions: [] as string[],
     };
   };
 
@@ -1483,7 +1798,10 @@ const ChatView = () => {
     const requestedRemotePath = String(plan.remotePath || "").trim();
     const normalizedBrand = resolveAllowedBuildDemoBrand(String(plan.brand || "").trim());
     if (!normalizedBrand) {
-      const hints = suggestBuildDemoBrands(String(plan.brand || "").trim()).join(", ");
+      const hints = suggestBuildDemoBrands(
+        String(plan.brand || "").trim(),
+        allowedBuildDemoBrands,
+      ).join(", ");
       throw new Error(
         `Brand không hợp lệ. Chỉ cho phép brand trong danh sách cấu hình. Gợi ý: ${hints}.`,
       );
@@ -1583,7 +1901,7 @@ const ChatView = () => {
           /\/{2,}/g,
           "/",
         );
-      const converted = await convertTextWithBase64Images(
+      const converted = await convertTextFileWithBase64Images(
         item.file,
         imageBase64ByName,
       );
@@ -1672,8 +1990,59 @@ const ChatView = () => {
       label: "Starting build demo pipeline...",
     });
     try {
+      const uploadKind = plan.uploadKind ?? detectUploadDemoKind(attachments);
+      if (uploadKind === "html") {
+        const inferredRemotePath = inferUploadRemotePathFromAttachments(
+          plan,
+          attachments,
+        );
+        const formatValidation = await validateUploadDemoFormat({
+          remotePath: inferredRemotePath,
+          demoId: plan.demoId,
+          demoValue: plan.demoValue,
+        });
+        if (formatValidation.ok === false) {
+          const pathSize = extractSizeTokenFromRemotePath(inferredRemotePath);
+          const mismatchMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: buildFormatMismatchMessage({
+              userInput: formatValidation.userInput,
+              pathSize,
+              reason: formatValidation.reason,
+              options: formatValidation.options,
+            }),
+          };
+          setMessages((prev) => [...prev, mismatchMsg]);
+          setPendingUploadAction({
+            ...plan,
+            uploadKind,
+            demoValue: null,
+            pendingFormatReselect: true,
+            pendingFormatOptions: formatValidation.options,
+            requiredInputs: Array.from(
+              new Set([...(plan.requiredInputs ?? []), "format"]),
+            ),
+          });
+          return true;
+        }
+        plan = {
+          ...plan,
+          demoValue: formatValidation.formatValue,
+        };
+      }
+
       const runResult = await runBuildDemoUploadTool(plan);
-      const isVideoUpload = plan.uploadKind === "video";
+      const isVideoUpload = uploadKind === "video";
+      const normalizedBrand =
+        resolveAllowedBuildDemoBrand(String(plan.brand ?? "").trim()) ?? null;
+      rememberLastUploadedDemo({
+        remoteBase: runResult.remoteBase,
+        remotePath: runResult.remotePath,
+        brand: normalizedBrand,
+        uploadKind,
+        uploadedAt: Date.now(),
+      });
       const videoPreviewLines =
         isVideoUpload &&
         "videoPreviews" in runResult &&
@@ -1715,6 +2084,9 @@ const ChatView = () => {
           runResult.formatSuggestions?.length
             ? `Suggestions: ${runResult.formatSuggestions.join(", ")}`
             : null,
+          isAdminUser
+            ? `Gõ \`xóa demo\` để xóa folder vừa upload (\`${runResult.remoteBase}\`).`
+            : null,
         ]
           .filter((line): line is string => Boolean(line))
           .join("\n"),
@@ -1740,6 +2112,112 @@ const ChatView = () => {
     }
   };
 
+  const executeDeleteUploadedDemo = async (options?: {
+    remotePath?: string | null;
+  }): Promise<boolean> => {
+    if (!isAdminUser) {
+      const deniedMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content:
+          "Chỉ **administrator** mới có quyền xóa folder demo trên SFTP. Liên hệ admin nếu cần xóa demo vừa upload.",
+      };
+      setMessages((prev) => [...prev, deniedMsg]);
+      return true;
+    }
+
+    const explicitPath = String(options?.remotePath ?? "").trim();
+    let remoteBase = "";
+    let remotePath = "";
+    let brand: string | null = null;
+
+    if (explicitPath) {
+      const normalized = normalizeDemoRemoteTarget(explicitPath);
+      remoteBase = normalized.remoteBase;
+      remotePath = normalized.remotePath;
+      brand = extractBrandFromDemoRemotePath(remoteBase);
+    } else if (lastUploadedDemo) {
+      remoteBase = lastUploadedDemo.remoteBase;
+      remotePath = lastUploadedDemo.remotePath;
+      brand = lastUploadedDemo.brand;
+    }
+
+    if (!remoteBase) {
+      const noTargetMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content:
+          "Không có demo nào được ghi nhớ trong session chat. Upload demo trước, hoặc chỉ định path: `path: /script/demo/2026/05/brand/all/video-1`.",
+      };
+      setMessages((prev) => [...prev, noTargetMsg]);
+      return true;
+    }
+
+    if (brand) {
+      const denied = checkBuildDemoBrandUserPermission(
+        brand,
+        allowedBuildDemoBrands,
+      );
+      if (denied) {
+        const deniedMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content: denied,
+        };
+        setMessages((prev) => [...prev, deniedMsg]);
+        return true;
+      }
+    }
+
+    try {
+      const res = await sftpClient.remove(remoteBase, { scope: "demo" });
+      if (res.ok === false) {
+        throw new Error(res.error || "SFTP delete failed.");
+      }
+
+      if (lastUploadedDemo?.remoteBase === remoteBase) {
+        clearLastUploadedDemo();
+      }
+
+      const okMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: [
+          "Đã xóa folder demo trên SFTP.",
+          `Remote: ${remoteBase}`,
+          brand ? `Brand: ${brand}` : null,
+        ]
+          .filter((line): line is string => Boolean(line))
+          .join("\n"),
+      };
+      setMessages((prev) => [...prev, okMsg]);
+      void recordActivity({
+        user,
+        action: "delete_demo_success",
+        area: "AI Chat",
+        description: "Deleted demo folder from chat session",
+        target: remotePath || remoteBase,
+        metadata: {
+          remoteBase,
+          brand: brand ?? "",
+        },
+      });
+      return true;
+    } catch (deleteErr) {
+      const msg =
+        deleteErr instanceof Error
+          ? deleteErr.message
+          : "Delete demo folder failed.";
+      const failMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: `Xóa demo thất bại: ${msg}`,
+      };
+      setMessages((prev) => [...prev, failMsg]);
+      return true;
+    }
+  };
+
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -1754,12 +2232,33 @@ const ChatView = () => {
 
     setMessages((prev) => [...prev, userMsg]);
 
+    if (
+      detectDeleteDemoIntent(trimmedInput) &&
+      !isDeleteDemoHelpQuestion(trimmedInput)
+    ) {
+      setIsLoading(true);
+      setInput("");
+      try {
+        await executeDeleteUploadedDemo({
+          remotePath:
+            extractDeleteDemoPathFromInput(trimmedInput) ??
+            undefined,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (pendingUploadAction?.tool === "build_demo_convert_upload") {
       const requestedBrand = extractBrandFromInput(trimmedInput);
       if (requestedBrand) {
         const normalizedBrand = resolveAllowedBuildDemoBrand(requestedBrand);
         if (!normalizedBrand) {
-          const suggestions = suggestBuildDemoBrands(requestedBrand);
+          const suggestions = suggestBuildDemoBrands(
+            requestedBrand,
+            allowedBuildDemoBrands,
+          );
           const invalidBrandMsg: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -1776,10 +2275,20 @@ const ChatView = () => {
           allowedBuildDemoBrands,
         );
         if (brandPermissionDenied) {
+          const uploadKind = detectUploadDemoKind(attachments);
+          const nextPending = withBrandRequirement(
+            pendingUploadAction,
+            allowedBuildDemoBrands,
+          );
+          setPendingUploadAction({ ...nextPending, uploadKind });
           const deniedMsg: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
-            content: brandPermissionDenied,
+            content: [
+              brandPermissionDenied,
+              "",
+              buildBrandSelectionMessage(nextPending.pendingBrandOptions ?? []),
+            ].join("\n"),
           };
           setMessages((prev) => [...prev, deniedMsg]);
           setInput("");
@@ -1790,6 +2299,7 @@ const ChatView = () => {
       const updates = extractPendingUploadSupplements(
         trimmedInput,
         pendingUploadAction,
+        allowedBuildDemoBrands,
       );
       const hasUpdate = Object.keys(updates).length > 0;
       const mergedAction: PendingUploadDemoAction = {
@@ -1801,6 +2311,7 @@ const ChatView = () => {
         { ...mergedAction, uploadKind },
         attachments.length,
         uploadKind,
+        allowedBuildDemoBrands,
       );
       const canContinue = remaining.length === 0;
       const brandPermissionBlocker = tryGetUploadDemoBrandPermissionError(
@@ -1809,10 +2320,19 @@ const ChatView = () => {
       );
 
       if (brandPermissionBlocker) {
+        const nextPending = withBrandRequirement(
+          mergedAction,
+          allowedBuildDemoBrands,
+        );
+        setPendingUploadAction({ ...nextPending, uploadKind });
         const deniedMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "model",
-          content: brandPermissionBlocker,
+          content: [
+            brandPermissionBlocker,
+            "",
+            buildBrandSelectionMessage(nextPending.pendingBrandOptions ?? []),
+          ].join("\n"),
         };
         setMessages((prev) => [...prev, deniedMsg]);
         setInput("");
@@ -1820,15 +2340,21 @@ const ChatView = () => {
       }
 
       if (hasUpdate && !canContinue) {
-        setPendingUploadAction({
-          ...mergedAction,
-          uploadKind,
-          requiredInputs: remaining,
-        });
+        setPendingUploadAction(
+          applyPendingBrandOptionsIfNeeded(
+            {
+              ...mergedAction,
+              uploadKind,
+              requiredInputs: remaining,
+            },
+            remaining,
+            allowedBuildDemoBrands,
+          ),
+        );
         const promptMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "model",
-          content: `Đã lưu thông tin bổ sung. ${buildMissingUploadInputsMessage(mergedAction, remaining)}`,
+          content: `Đã lưu thông tin bổ sung. ${buildMissingUploadInputsMessage(mergedAction, remaining, allowedBuildDemoBrands)}`,
         };
         setMessages((prev) => [...prev, promptMsg]);
         setInput("");
@@ -1836,13 +2362,82 @@ const ChatView = () => {
       }
 
       if (!hasUpdate) {
+        const pendingBrandOptions = pendingUploadAction.pendingBrandOptions;
+        const brandOptionIndex = extractFormatOptionIndexFromInput(trimmedInput);
+        if (
+          brandOptionIndex != null &&
+          pendingBrandOptions?.length &&
+          brandOptionIndex > pendingBrandOptions.length
+        ) {
+          const invalidBrandOptionMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: `Số \`${brandOptionIndex}\` không hợp lệ. Vui lòng chọn brand từ 1 đến ${pendingBrandOptions.length}.`,
+          };
+          setMessages((prev) => [...prev, invalidBrandOptionMsg]);
+          setInput("");
+          return;
+        }
+
+        const brandInputDenied = tryGetBrandInputPermissionError(
+          trimmedInput,
+          pendingUploadAction,
+          allowedBuildDemoBrands,
+        );
+        if (brandInputDenied) {
+          const nextPending = withBrandRequirement(
+            pendingUploadAction,
+            allowedBuildDemoBrands,
+          );
+          setPendingUploadAction({ ...nextPending, uploadKind });
+          const deniedMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: [
+              brandInputDenied,
+              "",
+              buildBrandSelectionMessage(nextPending.pendingBrandOptions ?? []),
+            ].join("\n"),
+          };
+          setMessages((prev) => [...prev, deniedMsg]);
+          setInput("");
+          return;
+        }
+
+        const pendingOptions = pendingUploadAction.pendingFormatOptions;
+        const optionIndex = extractFormatOptionIndexFromInput(trimmedInput);
+        if (
+          optionIndex != null &&
+          pendingOptions?.length &&
+          optionIndex > pendingOptions.length
+        ) {
+          const invalidOptionMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: `Số \`${optionIndex}\` không hợp lệ. Vui lòng chọn từ 1 đến ${pendingOptions.length}.`,
+          };
+          setMessages((prev) => [...prev, invalidOptionMsg]);
+          setInput("");
+          return;
+        }
+
         const reminderMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "model",
           content:
-            uploadKind === "video"
-              ? "Mình đang chờ thông tin để upload video demo. Ví dụ: `brand: yomedia` + đính kèm đúng 1 file MP4/WebM/MOV (sau upload sẽ có preview outstream + instream)."
-              : "Mình đang chờ thông tin còn thiếu để tiếp tục upload demo. Ví dụ: `brand: yomedia`, `format: 300x250`.",
+            pendingUploadAction.pendingFormatReselect &&
+            pendingOptions &&
+            pendingOptions.length > 0
+              ? `Chọn format bằng cách gõ số 1–${pendingOptions.length} từ danh sách trên, hoặc \`format: ${pendingOptions[0]?.value ?? "mobile-masthead"}\`.`
+              : (pendingUploadAction.requiredInputs ?? []).includes("brand") &&
+                  pendingBrandOptions &&
+                  pendingBrandOptions.length > 0
+                ? `Chọn brand bằng cách gõ số 1–${pendingBrandOptions.length} từ danh sách trên, hoặc \`brand: ${pendingBrandOptions[0]?.id ?? "yomedia"}\`.`
+                : uploadKind === "video"
+                  ? "Mình đang chờ thông tin để upload video demo. Ví dụ: `brand: yomedia` + đính kèm đúng 1 file MP4/WebM/MOV (sau upload sẽ có preview outstream + instream)."
+                  : allowedBuildDemoBrands && allowedBuildDemoBrands.length > 0
+                    ? `Mình đang chờ thông tin còn thiếu để tiếp tục upload demo. Brand được phép: ${allowedBuildDemoBrands.join(", ")}.`
+                    : "Mình đang chờ thông tin còn thiếu để tiếp tục upload demo. Ví dụ: `brand: yomedia`, `format: 300x250`.",
         };
         setMessages((prev) => [...prev, reminderMsg]);
         setInput("");
@@ -2008,39 +2603,74 @@ const ChatView = () => {
           };
         }
       ).action;
+      if (action?.tool === "delete_uploaded_demo") {
+        const deleteAction = action as DeleteUploadedDemoAction;
+        await executeDeleteUploadedDemo({
+          remotePath: deleteAction.remotePath,
+        });
+        setIsLoading(false);
+        return;
+      }
       if (action?.tool === "build_demo_convert_upload") {
         const nextPending = action as PendingUploadDemoAction;
         const uploadKind =
           nextPending.uploadKind ?? detectUploadDemoKind(attachments);
-        const mergedPending = { ...nextPending, uploadKind };
+        const rawBrand = String(nextPending.brand ?? "").trim();
+        const mergedPending = {
+          ...nextPending,
+          uploadKind,
+          brand: rawBrand
+            ? resolveAllowedBuildDemoBrand(rawBrand) ?? nextPending.brand
+            : nextPending.brand,
+        };
         const missing = computePendingUploadMissingInputs(
           mergedPending,
           attachments.length,
           uploadKind,
+          allowedBuildDemoBrands,
         );
         const brandPermissionBlocker = tryGetUploadDemoBrandPermissionError(
           mergedPending,
           allowedBuildDemoBrands,
         );
         if (brandPermissionBlocker) {
+          const nextPending = withBrandRequirement(
+            mergedPending,
+            allowedBuildDemoBrands,
+          );
+          setPendingUploadAction(nextPending);
           const deniedMsg: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
-            content: brandPermissionBlocker,
+            content: [
+              brandPermissionBlocker,
+              "",
+              buildBrandSelectionMessage(nextPending.pendingBrandOptions ?? []),
+            ].join("\n"),
           };
           setMessages((prev) => [...prev, deniedMsg]);
           setIsLoading(false);
           return;
         }
         if (missing.length > 0) {
-          setPendingUploadAction({
-            ...mergedPending,
-            requiredInputs: missing,
-          });
+          setPendingUploadAction(
+            applyPendingBrandOptionsIfNeeded(
+              {
+                ...mergedPending,
+                requiredInputs: missing,
+              },
+              missing,
+              allowedBuildDemoBrands,
+            ),
+          );
           const missingMsg: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
-            content: buildMissingUploadInputsMessage(mergedPending, missing),
+            content: buildMissingUploadInputsMessage(
+              mergedPending,
+              missing,
+              allowedBuildDemoBrands,
+            ),
           };
           setMessages((prev) => [...prev, missingMsg]);
           setIsLoading(false);

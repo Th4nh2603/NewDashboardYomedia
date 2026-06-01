@@ -122,12 +122,12 @@ export async function updateAdminAccount(
     const effectiveRole = normalizeAccountText(updates.role ?? existing?.role);
     if (effectiveRole === "admin") {
       updates.allowedBuildDemoBrands = null;
+    } else if (payload.allowedBuildDemoBrands === null) {
+      updates.allowedBuildDemoBrands = null;
     } else {
-      const normalized = normalizeBuildDemoBrandIds(
+      updates.allowedBuildDemoBrands = normalizeBuildDemoBrandIds(
         payload.allowedBuildDemoBrands,
       );
-      updates.allowedBuildDemoBrands =
-        normalized.length > 0 ? normalized : null;
     }
   }
 

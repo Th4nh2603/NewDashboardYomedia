@@ -40,6 +40,7 @@ import {
   assertSftpWriteFileAllowed,
 } from "../lib/auth/sftpMutate.js";
 import { requireClerkAuth } from "../lib/auth/clerkAuth.js";
+import { assertBuildDemoBrandSftpAccess, assertAdminDemoSftpDeleteAllowed } from "../lib/auth/buildDemoBrandAccess.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,11 @@ function parseManageSftpScope(req: Request): ManageSftpScope {
       : "";
   const raw = fromBody || fromQuery;
   return raw === "media" ? "media" : "demo";
+}
+
+function assertDemoSftpBrandAccess(req: Request, remotePath: string): void {
+  if (parseManageSftpScope(req) !== "demo") return;
+  assertBuildDemoBrandSftpAccess(req, remotePath);
 }
 
 function assertMediaManageSftpAllowed(req: Request, scope: ManageSftpScope) {
@@ -314,6 +320,8 @@ sftpRouter.post(
       });
     }
 
+    assertDemoSftpBrandAccess(req, targetPath);
+
     const rawBody = req.body;
     if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
       throw new HttpError(400, "Missing binary body", {
@@ -369,6 +377,7 @@ sftpRouter.post(
         code: "BAD_REQUEST",
       });
     }
+    assertDemoSftpBrandAccess(req, body.path);
     const scope = parseManageSftpScope(req);
     assertMediaManageSftpAllowed(req, scope);
     const cfg = configForManageSftpScope(scope);
@@ -445,6 +454,7 @@ sftpRouter.post(
         code: "BAD_REQUEST",
       });
     }
+    assertDemoSftpBrandAccess(req, body.path);
     const scope = parseManageSftpScope(req);
     assertMediaManageSftpAllowed(req, scope);
     const cfg = configForManageSftpScope(scope);
@@ -523,13 +533,15 @@ sftpRouter.post(
 sftpRouter.post(
   "/delete",
   asyncHandler(async (req: Request, res: Response) => {
-    assertSftpDeleteAllowed(req);
     const body = req.body as { path?: string; scope?: string };
     if (!body?.path) {
       throw new HttpError(400, "Missing 'path' field in body", {
         code: "BAD_REQUEST",
       });
     }
+    assertSftpDeleteAllowed(req);
+    assertAdminDemoSftpDeleteAllowed(req, body.path);
+    assertDemoSftpBrandAccess(req, body.path);
     const scope = parseManageSftpScope(req);
     assertMediaManageSftpAllowed(req, scope);
     const cfg = configForManageSftpScope(scope);

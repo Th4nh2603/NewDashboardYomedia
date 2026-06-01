@@ -11,7 +11,11 @@ export const ROUTE_ROLE_GUARDS: Record<
   "/creative-demos-edit": { allow: ["admin"] },
   "/smtp-mail": { deny: ["guest"] },
   "/admin/users": { allow: ["admin"] },
+  "/tool/test": { allow: ["admin"] },
 };
+
+/** Tools section — visible in sidebar only for admin. */
+export const TOOLS_ADMIN_ROUTES = ["/tool/test"] as const;
 
 /** Sidebar admin section — shown only when role is admin. */
 export const ADMIN_SECTION_ROUTES = [
@@ -87,6 +91,9 @@ export function canShowNavRoute(ctx: AccessContext, path: string): boolean {
     ctx.role !== "admin"
   ) {
     return false;
+  }
+  if ((TOOLS_ADMIN_ROUTES as readonly string[]).includes(path)) {
+    return ctx.role === "admin" && passesAllowedRoutes(ctx, path);
   }
   return passesAllowedRoutes(ctx, path);
 }

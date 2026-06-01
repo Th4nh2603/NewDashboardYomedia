@@ -8,7 +8,9 @@
       "role": "manager",
       "roleTitle": "Manager",
       "status": "active",
-      "allowedBuildDemoBrands": null
+      "allowedBuildDemoBrands": [
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",

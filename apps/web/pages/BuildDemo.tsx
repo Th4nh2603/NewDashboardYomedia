@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+﻿import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CloudArrowUpIcon,
@@ -27,14 +27,22 @@ import JSZip from "jszip";
 import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
 import { isBuildDemoBrandAllowed } from "../lib/buildDemoBrands";
 import {
+  compressImageToDataUrl,
+  isSftpExistingEntry,
+  resolveFreeRemoteSegment,
+  stripRedundantRelativeFolderPrefix,
+} from "../lib/buildDemo";
+import {
+  replaceImagesToBase64 as applyImagesToBase64InContent,
+  type ImageBase64Entry,
+  VIDEO_DEMO_FIXED_REL_PATH,
+  buildVideoMakeVastXml,
+} from "../lib/buildDemoAssets";
+import {
   getBuildDemoUploadResultStorageKey,
   loadPersistedBuildDemoUploadResult,
   persistBuildDemoUploadResult,
 } from "../lib/buildDemoUploadResultStorage";
-import {
-  buildVideoMakeVastXml,
-  VIDEO_DEMO_FIXED_REL_PATH,
-} from "../lib/makeVastXml";
 
 type BuildDemoRolePermissions = Record<
   string,
@@ -47,195 +55,11 @@ type BuildDemoRolePermissions = Record<
   }
 >;
 
-/** Default manifest entry: replace file path with inlined PNG (s_on). */
-const S_ON_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzACXMChfymT9mWbJMv3+McuXYpbWoq14AAAHlSURBVEjHvZaJjoMwDES9gYSE+5j//9alpsaUhk1opbVUIIWn8Tgn/cSitEbC2jL6CcUgOoWxZRK0FA9zRimJKXoJlheIonHQUDLKM6hyKVEFlcsKewYN3SRJuXsk5XLe7xVS0FI65u61QJRZmAZoXkjKNNgDGI7J0pXg2PujPybrgyTFBX0HVNKo3cPfAhQHSYoKBgf9zLvN3wT0KkkRQb8AO6j+AjDvkiv4xtUzDmC7/oa1td4LYNxHAb1lWgECsr+BGGlYsttzJSv5hUcQERTcjbUsuTYcPeOHNoujA8cJZH3Xcv8PXNiwcXuiCy5A6vih5mvQPrJqLA5Klo6zPJhMgZJlAbDjOR/sWaYCiPF8MPDTf4Ljp+DCfdDxu/kOOAGjDBr5M9WPMnS4Nwu+NgI+NfsYKC8qxgduDDLkRLMpOM5gWO+z57ncslFZPc7T6gyODq7mAjX0wCepTWQiD+5lPjb1im9TpDqM8djS0XYHkGHHheV8xWJ8sQqTgML1JPlymKvl0VfQGeRnDFudnBfB6wW5LRBIyFHyFcE/twApvOa7kAqmNx3lGmnYG9ucn5UztzZWv3NUfruVc5SfHB5uaZbvJyubxyl4gzRXh0CTY+/7Y+f3B11NOI0peH0sN/HT/C/3pivwmDak6QAAAABJRU5ErkJggg==";
-
-/** Default manifest entry: replace file path with inlined PNG (s_off). */
-const S_OFF_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA2CAMAAAClUqpcAAAAP1BMVEX///8AAAD////////////////////////////////////////////////////////////////////////////NY5A9AAAAFHRSTlMzAJkmGWYOsj8H8thZf+W/jHJMzPy/nOYAAAFuSURBVEjHrdZZkoMwDATQJhIGk7CO7n/WgTKgYrxhMv2TBR4CF7aFKhTDTHuYTfAUH1om/AmxzUJGOGQ8mGNKo9AgHbJhyMjGBqDFnbBCdSVSIaFQQl2ZRHhc8iOEYgc6oUVZ+ICEwhgHDUJppzp5s4gUrAeRJVUSwYLtS9a8UiURKjgPkoawK/TLjSI5yBWM93SdXGEPveZ83iv4BFsW4CUKXf3mdG85rlKB3F8/+7ke3A40pxOp93E9ykkMfrpDfga9BjgNVernLajHmqsD3YDo3U91eahSXQF0QytdWwwb9/vdFkB1TpbASUdVJedhv4/LVfJecwlD5/TNUWmOmmMMNtd3tfu479608iCay+yYz2lVPZqPvEIOLzj5pcPAyzJmIEWXx3obwSkKTWJBnrp3vGByC6jbeMGnm86X21yxtA+3cvN186CyoJ7Cm89pn7VkFGkCLaUdP2w77f82uhpDPsu01mpZMSjczf8CCMYlsaG5I9IAAAAASUVORK5CYII=";
-
-const BTN_REPLAY_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAM1BMVEUAAAD///////////////////////////////////////////////////////////////+3leKCAAAAEHRSTlMAf+8/Dx8vv49vX9+fT6/P7uaPeAAAANZJREFUOMvtkd0SxBAMRiOon6rm/Z92TadEo2bc7MXO7LkThy8BfhebXDRr6oGU1lS7Ex5L5oZEatmMMkdfBHXR+qTBNCcxZys7IrRDTMNxtayyCA8sdhPsZbk9s5HFwOV8LxlFjO7KrRPOYIw4/5iFOoDxUjyIcTJo1mLmsqWpGBOprjwXNaQo3sy9Prcq289RyPeiriJuQ4yGHqzmXk3r7wJMfga9NiVf1aMHyL8e4VFklyNoQBJevQ1G/OglC29EFNcpmGB8r3XXjdjg8LJytPDnC3wA/ZYX0JaBReoAAAAASUVORK5CYII=";
-
-const BTN_PLAY_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEMAAABOCAMAAABMilufAAAAVFBMVEUAAAD///////////////////////////////////////////////////////////////////////////////////////////////////////////8wXzyWAAAAG3RSTlMADPUc33ftqifPtpVRQuZrODHVx7+djIRiWRRgp4d+AAABBklEQVRYw6TQyRWCQAAEUQYERxBZ3O3887QvvA6gKoB/qGasDU6aCjc0LNhw+4wNh7bo6FWogbZI6TJjw50rMbKFG7p9iJEtwMiWjhtq3wUY2QKMbFmJkS3EyBZquNMXG+6+EiNbuKG2L8DIFmBky4YN9+yIkS3Y8JYrNtxjI0a2ACNbiJEtxMgWbLjpxw0NPTeULSKNFRrZItiw2MDt/2bM5AagEASiEcMSDvjN96D9N2oRHmYa4EBglkcxw5Rgpxn4GzMl+Lk18RokSqDJa+I9SrThPfv/8BlGtOEz3Xu2rEOQtb3ju0dtgi7mHd9NaxN0dQ88u7BBwHIy8GzLBgHry3fmeAH5pBXvjExH/QAAAABJRU5ErkJggg==";
-
-const BG_VIDEOS_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAQMAAABrVFYkAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAACZJREFUeNrtwQENAAAAwiD7p7bHBwwAAAAAAAAAAAAAAAAAAACIOkBWAAFeWY6hAAAAAElFTkSuQmCC";
-
-/**
- * Images that ship with fixed data URLs (s_on, s_off, buttons, video bg) — not replaced by uploaded base64.
- */
-const BUNDLED_DEMO_ASSET_IMAGE_BASENAMES = new Set(
-  [
-    "s_on copy.png",
-    "s_off copy.png",
-    "preplaytvc0001.png",
-    "playbtn0001.png",
-    "htt.png",
-  ].map((s) => s.toLowerCase()),
-);
-
-function isBundledDemoAssetImageName(name: string): boolean {
-  const leaf = (name.split(/[/\\]/).pop() ?? name).trim().toLowerCase();
-  return BUNDLED_DEMO_ASSET_IMAGE_BASENAMES.has(leaf);
-}
-
-function isSftpExistingEntry(data?: {
-  ok?: boolean;
-  exists?: boolean;
-  kind?: string;
-}) {
-  return Boolean(
-    data?.ok &&
-    data?.exists &&
-    (data?.kind === "directory" ||
-      data?.kind === "file" ||
-      data?.kind === "symlink"),
-  );
-}
-
-/** Replace canonical manifest images with fixed data URLs (single/double quotes, %20 or space). */
-function replaceBundledDemoStaticImages(content: string): string {
-  let c = content;
-  const sq = [
-    [
-      `'id': 's_on', 'src':'images/s_on%20copy.png'`,
-      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
-    ],
-    [
-      `'id': 's_on', 'src':'images/s_on copy.png'`,
-      `'id': 's_on',\n            'src': '${S_ON_DATA_URL}'`,
-    ],
-    [
-      `'id': 's_off', 'src':'images/s_off%20copy.png'`,
-      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
-    ],
-    [
-      `'id': 's_off', 'src':'images/s_off copy.png'`,
-      `'id': 's_off',\n            'src': '${S_OFF_DATA_URL}'`,
-    ],
-    [
-      `'id': 'btn_replay', 'src':'images/preplaytvc0001.png'`,
-      `'id': 'btn_replay',\n            'src': '${BTN_REPLAY_DATA_URL}'`,
-    ],
-    [
-      `'id': 'btn_play', 'src':'images/playBtn0001.png'`,
-      `'id': 'btn_play',\n            'src': '${BTN_PLAY_DATA_URL}'`,
-    ],
-    [
-      `'id': 'bg_video', 'src':'images/htt.png'`,
-      `'id': 'bg_video',\n            'src': '${BG_VIDEOS_DATA_URL}'`,
-    ],
-  ] as const;
-  for (const [from, to] of sq) c = c.replaceAll(from, to);
-
-  const dqOn = `"id": "s_on",\n            "src": "${S_ON_DATA_URL}"`;
-  const dqOff = `"id": "s_off",\n            "src": "${S_OFF_DATA_URL}"`;
-  const dqReplay = `"id": "btn_replay",\n            "src": "${BTN_REPLAY_DATA_URL}"`;
-  const dqPlay = `"id": "btn_play",\n            "src": "${BTN_PLAY_DATA_URL}"`;
-  const dqBg = `"id": "bg_videos",\n            "src": "${BG_VIDEOS_DATA_URL}"`;
-  for (const [from, to] of [
-    [`"id": "s_on", "src": "images/s_on%20copy.png"`, dqOn],
-    [`"id": "s_on", "src":"images/s_on%20copy.png"`, dqOn],
-    [`"id": "s_on", "src": "images/s_on copy.png"`, dqOn],
-    [`"id": "s_on", "src":"images/s_on copy.png"`, dqOn],
-    [`"id": "s_off", "src": "images/s_off%20copy.png"`, dqOff],
-    [`"id": "s_off", "src":"images/s_off%20copy.png"`, dqOff],
-    [`"id": "s_off", "src": "images/s_off copy.png"`, dqOff],
-    [`"id": "s_off", "src":"images/s_off copy.png"`, dqOff],
-    [`"id": "btn_replay", "src": "images/preplaytvc0001.png"`, dqReplay],
-    [`"id": "btn_replay", "src":"images/preplaytvc0001.png"`, dqReplay],
-    [`"id": "btn_play", "src": "images/playBtn0001.png"`, dqPlay],
-    [`"id": "btn_play", "src":"images/playBtn0001.png"`, dqPlay],
-    [`"id": "bg_videos", "src": "images/htt.png"`, dqBg],
-    [`"id": "bg_videos", "src":"images/htt.png"`, dqBg],
-  ] as const) {
-    c = c.replaceAll(from, to);
-  }
-  // Fallback for multi-line object literals (id and src not on same line).
-  c = c.replace(
-    /(id\s*:\s*["']s_on["'][\s\S]*?src\s*:\s*["'])images\/s_on(?:%20| )copy\.png(["'])/g,
-    `$1${S_ON_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']s_off["'][\s\S]*?src\s*:\s*["'])images\/s_off(?:%20| )copy\.png(["'])/g,
-    `$1${S_OFF_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']btn_replay["'][\s\S]*?src\s*:\s*["'])images\/preplaytvc0001\.png(["'])/g,
-    `$1${BTN_REPLAY_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']btn_play["'][\s\S]*?src\s*:\s*["'])images\/playBtn0001\.png(["'])/g,
-    `$1${BTN_PLAY_DATA_URL}$2`,
-  );
-  c = c.replace(
-    /(id\s*:\s*["']bg_videos["'][\s\S]*?src\s*:\s*["'])images\/htt\.png(["'])/g,
-    `$1${BG_VIDEOS_DATA_URL}$2`,
-  );
-  return c;
-}
-
-const DEMO_MANIFEST_JQUERY_SRC =
-  "https://media.yomedia.vn/createjs/jquery-2022.min.js?1726036079413";
-const DEMO_MANIFEST_ANWIDGET_SRC =
-  "https://demo.yomedia.vn/yomedia/components/sdk/anwidget.js?1726036079413";
-const DEMO_MANIFEST_VIDEO_JS_SRC =
-  "https://demo.yomedia.vn/yomedia/components/video/src/video.js?1726036079413";
-const DEMO_MANIFEST_UI_IMAGE_JS_SRC =
-  "https://demo.yomedia.vn/yomedia/components/ui/src/image.js?1726036079413";
-
-/** CDN / relative script URLs in createjs manifest → fixed demo.yomedia / media.yomedia URLs. */
-function replaceDemoManifestScriptUrls(content: string): string {
-  let c = content;
-  c = c.replace(
-    /src:\s*"https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'https:\/\/code\.jquery\.com\/jquery-3\.4\.1\.min\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_JQUERY_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/sdk\/anwidget\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/sdk\/anwidget\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_ANWIDGET_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/video\/src\/video\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/video\/src\/video\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_VIDEO_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*"components\/ui\/src\/image\.js[^"]*"/g,
-    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
-  );
-  c = c.replace(
-    /src:\s*'components\/ui\/src\/image\.js[^']*'/g,
-    `src: "${DEMO_MANIFEST_UI_IMAGE_JS_SRC}"`,
-  );
-  return c;
-}
-
 interface ErrorState {
   message: string;
   type: "validation" | "processing" | "system" | "partial";
   action?: () => void;
   actionLabel?: string;
-}
-
-/** Filename + base64 stored together in state for images */
-interface ImageBase64Entry {
-  name: string;
-  base64: string;
 }
 
 interface UploadedFile {
@@ -253,7 +77,7 @@ interface DemoTitleOption {
   id: string;
   title: string;
   size: string | string[];
-  /** Display / Video / Mobile — drives idpc vs idvd vs idmb preview. */
+  /** Display / Video / Mobile â€” drives idpc vs idvd vs idmb preview. */
   category?: string;
   /** From creative-demos.json (e.g. HTML5, VIDEO). */
   fileType?: string;
@@ -303,7 +127,7 @@ interface SftpUploadPopupPayload {
   setup?: SftpMediaSetupResult;
 }
 
-/** Snapshot after a full SFTP upload — used to reopen preview without re-uploading files. */
+/** Snapshot after a full SFTP upload â€” used to reopen preview without re-uploading files. */
 interface LastSuccessfulSftpUpload {
   targetPath: string;
   remoteBase: string;
@@ -397,7 +221,7 @@ function readAllDirEntries(
   });
 }
 
-/** Relative path when drag-dropping folders — cannot set on File (webkitRelativePath is read-only). */
+/** Relative path when drag-dropping folders â€” cannot set on File (webkitRelativePath is read-only). */
 const dropRelativePathByFile = new WeakMap<File, string>();
 
 /**
@@ -474,8 +298,11 @@ const BuildDemo: React.FC = () => {
   const allBrands = (demoConfig as any).ListBrands ?? [];
   const allowedBuildDemoBrands = user?.allowedBuildDemoBrands;
   const brands = React.useMemo(() => {
-    if (!allowedBuildDemoBrands || allowedBuildDemoBrands.length === 0) {
+    if (allowedBuildDemoBrands === null) {
       return allBrands;
+    }
+    if (!allowedBuildDemoBrands || allowedBuildDemoBrands.length === 0) {
+      return [];
     }
     return allBrands.filter((item: { id?: string }) =>
       isBuildDemoBrandAllowed(String(item.id ?? ""), allowedBuildDemoBrands),
@@ -564,7 +391,7 @@ const BuildDemo: React.FC = () => {
   const [directoryExists, setDirectoryExists] = useState(false);
   const [checkingDirectory, setCheckingDirectory] = useState(false);
   const [replacementName, setReplacementName] = useState("");
-  /** Video, no replacement folder: last path segment rotates `video`, `video-1`, … until SFTP is free. */
+  /** Video, no replacement folder: last path segment rotates `video`, `video-1`, â€¦ until SFTP is free. */
   const [videoAutoDirSegment, setVideoAutoDirSegment] = useState("video");
   /** HTML/JS uploads auto-rotate final folder segment: `970x250`, `970x250-1`, ... */
   const [htmlAutoDirSegment, setHtmlAutoDirSegment] = useState("");
@@ -823,23 +650,8 @@ const BuildDemo: React.FC = () => {
   };
 
   const resolveAvailableRemoteSegment = useCallback(
-    async (prefixSegments: string[], baseSeg: string) => {
-      const MAX_TRIES = 500;
-      let counter = 0;
-      let seg = baseSeg;
-
-      while (counter < MAX_TRIES) {
-        const rel = [...prefixSegments, seg].filter(Boolean).join("/");
-        const data = await sftpClient.exists(`/script/demo/${rel}`, "demo");
-        if (!isSftpExistingEntry(data)) {
-          return { segment: seg, exhausted: false };
-        }
-        counter += 1;
-        seg = `${baseSeg}-${counter}`;
-      }
-
-      return { segment: baseSeg, exhausted: true };
-    },
+    (prefixSegments: string[], baseSeg: string) =>
+      resolveFreeRemoteSegment(sftpClient, prefixSegments, baseSeg),
     [sftpClient],
   );
 
@@ -1240,7 +1052,7 @@ const BuildDemo: React.FC = () => {
     useCallback((): SftpUploadPopupPayload["meta"] => {
       const pickedDemo = selectedDemoOption;
       return {
-        creativeDemo: pickedDemo?.title?.trim() || "—",
+        creativeDemo: pickedDemo?.title?.trim() || "â€”",
         demoValue: pickedDemo?.value?.trim() ?? "",
         demoCategory: pickedDemo?.category?.trim() ?? "",
         brand: getItemLabelById(brands, config.model),
@@ -1334,44 +1146,6 @@ const BuildDemo: React.FC = () => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
-
-  // Client-side image compression (~70% quality), returns base64
-  const compressImageToDataUrl = (file: File, quality = 0.7): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Canvas 2D context not available"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-
-        // Re-encode all formats (including PNG) to WebP at ~70% quality
-        const mime = "image/webp";
-        try {
-          const dataUrl = canvas.toDataURL(mime, quality);
-          resolve(dataUrl);
-        } catch (err) {
-          reject(
-            err instanceof Error ? err : new Error("Image compression failed"),
-          );
-        }
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Image load failed"));
-      };
-
-      img.src = objectUrl;
-    });
 
   const formatBytes = (value: number) => {
     if (!Number.isFinite(value) || value <= 0) return "0 B";
@@ -1621,65 +1395,10 @@ const BuildDemo: React.FC = () => {
     value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const replaceImagesToBase64 = (content: string) => {
-    content = replaceDemoManifestScriptUrls(content);
-    content = replaceBundledDemoStaticImages(content);
-
-    const images = files
-      .filter((f) => f.imageBase64)
-      .map((f) => f.imageBase64!)
-      .filter(Boolean);
-    if (images.length === 0) return content;
-
-    // Replace each manifest entry line that contains the original image name,
-    // so we can also inject `type:createjs.AbstractLoader.IMAGE`.
-    const lines = content.split(/\r?\n/);
-
-    for (const img of images) {
-      if (isBundledDemoAssetImageName(img.name)) continue;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.includes(img.name)) continue;
-
-        const idx = line.indexOf(img.name);
-        if (idx === -1) continue;
-
-        const afterNameIndex = idx + img.name.length;
-
-        // Find the next closing quote after the image name.
-        const nextDoubleQuoteIndex = line.indexOf('"', afterNameIndex);
-        const nextSingleQuoteIndex = line.indexOf("'", afterNameIndex);
-
-        const nextQuoteIndex =
-          nextDoubleQuoteIndex === -1
-            ? nextSingleQuoteIndex
-            : nextSingleQuoteIndex === -1
-              ? nextDoubleQuoteIndex
-              : Math.min(nextDoubleQuoteIndex, nextSingleQuoteIndex);
-
-        // Default to double quotes if we cannot detect the quote style.
-        const quoteChar =
-          nextQuoteIndex === -1
-            ? '"'
-            : nextQuoteIndex === nextSingleQuoteIndex
-              ? "'"
-              : '"';
-
-        const suffixAfterQuote =
-          nextQuoteIndex === -1
-            ? line.slice(afterNameIndex)
-            : line.slice(nextQuoteIndex + 1);
-
-        const leadingWs = line.match(/^\s*/)?.[0] ?? "";
-        lines[i] =
-          `${leadingWs}{type:createjs.AbstractLoader.IMAGE, src:${quoteChar}${img.base64}${quoteChar}${suffixAfterQuote}`;
-        // Stop scanning this file once one manifest entry is inserted for this image
-        // (avoid duplicates if img.name appears more than once).
-        break;
-      }
-    }
-
-    return lines.join("\n");
+    const images: ImageBase64Entry[] = files
+      .map((f) => f.imageBase64)
+      .filter((entry): entry is ImageBase64Entry => Boolean(entry));
+    return applyImagesToBase64InContent(content, images);
   };
 
   const normalizeRelativePath = (item: UploadedFile) =>
@@ -1714,26 +1433,9 @@ const BuildDemo: React.FC = () => {
     videoFiles: all.filter(isOfflinePackageVideoFile),
   });
 
-  /** Drop a leading folder that duplicates the SFTP leaf or the HTML/JS basename (e.g. …/600x125-2/600x125/index.html → …/600x125-2/index.html). */
-  const stripRedundantRelativeFolderPrefix = (
-    relativePath: string,
-    opts: { remoteLeaf: string; uploadBaseToken: string },
-  ) => {
-    const normalized = relativePath.replace(/\\+/g, "/").replace(/^\/+/, "");
-    const parts = normalized.split("/").filter(Boolean);
-    if (parts.length < 2) return normalized;
-    const first = parts[0] ?? "";
-    const leaf = opts.remoteLeaf.trim();
-    const base = opts.uploadBaseToken.trim();
-    if ((leaf && first === leaf) || (base && first === base)) {
-      return parts.slice(1).join("/");
-    }
-    return normalized;
-  };
-
   /**
    * Offline download: flat zip (no remote SFTP-style paths).
-   * Only converted HTML/JS plus video when uploaded — images, libs, and other assets are omitted.
+   * Only converted HTML/JS plus video when uploaded â€” images, libs, and other assets are omitted.
    * First HTML becomes `index.html`; basenames uniquified on clashes across text + video.
    */
   const buildOfflineGeneratedFiles = async (
@@ -1840,7 +1542,7 @@ const BuildDemo: React.FC = () => {
       const path = remotePath.trim();
       if (!path) {
         setSendError(
-          "Missing demo path — check Remote Source URL (e.g. 2026/03/brand/.../384x683).",
+          "Missing demo path â€” check Remote Source URL (e.g. 2026/03/brand/.../384x683).",
         );
         return;
       }
@@ -2019,7 +1721,7 @@ const BuildDemo: React.FC = () => {
       setSendError(
         isVideoPathFormat
           ? "Replacement folder name must be longer than 5 characters."
-          : "Demo folder name (final path segment) must be longer than 5 characters — enter a new name below or rename the HTML/JS file.",
+          : "Demo folder name (final path segment) must be longer than 5 characters â€” enter a new name below or rename the HTML/JS file.",
       );
       return;
     }
@@ -2099,13 +1801,13 @@ const BuildDemo: React.FC = () => {
         });
         setOfflinePackageDialogOpen(true);
         setSendError(
-          `${reason}\nOffline ZIP is ready — use the dialog to download.`,
+          `${reason}\nOffline ZIP is ready â€” use the dialog to download.`,
         );
         void recordActivity({
           user,
           action: "build_demo_sftp_fallback_zip",
           area: "Build Demo",
-          description: `SFTP blocked or failed — offline ZIP prepared (${generated.length} file(s))`,
+          description: `SFTP blocked or failed â€” offline ZIP prepared (${generated.length} file(s))`,
           target: remoteBase,
           metadata: {
             reason: issueLine.slice(0, 280),
@@ -2135,7 +1837,7 @@ const BuildDemo: React.FC = () => {
         if (bdSftp?.canSftpWriteFile !== true) need.push("canSftpWriteFile");
         await prepareOfflineFallback(
           need.length > 0
-            ? `SFTP upload requires: ${need.join(", ")} — enable in Admin → Permissions.`
+            ? `SFTP upload requires: ${need.join(", ")} â€” enable in Admin â†’ Permissions.`
             : "SFTP upload is not allowed for your role.",
         );
         return;
@@ -2804,13 +2506,13 @@ const BuildDemo: React.FC = () => {
               <br />
               <span className="mt-1 block text-slate-600 dark:text-inherit dark:opacity-60">
                 {config.demoFormat === "Video"
-                  ? "Upload one demo video — brand, VIDEO creative demo, then upload to SFTP."
+                  ? "Upload one demo video â€” brand, VIDEO creative demo, then upload to SFTP."
                   : "Drag and drop files or a whole folder (images + HTML/JS)"}
               </span>
               <span className="mt-1 block text-slate-500 dark:text-inherit dark:opacity-60">
                 {config.demoFormat === "Video"
-                  ? "MP4 • WEBM • MOV • MAX 500MB — server targets ≤4 MB when larger"
-                  : "PNG • JPG • WEBP • GIF • SVG • HTML • JS • MAX 10MB"}
+                  ? "MP4 â€¢ WEBM â€¢ MOV â€¢ MAX 500MB â€” server targets â‰¤4 MB when larger"
+                  : "PNG â€¢ JPG â€¢ WEBP â€¢ GIF â€¢ SVG â€¢ HTML â€¢ JS â€¢ MAX 10MB"}
               </span>
             </p>
             <div
@@ -2889,7 +2591,7 @@ const BuildDemo: React.FC = () => {
                 />
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
                   {directoryExists
-                    ? "Directory Exists — Replacement Name"
+                    ? "Directory Exists â€” Replacement Name"
                     : htmlAutoRenamed
                       ? "Auto-renamed demo folder (optional override)"
                       : config.demoFormat === "Video"
@@ -2915,12 +2617,12 @@ const BuildDemo: React.FC = () => {
                 className={`text-[11px] ${directoryExists ? "text-amber-800 dark:text-amber-300/80" : "text-teal-800 dark:text-[#4cceac]/80"}`}
               >
                 {directoryExists
-                  ? "Path already exists on SFTP — enter a new name (longer than 5 characters) to avoid overwriting."
+                  ? "Path already exists on SFTP â€” enter a new name (longer than 5 characters) to avoid overwriting."
                   : config.demoFormat === "Video"
-                    ? "Video: the remote folder is `…/video`; if that path exists, the app uses `video-1`, `video-2`, … automatically. Add an optional subfolder name below only when you want `…/video/your-name`."
+                    ? "Video: the remote folder is `â€¦/video`; if that path exists, the app uses `video-1`, `video-2`, â€¦ automatically. Add an optional subfolder name below only when you want `â€¦/video/your-name`."
                     : htmlAutoRenamed
                       ? `HTML: folder \`${autoUploadNameToken}\` already exists, so the app will upload to \`${htmlAutoDirSegment}\` automatically.`
-                      : "Name from HTML/JS is ≤ 5 characters — enter a demo folder name of at least 6 characters."}
+                      : "Name from HTML/JS is â‰¤ 5 characters â€” enter a demo folder name of at least 6 characters."}
                 {checkingDirectory ? " Checking..." : ""}
                 {!uploadNameValid && replacementName.trim().length > 0 ? (
                   <span className="mt-1 block text-rose-700 dark:text-rose-300/90">
@@ -3791,7 +3493,7 @@ const BuildDemo: React.FC = () => {
             ) : null}
             <div className="border-t border-white/[0.06] pt-4 space-y-3">
               <p className="text-[11px] leading-relaxed text-[#94a3b8]">
-                Open the creative demo preview when you want — optional (uses
+                Open the creative demo preview when you want â€” optional (uses
                 the relative path above).
               </p>
               <Button
@@ -3837,7 +3539,7 @@ const BuildDemo: React.FC = () => {
             />
             <span>
               <span className="font-bold text-white">Images:</span> PNG, JPG,
-              JPEG, WEBP, GIF, SVG — max 10MB
+              JPEG, WEBP, GIF, SVG â€” max 10MB
             </span>
           </li>
           <li className="flex gap-3 text-left">
@@ -3847,7 +3549,7 @@ const BuildDemo: React.FC = () => {
             />
             <span>
               <span className="font-bold text-white">Video:</span> MP4, WEBM,
-              MOV — max 500MB
+              MOV â€” max 500MB
             </span>
           </li>
           <li className="flex gap-3 text-left">

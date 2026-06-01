@@ -21,7 +21,7 @@ export type RolePermissionConfig = Record<
       canSwitchSftpHost?: boolean;
       /** Build Demo: copy converted upload from demo SFTP to media SFTP. */
       canSetupMediaSftp?: boolean;
-      /** Build Demo: empty = all brands; non-empty = restrict brand picker & uploads. */
+      /** Build Demo: empty = no brands; non-empty = restrict brand picker & uploads. */
       allowedBuildDemoBrands?: string[];
       /** @deprecated Loaded for backward compat; not written by normalize. */
       canEditDeleteSftp?: boolean;
@@ -62,6 +62,7 @@ const ADMIN_EXTRA_ROUTES = [
   "/admin/users",
   "/creative-demos-edit",
   "/history",
+  "/tool/test",
 ];
 const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
 const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
@@ -113,6 +114,7 @@ export function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): stri
     routes.add("/admin/users");
     routes.add("/creative-demos-edit");
     routes.add("/history");
+    routes.add("/tool/test");
   }
 
   return Array.from(routes);
@@ -156,15 +158,14 @@ export function resolveAllowedBuildDemoBrands(account: Account): string[] | null
   const role = normalizeText(account.role);
   if (role === "admin") return null;
 
-  const userBrands = normalizeBuildDemoBrandIds(account.allowedBuildDemoBrands);
-  if (userBrands.length > 0) return userBrands;
+  const userOverride = account.allowedBuildDemoBrands;
+  if (userOverride !== undefined && userOverride !== null) {
+    return normalizeBuildDemoBrandIds(userOverride);
+  }
 
-  const roleBrands = normalizeBuildDemoBrandIds(
+  return normalizeBuildDemoBrandIds(
     loadRolePermissions()[role]?.manageDemo?.allowedBuildDemoBrands,
   );
-  if (roleBrands.length > 0) return roleBrands;
-
-  return null;
 }
 
 function parseAccountBrandOverride(
@@ -172,8 +173,8 @@ function parseAccountBrandOverride(
 ): string[] | null | undefined {
   if (value === undefined) return undefined;
   if (value === null) return null;
-  const normalized = normalizeBuildDemoBrandIds(value);
-  return normalized.length > 0 ? normalized : null;
+  if (!Array.isArray(value)) return null;
+  return normalizeBuildDemoBrandIds(value);
 }
 
 export function buildUserPayload(account: Account) {

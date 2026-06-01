@@ -62,7 +62,8 @@
         "/upload",
         "/manage-sftp",
         "/admin/users",
-        "/smtp-mail"
+        "/smtp-mail",
+        "/tool/test"
       ]
     },
     "creativeShowcase": {

@@ -5,6 +5,112 @@
   ],
   "records": [
     {
+      "id": "act_1780237685917_hjsr3f",
+      "createdAt": "2026-05-31T14:28:05.913Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video-4",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780237681650_u7nn6a",
+      "createdAt": "2026-05-31T14:28:01.648Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/yomedia/all/video-3",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780237660214_a9sqjc",
+      "createdAt": "2026-05-31T14:27:40.210Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_demo_success",
+      "area": "AI Chat",
+      "description": "Deleted demo folder from chat session",
+      "target": "2026/05/yomedia/all/video-5",
+      "metadata": {
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video-5",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1780237074136_1kx8sd",
+      "createdAt": "2026-05-31T14:17:54.133Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_demo_success",
+      "area": "AI Chat",
+      "description": "Deleted demo folder from chat session",
+      "target": "2026/05/yomedia/all/video-5",
+      "metadata": {
+        "remoteBase": "/script/demo/2026/05/yomedia/all/video-5",
+        "brand": "Yomedia"
+      }
+    },
+    {
+      "id": "act_1780236146084_svi4na",
+      "createdAt": "2026-05-31T14:02:26.082Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "xóa demo",
+      "metadata": {
+        "inputPreview": "xóa demo",
+        "responseLength": 177,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780235749351_u9kddt",
+      "createdAt": "2026-05-31T13:55:49.348Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/html/480x270-2",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780235737039_c7waaa",
+      "createdAt": "2026-05-31T13:55:37.035Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/05/maxkleen/all/video-3",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
       "id": "act_1780036000623_bltfhi",
       "createdAt": "2026-05-29T06:26:40.617Z",
       "userName": "Thanh Minh",

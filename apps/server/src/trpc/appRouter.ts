@@ -8,6 +8,7 @@ import { creativeRouter } from "./routers/creative.js";
 import { activityLogRouter } from "./routers/activityLog.js";
 import { testDataRouter } from "./routers/testData.js";
 import { ragRouter } from "./routers/rag.js";
+import { toolTestRouter } from "./routers/toolTest.js";
 
 export const appRouter = router({
   health: healthRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   activityLog: activityLogRouter,
   testData: testDataRouter,
   rag: ragRouter,
+  toolTest: toolTestRouter,
 });
 
 export type AppRouter = typeof appRouter;

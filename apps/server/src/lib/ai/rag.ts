@@ -6,6 +6,15 @@ import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import OpenAI from "openai";
 
+import {
+  extractUploadDemoBrandFromText,
+  resolveCanonicalBuildDemoBrand,
+} from "../buildDemoBrands.js";
+import {
+  detectDeleteDemoIntent,
+  extractDeleteDemoPath,
+  isDeleteDemoHelpQuestion,
+} from "../chatDemoCommands.js";
 import { getChatSystemPrompt } from "./chatSystemPrompt.js";
 import {
   formatTavilyHitsForPrompt,
@@ -38,6 +47,12 @@ type UploadDemoActionPlan = {
     binaryCount: number;
   };
   requiredInputs: string[];
+};
+
+type DeleteDemoActionPlan = {
+  intent: "delete_demo";
+  tool: "delete_uploaded_demo";
+  remotePath: string | null;
 };
 
 type RagSingleton = {
@@ -136,19 +151,7 @@ function extractBrandFromRemotePath(remotePath: string | null): string | null {
 }
 
 function extractBrand(question: string): string | null {
-  const explicit = question.match(
-    /\bbrand\s*[:=]\s*([a-z0-9][a-z0-9 _-]{1,60})\b/i,
-  );
-  if (explicit?.[1]) return explicit[1].trim();
-
-  const plain = question.match(/\bbrand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i);
-  if (plain?.[1]) return plain[1].trim();
-
-  const forBrand = question.match(
-    /\b(?:for|cho)\s+brand\s+([a-z0-9][a-z0-9 _-]{1,60})\b/i,
-  );
-  if (forBrand?.[1]) return forBrand[1].trim();
-  return null;
+  return extractUploadDemoBrandFromText(question);
 }
 
 function extractDemoId(question: string): string | null {
@@ -190,7 +193,8 @@ function buildUploadDemoPlan(
   const remotePath = extractRemotePath(question);
   const explicitBrand = extractBrand(question);
   const inferredBrand = extractBrandFromRemotePath(remotePath);
-  const brand = explicitBrand || inferredBrand;
+  const rawBrand = explicitBrand || inferredBrand;
+  const brand = rawBrand ? resolveCanonicalBuildDemoBrand(rawBrand) : null;
   const demoId = extractDemoId(question);
   const demoValue = extractDemoValue(question);
   const uploadKind = detectUploadDemoKindFromAttachments(attachments);
@@ -571,6 +575,33 @@ export async function answerWithRag(params: {
   const provider: ChatAiProvider =
     params.provider === "openai" ? "openai" : "gemini";
   const apiKey = requireApiKey(provider);
+
+  if (detectDeleteDemoIntent(question) && !isDeleteDemoHelpQuestion(question)) {
+    const remotePath = extractDeleteDemoPath(question);
+    const answer = remotePath
+      ? [
+          "Delete demo intent detected.",
+          `Target folder: ${remotePath}`,
+          "Ready to remove this demo folder from demo SFTP.",
+        ].join("\n")
+      : [
+          "Delete demo intent detected.",
+          "Will remove the last demo folder uploaded in this chat session.",
+        ].join("\n");
+    const plan: DeleteDemoActionPlan = {
+      intent: "delete_demo",
+      tool: "delete_uploaded_demo",
+      remotePath,
+    };
+    return {
+      answer,
+      provider,
+      mode: "delete_demo" as const,
+      action: plan,
+      sources: [],
+      rag: null,
+    };
+  }
 
   if (detectUploadDemoIntent(question) && !isUploadDemoHelpQuestion(question)) {
     const plan = buildUploadDemoPlan(question, attachments);

@@ -6,7 +6,11 @@ import { useLanguage, type NavMessageKey } from "../contexts/LanguageContext";
 import { useAdminOfflineMode } from "../hooks/useAdminOfflineMode";
 import { useAccessContext, useCanAccess } from "../hooks/useCanAccess";
 import { useServerReachable } from "../hooks/useServerReachable";
-import { ADMIN_SECTION_ROUTES, canShowNavRoute } from "../lib/access";
+import {
+  ADMIN_SECTION_ROUTES,
+  TOOLS_ADMIN_ROUTES,
+  canShowNavRoute,
+} from "../lib/access";
 import { useUser } from "@clerk/react";
 import { motion } from "motion/react";
 import {
@@ -24,6 +28,7 @@ import {
   SparklesIcon as SparklesIconFilled,
   TableCellsIcon,
   WrenchScrewdriverIcon,
+  BeakerIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   SignalSlashIcon,
@@ -171,6 +176,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       )
     : [];
 
+  const toolsAdminNavByPath: Record<
+    (typeof TOOLS_ADMIN_ROUTES)[number],
+    SectionSpec["items"][number]
+  > = {
+    "/tool/test": {
+      nameKey: "navToolTest",
+      path: "/tool/test",
+      icon: BeakerIcon,
+    },
+  };
+
+  const toolsAdminItems: SectionSpec["items"] = isAdmin
+    ? TOOLS_ADMIN_ROUTES.map((path) => toolsAdminNavByPath[path])
+    : [];
+
   const sections: SectionSpec[] = [
     {
       titleKey: null,
@@ -190,6 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           path: "/build-demo",
           icon: WrenchScrewdriverIcon,
         },
+        ...toolsAdminItems,
       ],
     },
     {

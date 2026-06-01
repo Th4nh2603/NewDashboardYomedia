@@ -28,6 +28,7 @@ import Documentation from "./pages/Documentation";
 import TestData from "./pages/TestData";
 import CreativeDemosEditor from "./pages/CreativeDemosEditor";
 import AdminUsers from "./pages/AdminUsers";
+import ToolTest from "./pages/ToolTest";
 import { ClerkApiAuthBridge } from "./components/ClerkApiAuthBridge";
 import { TrpcProvider } from "./lib/trpc/react";
 
@@ -83,6 +84,14 @@ const App: React.FC = () => {
                             />
                             {/* build-demo & upload: no RoleRoute allow-list; PrivateRoute uses user.allowedRoutes (see role-permissions.json). */}
                             <Route path="/build-demo" element={<BuildDemo />} />
+                            <Route
+                              path="/tool/test"
+                              element={
+                                <RoleRoute allow={["admin"]}>
+                                  <ToolTest />
+                                </RoleRoute>
+                              }
+                            />
                             <Route path="/upload" element={<Upload />} />
                             <Route
                               path="/test-data"

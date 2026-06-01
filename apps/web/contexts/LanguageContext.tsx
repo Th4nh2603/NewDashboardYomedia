@@ -73,6 +73,7 @@ const NAV_MESSAGES: Record<
     navDashboard: string;
     navAiChat: string;
     navBuildDemo: string;
+    navToolTest: string;
     navCreativeShowcase: string;
     navManageDemo: string;
     navUpload: string;
@@ -95,6 +96,7 @@ const NAV_MESSAGES: Record<
     navDashboard: "Dashboard",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
+    navToolTest: "Test",
     navCreativeShowcase: "Creative",
     navManageDemo: "Manage Demo",
     navUpload: "Upload",
@@ -116,6 +118,7 @@ const NAV_MESSAGES: Record<
     navDashboard: "Tổng quan",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
+    navToolTest: "Test",
     navCreativeShowcase: "Creative",
     navManageDemo: "Quản lý Demo",
     navUpload: "Tải lên",

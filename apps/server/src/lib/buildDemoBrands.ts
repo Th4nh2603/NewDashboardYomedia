@@ -10,6 +10,66 @@ function normalizeText(value: string | undefined): string {
     .toLowerCase();
 }
 
+function normalizeBrandLookupKey(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+const UPLOAD_DEMO_BRAND_NAME =
+  String.raw`(?:[a-z0-9][a-z0-9_-]*(?:\s+[a-z0-9][a-z0-9_-]*)*)`;
+const UPLOAD_DEMO_BRAND_STOP =
+  String.raw`\s+(?:format|demoValue|demo_value|value|path|to|target|demoId|demo_id|creativeId|creative_id)\b`;
+
+export function extractUploadDemoBrandFromText(input: string): string | null {
+  const patterns = [
+    new RegExp(
+      `\\bbrand\\s*[:=]\\s*(${UPLOAD_DEMO_BRAND_NAME})(?:${UPLOAD_DEMO_BRAND_STOP}|$)`,
+      "i",
+    ),
+    new RegExp(
+      `\\bbrand\\s+(${UPLOAD_DEMO_BRAND_NAME})(?:${UPLOAD_DEMO_BRAND_STOP}|$)`,
+      "i",
+    ),
+    new RegExp(
+      `\\b(?:for|cho)\\s+brand\\s+(${UPLOAD_DEMO_BRAND_NAME})(?:${UPLOAD_DEMO_BRAND_STOP}|$)`,
+      "i",
+    ),
+  ];
+  for (const re of patterns) {
+    const match = input.match(re);
+    if (match?.[1]) return match[1].trim();
+  }
+  return null;
+}
+
+export function resolveCanonicalBuildDemoBrand(value: string): string | null {
+  const byKey = new Map(
+    getBuildDemoBrandOptions().map((item) => [
+      normalizeBrandLookupKey(item.id),
+      item.id,
+    ]),
+  );
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
+
+  const tryResolve = (raw: string) => byKey.get(normalizeBrandLookupKey(raw)) ?? null;
+
+  const direct = tryResolve(trimmed);
+  if (direct) return direct;
+
+  const tokens = trimmed.split(/\s+/);
+  for (let len = tokens.length; len >= 1; len--) {
+    const resolved = tryResolve(tokens.slice(0, len).join(" "));
+    if (resolved) return resolved;
+  }
+  return null;
+}
+
 let cachedBrandIds: string[] | null = null;
 
 export function getBuildDemoBrandIds(): string[] {
@@ -79,11 +139,13 @@ export function getBuildDemoBrandOptions(): Array<{ id: string; label: string }>
   }
 }
 
+/** `null` = full access (admin). Empty array = no brands. Non-empty = whitelist only. */
 export function isBuildDemoBrandAllowed(
   brandId: string,
   allowed: string[] | null | undefined,
 ): boolean {
-  if (!allowed || allowed.length === 0) return true;
+  if (allowed === null) return true;
+  if (!allowed || allowed.length === 0) return false;
   const key = normalizeText(brandId);
   return allowed.some((id) => normalizeText(id) === key);
 }

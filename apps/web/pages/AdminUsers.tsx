@@ -131,8 +131,7 @@ const normalizeUserBrandOverride = (
   value: string[] | null | undefined,
 ): string[] | null => {
   if (value === null || value === undefined) return null;
-  const normalized = normalizeBuildDemoBrandIds(value);
-  return normalized.length > 0 ? normalized : null;
+  return normalizeBuildDemoBrandIds(value);
 };
 
 const userBrandOverridesEqual = (
@@ -367,8 +366,7 @@ const AdminUsers: React.FC = () => {
         item.id === id
           ? {
               ...item,
-              allowedBuildDemoBrands:
-                normalized.length > 0 ? normalized : null,
+              allowedBuildDemoBrands: normalized,
             }
           : item,
       ),
@@ -1106,7 +1104,10 @@ const AdminUsers: React.FC = () => {
                           emptyHint={
                             isAdminRole
                               ? "Administrator always has every brand on Build Demo."
-                              : undefined
+                              : (permissions[role]?.manageDemo
+                                    ?.allowedBuildDemoBrands ?? []).length === 0
+                                ? "No brands allowed for this role until selected."
+                                : undefined
                           }
                         />
                       </div>
@@ -1190,7 +1191,11 @@ const AdminUsers: React.FC = () => {
                             emptyHint={
                               isAdminUser
                                 ? "Administrator — full access to all brands."
-                                : undefined
+                                : item.allowedBuildDemoBrands === null
+                                  ? "Inheriting from role. Select brands to override."
+                                  : item.allowedBuildDemoBrands.length === 0
+                                    ? "No brands allowed for this user."
+                                    : undefined
                             }
                           />
                         </td>
