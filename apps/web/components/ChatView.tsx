@@ -36,6 +36,17 @@ import {
   extractDeleteDemoPathFromInput,
   isDeleteDemoHelpQuestion,
 } from "../lib/chatDemoCommands";
+import {
+  buildBannerCreatePayloadFromDraft,
+  createBannerSetupSession,
+  detectBannerSetupCancel,
+  detectBannerSetupStart,
+  processBannerSetupTurn,
+  bannerSetupStartMessage,
+  type AdvertiserOption,
+  type BannerSetupDraft,
+  type BannerSetupSession,
+} from "../lib/chatBannerSetup";
 import Button from "./Button";
 
 type ChatMessage = {
@@ -1503,6 +1514,9 @@ const ChatView = () => {
     useState<ChatAiProvider>(loadChatAiProvider);
   const [pendingUploadAction, setPendingUploadAction] =
     useState<PendingUploadDemoAction | null>(null);
+  const [pendingBannerSetup, setPendingBannerSetup] =
+    useState<BannerSetupSession | null>(null);
+  const advertiserOptionsRef = useRef<AdvertiserOption[]>([]);
   const [lastUploadedDemo, setLastUploadedDemo] =
     useState<LastUploadedDemoSession | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(
@@ -1559,6 +1573,54 @@ const ChatView = () => {
     const email = String(user?.email ?? "").trim();
     if (email) saveLastUploadedDemoToSession(email, null);
   }, [user?.email]);
+
+  const ensureAdvertiserOptions = React.useCallback(async () => {
+    if (advertiserOptionsRef.current.length > 0) {
+      return advertiserOptionsRef.current;
+    }
+    const data = await api.toolTest.bannerAdvertisers();
+    if (data?.ok && Array.isArray(data.options)) {
+      advertiserOptionsRef.current = data.options;
+    }
+    return advertiserOptionsRef.current;
+  }, []);
+
+  const executeBannerCreate = React.useCallback(
+    async (draft: BannerSetupDraft) => {
+      const payload = buildBannerCreatePayloadFromDraft(draft);
+      const res = await api.toolTest.createBanner(payload);
+      setPendingBannerSetup(null);
+      const successMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: [
+          "✅ **Banner đã tạo trên platform.**",
+          "",
+          res?.message ? String(res.message) : "",
+          "",
+          `- Banner: **${draft.banner_name}**`,
+          `- Advertiser: ${draft.advertiserLabel}`,
+          `- Template: ${draft.templateLabel}`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      };
+      setMessages((prev) => [...prev, successMsg]);
+      void recordActivity({
+        user,
+        action: "chat_create_banner",
+        area: "AI Chat",
+        description: "Created banner via chat setup flow",
+        target: draft.banner_name,
+        metadata: {
+          advertiser: draft.advertiser,
+          template: draft.template,
+          adView: draft.ad_view,
+        },
+      });
+    },
+    [user],
+  );
 
   const handlePickAttachments = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -2232,6 +2294,67 @@ const ChatView = () => {
 
     setMessages((prev) => [...prev, userMsg]);
 
+    if (detectBannerSetupStart(trimmedInput) && !pendingBannerSetup) {
+      setInput("");
+      setPendingBannerSetup(createBannerSetupSession());
+      const startMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "model",
+        content: bannerSetupStartMessage(),
+      };
+      setMessages((prev) => [...prev, startMsg]);
+      return;
+    }
+
+    if (pendingBannerSetup?.tool === "banner_create_setup") {
+      setInput("");
+      if (detectBannerSetupCancel(trimmedInput)) {
+        setPendingBannerSetup(null);
+        const cancelMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content: "Đã hủy setup banner.",
+        };
+        setMessages((prev) => [...prev, cancelMsg]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const options = await ensureAdvertiserOptions();
+        const result = processBannerSetupTurn(
+          pendingBannerSetup,
+          trimmedInput,
+          options,
+        );
+        if (result.readyToSubmit && result.session.draft) {
+          await executeBannerCreate(result.session.draft);
+        } else {
+          setPendingBannerSetup(result.session);
+          const replyMsg: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: result.reply,
+          };
+          setMessages((prev) => [...prev, replyMsg]);
+        }
+      } catch (err) {
+        handleApiError(err, "Banner setup");
+        const errMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          content:
+            err instanceof Error
+              ? `Tạo banner thất bại: ${err.message}`
+              : "Tạo banner thất bại.",
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (
       detectDeleteDemoIntent(trimmedInput) &&
       !isDeleteDemoHelpQuestion(trimmedInput)
@@ -2770,6 +2893,7 @@ const ChatView = () => {
                 });
               }
               setMessages([]);
+              setPendingBannerSetup(null);
             }}
             className="text-xs text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-slate-100 transition-colors"
           >

@@ -6,7 +6,19 @@ import {
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../contexts/ThemeContext";
 import { api } from "../lib/trpc/api";
+import {
+  mapFormFieldsToPayload,
+  normalizeBannerSettings,
+} from "../lib/bannerCreateFieldMap.js";
 import Button from "../components/Button";
+
+type PlatformBannerSettingField = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "checkbox";
+  value?: string;
+  checked?: boolean;
+};
 
 type PlatformBannerColumn = { name: string; label: string };
 type PlatformFormFieldOption = {
@@ -62,9 +74,11 @@ const inputClass = (isDark: boolean) =>
 function BannerCreateField({
   field,
   isDark,
+  onChange,
 }: {
   field: PlatformFormField;
   isDark: boolean;
+  onChange: (patch: Partial<PlatformFormField>) => void;
 }) {
   if (field.type === "size") {
     return (
@@ -72,18 +86,18 @@ function BannerCreateField({
         <div className="flex items-center gap-2">
           <span className="text-xs opacity-60">Width</span>
           <input
-            readOnly
             className={`${inputClass(isDark)} w-24 font-mono`}
             value={field.width ?? ""}
+            onChange={(e) => onChange({ width: e.target.value })}
           />
           <span className="text-xs opacity-60">px</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs opacity-60">Height</span>
           <input
-            readOnly
             className={`${inputClass(isDark)} w-24 font-mono`}
             value={field.height ?? ""}
+            onChange={(e) => onChange({ height: e.target.value })}
           />
           <span className="text-xs opacity-60">px</span>
         </div>
@@ -94,10 +108,9 @@ function BannerCreateField({
     return (
       <div className="space-y-1">
         <select
-          readOnly
           className={inputClass(isDark)}
           value={field.value ?? ""}
-          onChange={() => undefined}
+          onChange={(e) => onChange({ value: e.target.value })}
         >
           {(field.options ?? []).map((opt) => (
             <option key={`${opt.value}-${opt.label}`} value={opt.value}>
@@ -118,16 +131,19 @@ function BannerCreateField({
   if (field.type === "textarea") {
     return (
       <textarea
-        readOnly
         rows={field.name === "code_tag" ? 6 : 3}
         className={`${inputClass(isDark)} font-mono resize-y`}
         value={field.value ?? ""}
+        onChange={(e) => onChange({ value: e.target.value })}
       />
     );
   }
   if (field.type === "checkbox") {
     return (
-      <label className="inline-flex items-center gap-2 cursor-default">
+      <label
+        className="inline-flex items-center gap-2 cursor-pointer"
+        onClick={() => onChange({ checked: !field.checked })}
+      >
         <span
           className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${
             field.checked ? "bg-[#4cceac]" : isDark ? "bg-slate-600" : "bg-slate-300"
@@ -150,10 +166,62 @@ function BannerCreateField({
   }
   return (
     <input
-      readOnly
+      type="text"
       className={inputClass(isDark)}
       value={field.value ?? ""}
       placeholder={field.placeholder}
+      maxLength={field.maxlength}
+      onChange={(e) => onChange({ value: e.target.value })}
+    />
+  );
+}
+
+function bannerTypeFromFields(fields: PlatformFormField[]): string {
+  return (
+    fields.find((f) => f.id === "banner_type" || f.name === "type")?.value ??
+    "template"
+  );
+}
+
+function BannerSettingField({
+  field,
+  isDark,
+  value,
+  onChange,
+}: {
+  field: PlatformBannerSettingField;
+  isDark: boolean;
+  value: string | number;
+  onChange: (next: string | number) => void;
+}) {
+  if (field.type === "checkbox") {
+    const on = value === 1 || value === "1";
+    return (
+      <label
+        className="inline-flex items-center gap-2 cursor-pointer"
+        onClick={() => onChange(on ? 0 : 1)}
+      >
+        <span
+          className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${
+            on ? "bg-[#4cceac]" : isDark ? "bg-slate-600" : "bg-slate-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform mt-0.5 ${
+              on ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </span>
+        <span className="text-sm">{on ? "ON" : "OFF"}</span>
+      </label>
+    );
+  }
+  return (
+    <input
+      type="text"
+      className={`${inputClass(isDark)} ${field.type === "number" ? "font-mono" : ""}`}
+      value={value == null ? "" : String(value)}
+      onChange={(e) => onChange(e.target.value)}
     />
   );
 }
@@ -171,6 +239,132 @@ const ToolTest: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [page, setPage] = React.useState<PlatformBannerPage | null>(null);
+  const [formFields, setFormFields] = React.useState<PlatformFormField[]>([]);
+  const [adUnitLoading, setAdUnitLoading] = React.useState(false);
+  const [templateLoading, setTemplateLoading] = React.useState(false);
+  const [settingsLoading, setSettingsLoading] = React.useState(false);
+  const [settingFields, setSettingFields] = React.useState<
+    PlatformBannerSettingField[]
+  >([]);
+  const [templateSettings, setTemplateSettings] = React.useState<
+    Record<string, string | number>
+  >({});
+  const [saveLoading, setSaveLoading] = React.useState(false);
+  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  const marketFromFields = React.useCallback((fields: PlatformFormField[]) => {
+    return (
+      fields.find((f) => f.id === "market" || f.name === "market")?.value ?? "vn"
+    );
+  }, []);
+
+  const loadAdUnitsForAdView = React.useCallback(async (adView: string) => {
+    setAdUnitLoading(true);
+    try {
+      const data = await api.toolTest.bannerAdUnits(adView);
+      if (!data?.ok) return;
+      setFormFields((prev) =>
+        prev.map((f) => {
+          if (f.id !== "adunit" && f.name !== "adunit") return f;
+          const first = data.options[0];
+          return {
+            ...f,
+            options: data.options,
+            value: first?.value ?? "",
+            optionTotal: undefined,
+          };
+        }),
+      );
+    } catch {
+      /* keep current options */
+    } finally {
+      setAdUnitLoading(false);
+    }
+  }, []);
+
+  const loadTemplateSettings = React.useCallback(
+    async (formatId: string, type: string) => {
+      if (!formatId || type === "html_code") {
+        setSettingFields([]);
+        setTemplateSettings({});
+        return;
+      }
+      setSettingsLoading(true);
+      try {
+        const data = await api.toolTest.bannerSettings(formatId, type);
+        if (!data?.ok) return;
+        setSettingFields(data.fields);
+        const initial: Record<string, string | number> = {};
+        for (const f of data.fields) {
+          if (f.type === "checkbox") {
+            initial[f.key] = f.checked ? 1 : 0;
+          } else {
+            initial[f.key] = f.value ?? "";
+          }
+        }
+        setTemplateSettings(initial);
+        if (initial.width != null || initial.height != null) {
+          setFormFields((prev) =>
+            prev.map((f) =>
+              f.type === "size"
+                ? {
+                    ...f,
+                    width:
+                      initial.width != null
+                        ? String(initial.width)
+                        : f.width,
+                    height:
+                      initial.height != null
+                        ? String(initial.height)
+                        : f.height,
+                  }
+                : f,
+            ),
+          );
+        }
+      } catch {
+        setSettingFields([]);
+        setTemplateSettings({});
+      } finally {
+        setSettingsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadTemplatesForAdView = React.useCallback(
+    async (adView: string, market: string) => {
+      setTemplateLoading(true);
+      try {
+        const data = await api.toolTest.bannerTemplates(adView, market);
+        if (!data?.ok) return;
+        const first = data.options[0];
+        setFormFields((prev) => {
+          const next = prev.map((f) => {
+            if (f.id !== "template" && f.name !== "template") return f;
+            return {
+              ...f,
+              options: data.options,
+              value: first?.value ?? "",
+              optionTotal: undefined,
+            };
+          });
+          const type = bannerTypeFromFields(next);
+          const templateId = first?.value;
+          if (templateId && type !== "html_code") {
+            void loadTemplateSettings(templateId, type);
+          }
+          return next;
+        });
+      } catch {
+        /* keep current options */
+      } finally {
+        setTemplateLoading(false);
+      }
+    },
+    [loadTemplateSettings],
+  );
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -180,20 +374,195 @@ const ToolTest: React.FC = () => {
       if (!data?.ok || !data.page) {
         throw new Error("No banner data returned");
       }
+      const fields = data.page.createForm.fields;
       setPage(data.page);
+      setFormFields(fields);
+      const adView = fields.find((f) => f.id === "ad_view")?.value;
+      const market = marketFromFields(fields);
+      if (adView) {
+        void loadAdUnitsForAdView(adView);
+        void loadTemplatesForAdView(adView, market);
+      } else {
+        const type = bannerTypeFromFields(fields);
+        const templateId = fields.find((f) => f.id === "template")?.value;
+        if (templateId && type !== "html_code") {
+          void loadTemplateSettings(templateId, type);
+        }
+      }
     } catch (err) {
       setPage(null);
+      setFormFields([]);
       setError(
         err instanceof Error ? err.message : "Failed to load platform banner",
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [
+    loadAdUnitsForAdView,
+    loadTemplatesForAdView,
+    loadTemplateSettings,
+    marketFromFields,
+  ]);
 
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  const updateFormField = React.useCallback(
+    (fieldId: string, patch: Partial<PlatformFormField>) => {
+      setFormFields((prev) => {
+        const current = prev.find((f) => f.id === fieldId);
+        let next = prev.map((f) =>
+          f.id === fieldId ? { ...f, ...patch } : f,
+        );
+        if (current?.type === "select" && patch.value != null) {
+          const opt = current.options?.find((o) => o.value === patch.value);
+          if (opt?.width != null && opt?.height != null) {
+            next = next.map((f) =>
+              f.type === "size"
+                ? {
+                    ...f,
+                    width: String(opt.width),
+                    height: String(opt.height),
+                  }
+                : f,
+            );
+            setTemplateSettings((s) => ({
+              ...s,
+              width: String(opt.width),
+              height: String(opt.height),
+            }));
+          }
+        }
+        if (fieldId === "size" && (patch.width != null || patch.height != null)) {
+          setTemplateSettings((s) => ({
+            ...s,
+            ...(patch.width != null ? { width: patch.width } : {}),
+            ...(patch.height != null ? { height: patch.height } : {}),
+          }));
+        }
+
+        const adView =
+          fieldId === "ad_view"
+            ? patch.value
+            : next.find((f) => f.id === "ad_view")?.value;
+        const market =
+          fieldId === "market" ? patch.value : marketFromFields(next);
+
+        if (fieldId === "ad_view" && patch.value) {
+          void loadAdUnitsForAdView(patch.value);
+          void loadTemplatesForAdView(patch.value, market);
+        } else if (fieldId === "market" && patch.value && adView) {
+          void loadTemplatesForAdView(adView, patch.value);
+        } else if (fieldId === "template" && patch.value) {
+          const type = bannerTypeFromFields(next);
+          if (type !== "html_code") {
+            void loadTemplateSettings(patch.value, type);
+          }
+        } else if (fieldId === "banner_type" && patch.value) {
+          const templateId = next.find((f) => f.id === "template")?.value;
+          if (templateId && patch.value !== "html_code") {
+            void loadTemplateSettings(templateId, patch.value);
+          } else if (patch.value === "html_code") {
+            setSettingFields([]);
+            setTemplateSettings({});
+          }
+        }
+
+        return next;
+      });
+    },
+    [
+      loadAdUnitsForAdView,
+      loadTemplatesForAdView,
+      loadTemplateSettings,
+      marketFromFields,
+    ],
+  );
+
+  const updateTemplateSetting = React.useCallback(
+    (key: string, value: string | number) => {
+      setTemplateSettings((prev) => {
+        const next = { ...prev, [key]: value };
+        if (key === "width" || key === "height") {
+          setFormFields((fields) =>
+            fields.map((f) =>
+              f.type === "size"
+                ? {
+                    ...f,
+                    width:
+                      key === "width" ? String(value) : f.width,
+                    height:
+                      key === "height" ? String(value) : f.height,
+                  }
+                : f,
+            ),
+          );
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleSave = React.useCallback(async () => {
+    setSaveLoading(true);
+    setSaveMessage(null);
+    setSaveError(null);
+    try {
+      const sizeField = formFields.find((f) => f.type === "size");
+      const settings = normalizeBannerSettings({
+        ...templateSettings,
+        ...(sizeField?.width ? { width: sizeField.width } : {}),
+        ...(sizeField?.height ? { height: sizeField.height } : {}),
+      });
+
+      const mapped = mapFormFieldsToPayload(formFields, {
+        bannerSettings: settings,
+        source: String(settings.source ?? ""),
+      });
+
+      const banner_settings =
+        typeof mapped.banner_settings === "string"
+          ? (JSON.parse(mapped.banner_settings) as Record<
+              string,
+              string | number
+            >)
+          : (mapped.banner_settings as Record<string, string | number>);
+
+      const res = await api.toolTest.createBanner({
+        banner_name: mapped.banner_name,
+        advertiser: mapped.advertiser,
+        market: mapped.market,
+        landing_page: mapped.landing_page,
+        ad_view: mapped.ad_view,
+        adunit: mapped.adunit,
+        type: mapped.type,
+        template: mapped.template,
+        use_tag: mapped.use_tag,
+        code_tag: mapped.code_tag,
+        notes: mapped.notes,
+        width: String(mapped.width),
+        height: String(mapped.height),
+        active: mapped.active,
+        source: mapped.source,
+        banner_settings,
+      });
+
+      if (!res?.ok) {
+        throw new Error("Create banner failed");
+      }
+      setSaveMessage(res.message ?? "Banner created");
+      await load();
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to create banner",
+      );
+    } finally {
+      setSaveLoading(false);
+    }
+  }, [formFields, templateSettings, load]);
 
   const cardClass = `rounded-2xl border p-5 ${
     isDark
@@ -319,7 +688,7 @@ const ToolTest: React.FC = () => {
                   >
                     /banner/create
                   </a>
-                  ) — chỉ xem, chưa gửi form.
+                  ) — chỉnh form rồi bấm <strong>Save changes</strong> để tạo banner trên platform.
                 </p>
               </div>
               <p className="text-[10px] font-mono opacity-50 break-all max-w-md">
@@ -327,7 +696,7 @@ const ToolTest: React.FC = () => {
               </p>
             </div>
             <form className="space-y-4 max-w-3xl">
-              {page.createForm.fields.map((field) => (
+              {formFields.map((field) => (
                 <div
                   key={field.id}
                   className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-2 sm:gap-4 items-start"
@@ -339,25 +708,80 @@ const ToolTest: React.FC = () => {
                   >
                     {field.label}
                   </label>
-                  <BannerCreateField field={field} isDark={isDark} />
+                  <div className="space-y-1">
+                    <BannerCreateField
+                      field={field}
+                      isDark={isDark}
+                      onChange={(patch) => updateFormField(field.id, patch)}
+                    />
+                    {field.id === "adunit" && adUnitLoading ? (
+                      <p className="text-[10px] opacity-50">Đang tải Ad Unit…</p>
+                    ) : null}
+                    {field.id === "template" && templateLoading ? (
+                      <p className="text-[10px] opacity-50">Đang tải Template…</p>
+                    ) : null}
+                  </div>
                 </div>
               ))}
+              {settingFields.length > 0 ? (
+                <>
+                  <div className="border-t border-dashed opacity-20 my-2" />
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#4cceac]">
+                    Template settings
+                    {settingsLoading ? " (đang tải…)" : ""}
+                  </p>
+                  {settingFields.map((sf) => (
+                    <div
+                      key={sf.key}
+                      className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-2 sm:gap-4 items-start"
+                    >
+                      <label
+                        className={`text-sm font-medium pt-2 sm:text-right ${
+                          isDark ? "text-slate-300" : "text-slate-600"
+                        }`}
+                      >
+                        {sf.label}
+                      </label>
+                      <BannerSettingField
+                        field={sf}
+                        isDark={isDark}
+                        value={templateSettings[sf.key] ?? ""}
+                        onChange={(v) => updateTemplateSetting(sf.key, v)}
+                      />
+                    </div>
+                  ))}
+                </>
+              ) : null}
+              {saveMessage ? (
+                <p className="text-sm text-[#4cceac]">{saveMessage}</p>
+              ) : null}
+              {saveError ? (
+                <p className="text-sm text-red-400">{saveError}</p>
+              ) : null}
               <div className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-4 pt-2">
                 <div />
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled
-                    className="rounded-lg px-4 py-2 text-sm font-semibold bg-[#4cceac]/30 text-[#4cceac] cursor-not-allowed"
+                    disabled={saveLoading || loading}
+                    onClick={() => void handleSave()}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold bg-[#4cceac] text-slate-900 hover:bg-[#3db896] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save changes
+                    {saveLoading ? "Đang lưu…" : "Save changes"}
                   </button>
                   <button
                     type="button"
-                    disabled
-                    className={`rounded-lg px-4 py-2 text-sm border cursor-not-allowed ${
-                      isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"
-                    }`}
+                    disabled={saveLoading}
+                    onClick={() => {
+                      setSaveMessage(null);
+                      setSaveError(null);
+                      void load();
+                    }}
+                    className={`rounded-lg px-4 py-2 text-sm border ${
+                      isDark
+                        ? "border-white/10 text-slate-300 hover:bg-white/5"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    } disabled:opacity-50`}
                   >
                     Cancel
                   </button>

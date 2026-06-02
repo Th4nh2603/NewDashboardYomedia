@@ -22,7 +22,10 @@ export function mapRemotePathForManageScope(
   scope: ManageSftpScope,
 ): string {
   const normalize = (s: string) =>
-    (s || "").trim().replace(/\\+/g, "/").replace(/\/{2,}/g, "/");
+    (s || "")
+      .trim()
+      .replace(/\\+/g, "/")
+      .replace(/\/{2,}/g, "/");
 
   if (scope === "demo") {
     return normalize(rawPath);
@@ -32,7 +35,9 @@ export function mapRemotePathForManageScope(
   const MEDIA_ROOT =
     prefixRaw === undefined
       ? "media"
-      : String(prefixRaw).trim().replace(/^\/+|\/+$/g, "");
+      : String(prefixRaw)
+          .trim()
+          .replace(/^\/+|\/+$/g, "");
 
   if (!MEDIA_ROOT) {
     return normalize(rawPath);
@@ -162,18 +167,12 @@ export async function listSftpDirectory(path: string, config: SftpConfig = {}) {
     try {
       entries = (await client.list(normalizedPath)) as typeof entries;
     } catch (listErr: unknown) {
-      const msg =
-        listErr instanceof Error ? listErr.message : String(listErr);
+      const msg = listErr instanceof Error ? listErr.message : String(listErr);
       const code =
-        typeof listErr === "object" &&
-        listErr !== null &&
-        "code" in listErr
+        typeof listErr === "object" && listErr !== null && "code" in listErr
           ? (listErr as { code?: number }).code
           : undefined;
-      if (
-        code === 2 ||
-        /no such file|not found|does not exist/i.test(msg)
-      ) {
+      if (code === 2 || /no such file|not found|does not exist/i.test(msg)) {
         return [];
       }
       throw listErr;
@@ -431,7 +430,7 @@ export async function mapSftpDirectoryTree(
     ): Promise<SftpDirTreeNode> {
       visited += 1;
       const name =
-        dir === "/" ? "/" : dir.split("/").filter(Boolean).pop() ?? dir;
+        dir === "/" ? "/" : (dir.split("/").filter(Boolean).pop() ?? dir);
       const node: SftpDirTreeNode = { name, path: dir, children: [] };
 
       if (depth >= maxDepth) {
@@ -751,10 +750,13 @@ export async function createSftpDirectory(
     }
 
     if (existsType === "-" || existsType === "l") {
-      throw new Error(`A non-directory entry already exists: ${normalizedPath}`);
+      throw new Error(
+        `A non-directory entry already exists: ${normalizedPath}`,
+      );
     }
 
-    await (client as any).mkdir(normalizedPath, false);
+    // Create intermediate folders if they do not exist yet.
+    await (client as any).mkdir(normalizedPath, true);
 
     return {
       ok: true as const,
@@ -821,10 +823,7 @@ function normalizeSftpRelativeDirKey(input: string): string {
     .replace(/^\/+|\/+$/g, "");
 }
 
-function sftpDirRelativeKey(
-  absoluteDir: string,
-  rootDir: string,
-): string {
+function sftpDirRelativeKey(absoluteDir: string, rootDir: string): string {
   const dir = (absoluteDir || "")
     .trim()
     .replace(/\\+/g, "/")
@@ -874,14 +873,16 @@ export async function findExistingTargetDirectoriesUnderSource(
   const sourceHost =
     sourceConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
   const sourcePort = sourceConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
-  const sourceUsername = sourceConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const sourceUsername =
+    sourceConfig.username ?? process.env.SFTP_USER ?? "www-demo";
   const sourcePassword =
     sourceConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   const targetHost =
     targetConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
   const targetPort = targetConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
-  const targetUsername = targetConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const targetUsername =
+    targetConfig.username ?? process.env.SFTP_USER ?? "www-demo";
   const targetPassword =
     targetConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
@@ -931,11 +932,9 @@ export async function findExistingTargetDirectoriesUnderSource(
       password: targetPassword,
     });
 
-    const sourceType = (await (sourceClient as any).exists(normalizedSourcePath)) as
-      | false
-      | "d"
-      | "-"
-      | "l";
+    const sourceType = (await (sourceClient as any).exists(
+      normalizedSourcePath,
+    )) as false | "d" | "-" | "l";
     if (!sourceType) {
       throw new Error(`Source path does not exist: ${normalizedSourcePath}`);
     }
@@ -1005,22 +1004,28 @@ export async function copySftpPathBetweenConfigs(
   const sourceHost =
     sourceConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
   const sourcePort = sourceConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
-  const sourceUsername = sourceConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const sourceUsername =
+    sourceConfig.username ?? process.env.SFTP_USER ?? "www-demo";
   const sourcePassword =
     sourceConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   const targetHost =
     targetConfig.host ?? process.env.SFTP_HOST ?? "upload.yomedia.vn";
   const targetPort = targetConfig.port ?? Number(process.env.SFTP_PORT ?? 2122);
-  const targetUsername = targetConfig.username ?? process.env.SFTP_USER ?? "www-demo";
+  const targetUsername =
+    targetConfig.username ?? process.env.SFTP_USER ?? "www-demo";
   const targetPassword =
     targetConfig.password ?? process.env.SFTP_PASSWORD ?? "Ftp@dem0";
 
   if (!sourceHost || !sourceUsername || !sourcePassword) {
-    throw new Error("Missing source SFTP credentials (host/username/password).");
+    throw new Error(
+      "Missing source SFTP credentials (host/username/password).",
+    );
   }
   if (!targetHost || !targetUsername || !targetPassword) {
-    throw new Error("Missing target SFTP credentials (host/username/password).");
+    throw new Error(
+      "Missing target SFTP credentials (host/username/password).",
+    );
   }
 
   let copiedFiles = 0;
@@ -1028,7 +1033,9 @@ export async function copySftpPathBetweenConfigs(
   let createdTargetDirectory = false;
   const skippedDirectories: string[] = [];
   const overwriteDirectoryKeys = new Set(
-    (options.overwriteDirectoryPaths ?? []).map((p) => normalizeSftpRelativeDirKey(p)),
+    (options.overwriteDirectoryPaths ?? []).map((p) =>
+      normalizeSftpRelativeDirKey(p),
+    ),
   );
 
   const pathModule = await import("path");
@@ -1088,7 +1095,10 @@ export async function copySftpPathBetweenConfigs(
 
     for (const entry of entries) {
       if (!entry?.name || entry.name === "." || entry.name === "..") continue;
-      const sourceEntryPath = `${fromDir}/${entry.name}`.replace(/\/{2,}/g, "/");
+      const sourceEntryPath = `${fromDir}/${entry.name}`.replace(
+        /\/{2,}/g,
+        "/",
+      );
       const targetEntryPath = `${toDir}/${entry.name}`.replace(/\/{2,}/g, "/");
 
       if (entry.type === "d" || entry.type === "D") {
@@ -1114,25 +1124,23 @@ export async function copySftpPathBetweenConfigs(
       password: targetPassword,
     });
 
-    const sourceType = (await (sourceClient as any).exists(normalizedSourcePath)) as
-      | false
-      | "d"
-      | "-"
-      | "l";
+    const sourceType = (await (sourceClient as any).exists(
+      normalizedSourcePath,
+    )) as false | "d" | "-" | "l";
     if (!sourceType) {
       throw new Error(`Source path does not exist: ${normalizedSourcePath}`);
     }
 
-    const targetType = (await (targetClient as any).exists(normalizedTargetPath)) as
-      | false
-      | "d"
-      | "-"
-      | "l";
+    const targetType = (await (targetClient as any).exists(
+      normalizedTargetPath,
+    )) as false | "d" | "-" | "l";
     if (targetType) {
       const allowExistingTarget =
         options.merge === true || options.skipExistingDirectories === true;
       if (!allowExistingTarget) {
-        throw new Error(`Destination path already exists: ${normalizedTargetPath}`);
+        throw new Error(
+          `Destination path already exists: ${normalizedTargetPath}`,
+        );
       }
       const sourceIsDir = sourceType === "d";
       const targetIsDir = targetType === "d";
@@ -1201,10 +1209,11 @@ export async function verifySftpWritableDirectory(
     throw new Error("Missing SFTP credentials (host/username/password).");
   }
 
-  const normalizedDir = (targetDir || "/")
-    .replace(/\\+/g, "/")
-    .replace(/\/{2,}/g, "/")
-    .replace(/\/+$/, "") || "/";
+  const normalizedDir =
+    (targetDir || "/")
+      .replace(/\\+/g, "/")
+      .replace(/\/{2,}/g, "/")
+      .replace(/\/+$/, "") || "/";
 
   try {
     await client.connect({
@@ -1293,7 +1302,10 @@ export async function sftpPathExists(
     const MEDIA_ROOT = "media";
     if (checkedPath === "/") checkedPath = "";
 
-    if (checkedPath.startsWith(MEDIA_ROOT + "/") || checkedPath === MEDIA_ROOT) {
+    if (
+      checkedPath.startsWith(MEDIA_ROOT + "/") ||
+      checkedPath === MEDIA_ROOT
+    ) {
       // keep as-is
     } else if (checkedPath.startsWith("/")) {
       checkedPath = `${MEDIA_ROOT}${checkedPath}`;
@@ -1440,7 +1452,8 @@ export async function downloadSftpDirectoryAsZip(
       throw new Error(`Path is not a directory: ${normalizedPath}`);
     }
 
-    const baseName = normalizedPath.split("/").filter(Boolean).pop() || "bundle";
+    const baseName =
+      normalizedPath.split("/").filter(Boolean).pop() || "bundle";
     await addDirectoryToZip(normalizedPath, "");
     if (fileCount === 0) {
       throw new Error(`No files found in directory: ${normalizedPath}`);

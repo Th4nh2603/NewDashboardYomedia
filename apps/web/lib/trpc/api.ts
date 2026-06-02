@@ -130,6 +130,20 @@ export const api = {
   },
   toolTest: {
     platformBanner: () => call(() => trpcClient.toolTest.platformBanner.query()),
+    bannerAdUnits: (adView: string) =>
+      call(() => trpcClient.toolTest.bannerAdUnits.query({ adView })),
+    bannerTemplates: (adView: string, market?: string) =>
+      call(() =>
+        trpcClient.toolTest.bannerTemplates.query({ adView, market }),
+      ),
+    bannerSettings: (formatId: string, type: string) =>
+      call(() =>
+        trpcClient.toolTest.bannerSettings.query({ formatId, type }),
+      ),
+    createBanner: (payload: Record<string, unknown>) =>
+      call(() => trpcClient.toolTest.createBanner.mutate(payload)),
+    bannerAdvertisers: () =>
+      call(() => trpcClient.toolTest.bannerAdvertisers.query()),
   },
   rag: {
     query: (

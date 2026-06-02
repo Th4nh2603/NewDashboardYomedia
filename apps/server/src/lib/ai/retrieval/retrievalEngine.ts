@@ -1,12 +1,3 @@
-export type {
-  ChatAiProvider,
-  ChatAttachmentMeta,
-  RagAnswerResult,
-} from "./core/types.js";
-export { answerWithRag } from "./orchestration/answerWithRag.js";
-/*
-Legacy content below is intentionally disabled after refactor.
-This shim file only re-exports from layered modules above.
 import { readFile, readdir } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,42 +6,9 @@ import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import OpenAI from "openai";
 
-import {
-  buildDeleteDemoPlan,
-  buildUploadDemoPlan,
-  shouldHandleDeleteDemo,
-  shouldHandleUploadDemo,
-  type ChatAttachmentMeta as ActionAttachmentMeta,
-} from "./actions/actionPlanner.js";
-import { classifyUserIntent } from "./intent/classifyUserIntent.js";
-import type { UserIntentClassification } from "./intent/types.js";
-import { getChatSystemPrompt } from "./chatSystemPrompt.js";
-import {
-  formatTavilyHitsForPrompt,
-  parseWebSearchQuestion,
-  searchWebWithTavily,
-} from "./tavily.js";
-
-export type ChatAiProvider = "gemini" | "openai";
-export type ChatAttachmentMeta = ActionAttachmentMeta;
-
-type AnswerMode =
-  | "delete_demo"
-  | "upload_demo"
-  | "web"
-  | "rag"
-  | "clarification"
-  | "unsupported";
-
-export type RagAnswerResult = {
-  answer: string;
-  provider: ChatAiProvider;
-  mode: AnswerMode;
-  intent?: UserIntentClassification;
-  action?: unknown;
-  sources: Array<{ source: string; preview: string }>;
-  rag: { readyAt: number; sourceCount: number } | null;
-};
+import type { ChatAiProvider } from "../core/types.js";
+import { getChatSystemPrompt } from "../chatSystemPrompt.js";
+import { formatTavilyHitsForPrompt, searchWebWithTavily } from "../tavily.js";
 
 type RagSingleton = {
   docs: Document[];
@@ -72,7 +30,7 @@ function parseJsonText(raw: string): unknown {
   return JSON.parse(stripUtf8Bom(raw));
 }
 
-function requireApiKey(provider: ChatAiProvider): string {
+export function requireApiKey(provider: ChatAiProvider): string {
   if (provider === "openai") {
     const key = process.env.OPENAI_API_KEY?.trim();
     if (!key) throw new Error("Missing OPENAI_API_KEY");
@@ -126,9 +84,7 @@ async function loadJsonDoc(
   ];
 }
 
-async function getRagSingleton(
-  provider: ChatAiProvider,
-): Promise<RagSingleton> {
+async function getRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
   let promise = singletonByProvider.get(provider);
   if (!promise) {
     promise = buildRagSingleton(provider);
@@ -137,14 +93,13 @@ async function getRagSingleton(
   return promise;
 }
 
-async function buildRagSingleton(
-  provider: ChatAiProvider,
-): Promise<RagSingleton> {
+async function buildRagSingleton(provider: ChatAiProvider): Promise<RagSingleton> {
   const apiKey = requireApiKey(provider);
 
   const docsFolder = path.join(process.cwd(), "rag", "docs");
   const creativeDemosPath = path.join(
     __dirname,
+    "..",
     "..",
     "..",
     "data",
@@ -244,7 +199,7 @@ async function embedTextOpenAI(params: {
   return embedding;
 }
 
-async function embedText(params: {
+export async function embedText(params: {
   provider: ChatAiProvider;
   apiKey: string;
   text: string;
@@ -357,7 +312,7 @@ async function generateAnswerOpenAI(params: {
   return (res.choices[0]?.message?.content ?? "").trim();
 }
 
-async function generateAnswer(params: {
+export async function generateAnswer(params: {
   provider: ChatAiProvider;
   apiKey: string;
   systemPrompt?: string;
@@ -386,7 +341,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-async function answerWithWebSearch(params: {
+export async function answerWithWebSearch(params: {
   query: string;
   provider: ChatAiProvider;
   apiKey: string;
@@ -423,125 +378,17 @@ async function answerWithWebSearch(params: {
   };
 }
 
-export async function answerWithRag(params: {
+export async function answerFromInternalDocs(params: {
   question: string;
-  provider?: ChatAiProvider;
-  attachments?: ChatAttachmentMeta[];
+  provider: ChatAiProvider;
+  apiKey: string;
 }) {
-  const question = params.question.trim();
-  if (!question) throw new Error("Missing question");
-  const attachments = params.attachments ?? [];
-
-  const provider: ChatAiProvider =
-    params.provider === "openai" ? "openai" : "gemini";
-  const apiKey = requireApiKey(provider);
-  const intent = await classifyUserIntent({
-    question,
-    provider,
-    apiKey,
-    generateText: generateAnswer,
-  });
-
-  if (intent.label === "clarification_needed" && intent.confidence >= 0.8) {
-    return {
-      answer:
-        "Mình cần thêm thông tin để xử lý chính xác. Bạn có thể cung cấp mục tiêu cụ thể, dữ liệu đầu vào, hoặc tham số cần thực hiện không?",
-      provider,
-      mode: "clarification" as const,
-      intent,
-      sources: [],
-      rag: null,
-    };
-  }
-
-  if (intent.label === "unsupported" && intent.confidence >= 0.8) {
-    return {
-      answer:
-        "Yêu cầu này hiện nằm ngoài phạm vi hỗ trợ của hệ thống. Bạn có thể diễn đạt lại theo hướng tra cứu tài liệu nội bộ hoặc thao tác các tool được hỗ trợ (ví dụ upload/delete demo).",
-      provider,
-      mode: "unsupported" as const,
-      intent,
-      sources: [],
-      rag: null,
-    };
-  }
-
-  if (shouldHandleDeleteDemo(question)) {
-    const plan = buildDeleteDemoPlan(question);
-    const answer = plan.remotePath
-      ? [
-          "Delete demo intent detected.",
-          `Target folder: ${plan.remotePath}`,
-          "Ready to remove this demo folder from demo SFTP.",
-        ].join("\n")
-      : [
-          "Delete demo intent detected.",
-          "Will remove the last demo folder uploaded in this chat session.",
-        ].join("\n");
-    return {
-      answer,
-      provider,
-      mode: "delete_demo" as const,
-      intent,
-      action: plan,
-      sources: [],
-      rag: null,
-    };
-  }
-
-  if (shouldHandleUploadDemo(question)) {
-    const plan = buildUploadDemoPlan(question, attachments);
-    const missing = plan.requiredInputs;
-    const pipelineLabel =
-      plan.uploadKind === "video"
-        ? "video demo (1 MP4/WebM/MOV → tvc.mp4 + make-vast.xml)"
-        : "HTML demo (convert base64 + upload)";
-    const answer =
-      missing.length > 0
-        ? [
-            "Upload demo intent detected.",
-            `Pipeline: ${pipelineLabel}`,
-            `Tool selected: ${plan.tool}`,
-            `Attachments: ${plan.attachmentsSummary.fileCount} file(s), ${plan.attachmentsSummary.textCount} text, ${plan.attachmentsSummary.binaryCount} video.`,
-            `Missing inputs: ${missing.join(", ")}`,
-            plan.uploadKind === "video"
-              ? "Video flow: attach exactly one video (previews: outstream + instream are generated automatically)."
-              : "Please provide missing inputs so execution can continue.",
-          ].join("\n")
-        : [
-            "Upload demo intent detected.",
-            `Pipeline: ${pipelineLabel}`,
-            `Tool selected: ${plan.tool}`,
-            `Remote path: ${plan.remotePath || "(auto from brand)"}`,
-            `Brand: ${plan.brand || "(not provided)"}`,
-            `DemoId: ${plan.demoId || "(not provided)"}`,
-            `DemoValue: ${plan.demoValue || "(not provided)"}`,
-            `Attachments: ${plan.attachmentsSummary.fileCount} file(s).`,
-            "Preflight passed. Ready to run convert + upload pipeline.",
-          ].join("\n");
-    return {
-      answer,
-      provider,
-      mode: "upload_demo" as const,
-      intent,
-      action: plan,
-      sources: [],
-      rag: null,
-    };
-  }
-
-  const { isWebSearch, query: webQuery } = parseWebSearchQuestion(question);
-  if (isWebSearch) {
-    const webResult = await answerWithWebSearch({ query: webQuery, provider, apiKey });
-    return { ...webResult, intent };
-  }
-
-  const rag = await getRagSingleton(provider);
+  const rag = await getRagSingleton(params.provider);
 
   const qVec = await embedText({
-    provider,
-    apiKey,
-    text: question,
+    provider: params.provider,
+    apiKey: params.apiKey,
+    text: params.question,
     timeoutMs: 15000,
   });
   const scored = rag.vectors.map((v, idx) => ({
@@ -549,7 +396,7 @@ export async function answerWithRag(params: {
     score: cosineSimilarity(qVec, v),
   }));
   scored.sort((a, b) => b.score - a.score);
-  const sizeTokenMatch = question.match(/\b\d{2,4}x\d{2,4}\b/i);
+  const sizeTokenMatch = params.question.match(/\b\d{2,4}x\d{2,4}\b/i);
   const sizeToken = sizeTokenMatch?.[0]?.toLowerCase() ?? null;
   const keywordMatchedIdx = sizeToken
     ? rag.docs
@@ -587,14 +434,14 @@ export async function answerWithRag(params: {
     context,
     "",
     "QUESTION:",
-    question,
+    params.question,
   ].join("\n");
 
   let answer: string;
   try {
     answer = await generateAnswer({
-      provider,
-      apiKey,
+      provider: params.provider,
+      apiKey: params.apiKey,
       systemPrompt,
       prompt,
       timeoutMs: 20000,
@@ -609,9 +456,7 @@ export async function answerWithRag(params: {
 
       for (const d of retrieved) {
         const src =
-          typeof d.metadata?.source === "string"
-            ? d.metadata.source
-            : "unknown";
+          typeof d.metadata?.source === "string" ? d.metadata.source : "unknown";
         sources.add(src);
 
         const remaining = maxChars - used;
@@ -627,7 +472,7 @@ export async function answerWithRag(params: {
       }
 
       const sourcesLine = Array.from(sources).join(", ") || "unknown";
-      const name = providerDisplayName(provider);
+      const name = providerDisplayName(params.provider);
       answer =
         `${name} đang bị giới hạn quota/rate-limit, nên mình trả lời tạm bằng trích đoạn tài liệu liên quan nhất.\n` +
         `Nguồn: ${sourcesLine}\n\n` +
@@ -641,9 +486,7 @@ export async function answerWithRag(params: {
 
   return {
     answer,
-    provider,
     mode: "rag" as const,
-    intent,
     sources: retrieved.map((d: Document) => ({
       source:
         typeof d.metadata?.source === "string" ? d.metadata.source : "unknown",
@@ -655,4 +498,3 @@ export async function answerWithRag(params: {
     },
   };
 }
-*/

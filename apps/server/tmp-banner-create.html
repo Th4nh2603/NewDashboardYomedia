@@ -1,0 +1,624 @@
+<div class="row wrapper-content animated fadeInDown" id="CreateBanner">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h2>Create a Banner</h2>
+            </div>
+            <div class="ibox-content">            
+                <form class="form-horizontal" id="frmCreateBanner" name="create_banner" method="post" role="form" action="https://platform.yomedia.vn/banner/store" enctype="multipart/form-data">
+                    <input type="hidden" name="_token" value="KTOh4rJ2ArtN5LTIRfN7i6FJdjO42aLXfUD6krr9">
+                    <div class="form-group" id="banner_name">
+                        <label for="txtBannerName" class="col-sm-3 control-label">Banner name</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtBannerName" name="banner_name" class="form-control" value="" placeholder="" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="form-group" id="advertiser">
+                        <label for="optAccounts" class="col-sm-3 control-label">Advertiser</label>
+                        <div class="col-sm-6">
+                            <select id="optAccounts" name="advertiser" data-placeholder="Choose an advertiser..." class="chosen-select form-control">
+                                                                                                            <option value="604e5ef5e6744a3ba12e30cf9e102e1f">Advertiser A</option>
+                                                                            <option value="c73714db1cae46a289c485408214cde3">Advertiser TVCommerce</option>
+                                                                            <option value="91c8a568cd1e46d0a11209c06eac335a">advertiser yeah1</option>
+                                                                            <option value="2b0766dd452c45f7b7ae2a1fe2c3e664">Adview</option>
+                                                                            <option value="d12ea4d334b34a4dacd195ab914ccd74">Aiken</option>
+                                                                            <option value="3a8a87c6a03f4477b7b5d88646bad5ac">Aiken - CPD</option>
+                                                                            <option value="4d9d50aa0b8b4f77b65f8ac77575f038">Bio Essence</option>
+                                                                            <option value="de294a0e434242bb951efe72e26c748c">Bio Essence - CPD</option>
+                                                                            <option value="95cdf006a1c44e93b77621f0674b1a9d">Carrie Junior</option>
+                                                                            <option value="629eaf5f0a5a4dffa0a488239315958b">Carrie Junior - CPD</option>
+                                                                            <option value="c23b9c109f7a4f89a3cb23f694f1d7cb">Do Not Use</option>
+                                                                            <option value="cdc813a4f4ec4a06beacefb5974bc792">Enchanteur</option>
+                                                                            <option value="20f3acc8bfa342bba72e8a3b97c62d85">Enchanteur - CPD</option>
+                                                                            <option value="7393484b37ed401cb30e7a9c55e76a5e">Fico</option>
+                                                                            <option value="fa0e4d8ffe414982b89c9b6e90d29f3a">freshsaigon</option>
+                                                                            <option value="20bd1dc67c8a4326ba42868ca4b007d6">GCD</option>
+                                                                            <option value="ebeb720913e24a36a0394afbba61078c">Geniee</option>
+                                                                            <option value="da05952f02e0494cb9c0bfa45846bd75">GroupM</option>
+                                                                            <option value="ae3f03ad3a7d4598ab2783281369a73a">Hakuhodo</option>
+                                                                            <option value="7eaa90fd42f34352a75fb9c5506cb323">Heineken</option>
+                                                                            <option value="4a7efc05b0c04cb6af82b96c94531546">Karofi</option>
+                                                                            <option value="db63dda8316d4da7a547c20e77e40c4b">Maxkleen</option>
+                                                                            <option value="930df068d39f485c8fff5040735bf017">Maxkleen - CPD</option>
+                                                                            <option value="c54118f152da4cf48f626687e3ded5c7">pepsi</option>
+                                                                            <option value="0be5419abb3b41e89ed22357e33fa6ba">Romano</option>
+                                                                            <option value="6f2d91abcbe24933af4d75ddbc3723d7">Romano - CPD</option>
+                                                                            <option value="a5365dda21d041358973f9c034c61ed1">Sacombank</option>
+                                                                            <option value="d9e3a6ccbd8c4181babd28a670fafb05">Servier</option>
+                                                                            <option value="5814c24020f6496d86d486d9ba2323bd">SSP</option>
+                                                                            <option value="24ac7a21b9ce4919a46033e7ae246898">Techcombank</option>
+                                                                            <option value="8b5b90b23eff4813b5b06358c84892d9">test</option>
+                                                                            <option value="76962409d85a4cb592e3d67afb68f210">Test DSP</option>
+                                                                            <option value="f170ed01d179467e8020fcc3bd39b89e">VITA_DAIRY</option>
+                                                                            <option value="956193bdb8c3442f96f7dafd3c4d94da">VNG</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="market">
+                        <label for="optMarkets" class="col-sm-3 control-label">Market</label>
+                        <div class="col-sm-6">
+                           <select id="optMarkets" name="market" data-placeholder="Choose a market..." tabindex="2" class="chosen-select form-control">
+                                                                                                            <option selected value="vn">Viet Nam</option>
+                                    }
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="landing_page">
+                        <label for="txtLandingPage" class="col-sm-3 control-label">Landing page</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtLandingPage" name="landing_page" class="form-control" value="" placeholder="">
+                        </div>
+                    </div>
+                    <div class="form-group" id="type">
+                        <label for="optAdViews" class="col-sm-3 control-label">Ad View</label>
+                        <div class="col-sm-6">
+                            <select id="optAdViews" name="ad_view" data-placeholder="banners.choose_ad_view" class="chosen-select form-control">
+                                                                                                            <option value = "display">Display</option>
+                                                                            <option value = "mobile">Mobile</option>
+                                                                            <option value = "application">Application</option>
+                                                                            <option value = "video">Video</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="adunit">
+                        <label for="optAdUnits" class="col-sm-3 control-label">Ad Unit</label>
+                        <div class="col-sm-6">
+                           <select id="optAdUnits" name="adunit" data-placeholder="banners.adunits.choose_one" tabindex="2" class="chosen-select form-control">
+                                                                                                            <option value="29dad4a960e24780a514ac4b0260e73e" data-width="300" data-height="250">Medium Rectangle (300x250)</option>
+                                                                            <option value="ab4241df5e024b66acd551f3d1248e20" data-width="180" data-height="150">Rectangle (180x150)</option>
+                                                                            <option value="1f4524e90f9d4335a042264ae84ebe54" data-width="160" data-height="600">Wide Skyscrape (160x600)</option>
+                                                                            <option value="f72ad727ae49495e8270afa54d42bc23" data-width="728" data-height="90">Leaderboard (728x90)</option>
+                                                                            <option value="05bdf2bc734c4f7a983805978c551409" data-width="970" data-height="90">Super Leaderboard (970x90)</option>
+                                                                            <option value="87a55694e4094131addff30b17a30f03" data-width="300" data-height="600">Half Page (300x600)</option>
+                                                                            <option value="195dceb59b194e4bbb28f9939ad23100" data-width="120" data-height="60">Button 2 (120x60)</option>
+                                                                            <option value="e22f5e7c719c4710a2038d19b659e418" data-width="88" data-height="31">Micro Bar (88x31)</option>
+                                                                            <option value="aa2361742a3b4285998c958ecfe80968" data-width="1" data-height="1">Balloon</option>
+                                                                            <option value="4f346ff67b6042c68d78c15a8bf1ebaa" data-width="970" data-height="250">Inpage 970x250 (Billboard)</option>
+                                                                            <option value="e8cac97b679e4ed7a7e3f551d7a3d23a" data-width="300" data-height="300">Native Ad</option>
+                                                                            <option value="d7af58194d0d4f109aaeb123f20929a4" data-width="600" data-height="555">On Image</option>
+                                                                            <option value="dcd453c4a3cd41af8b59e87bccafc3cb" data-width="680" data-height="430">In Image</option>
+                                                                            <option value="2a6495d1f5624ed8ba70ed2697a90a25" data-width="680" data-height="500">In Image Carousel</option>
+                                                                            <option value="acee8628618a446f8c3903d91df7f3ba" data-width="2" data-height="2">Inpage (Interscroller)</option>
+                                                                            <option value="0f01901026c346c882c2a0d68befbf75" data-width="400" data-height="450">Post Carousel</option>
+                                                                            <option value="ec1a2961ca5f429d9402204da52e4b66" data-width="25" data-height="25">CPD</option>
+                                                                                                    <option value="" data-width="0" data-height="0">Custom Size</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- custom size -->
+                    <div class="form-group form-inline" id="size">
+                        <label for="txtSize" class="col-sm-3 control-label">Size</label>
+                        <div class="col-sm-6">
+                            <div class="input-group" id="width" style="margin-right:20px">
+                                <div class="input-group-addon input-group-addon-4">Width</div>
+                                <input type="text" class="form-control input-number" id="txtWidth" style="width:70px;margin:0 5px;" name="" value="1" placeholder="" onkeypress="return isNumber(event)">
+                                <div class="input-group-addon input-group-addon-4">
+                                    <span>px</span>
+                                </div>
+                            </div>
+                            <div class="input-group" id="height">
+                                <div class="input-group-addon input-group-addon-4">Height</div>
+                                <input type="text" class="form-control input-number" id="txtHeight" name="" style="width:70px;margin:0 5px;" value="1" placeholder="" onkeypress="return isNumber(event)">
+                                <div class="input-group-addon input-group-addon-4">
+                                    <span>px</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="type">
+                        <label for="optTypes" class="col-sm-3 control-label">Type</label>
+                        <div class="col-sm-6">
+                           <select id="optTypes" name="type" data-placeholder="Choose a type..." tabindex="2" class="chosen-select form-control">
+                                                                                                            <option value="html_code">HTML Code</option>
+                                                                            <option value="template">Template</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <!-- custom size (end) -->
+                    <div class="form-group" id="template">
+                        <label for="optTemplates" class="col-sm-3 control-label">Template</label>
+                        <div class="col-sm-6">
+                           <select id="optTemplates" name="template" data-placeholder="Choose a template..." tabindex="2" class="chosen-select form-control">
+                                <option value=""></option>
+                                                                                                            <option value="8d1f4667f6ae4978882bf03121243298" data-setting="">Application AdHesion</option>
+                                                                            <option value="ec86664bb81b4e2487018f2be9879b69" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display 3D Box iTVC (VN)</option>
+                                                                            <option value="40dc4a2eb78b42f2a6b259622f002c74" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;}}">Display 3D Box (VN)</option>
+                                                                            <option value="dfac96e006fe491db56658bf1409a88c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;400&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;450&quot;}}">Display 3D Post Carousel (VN)</option>
+                                                                            <option value="8cc1c5f079a047db9fd98b86066bcb3e" data-setting="{&quot;left_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;right_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;160&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Background iTVC (VN)</option>
+                                                                            <option value="36b74dd043454b9e910f44d580ceda72" data-setting="{&quot;left_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;right_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;160&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;}}">Display Background (VN)</option>
+                                                                            <option value="bd068606cdd04d78a0d3a1ac666cc501" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Balloon Expandable (iTVC) (VN)</option>
+                                                                            <option value="585db1a66021471990eca14e61364d9a" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Balloon Expandable (VN)</option>
+                                                                            <option value="9019ef9f13164401803d22ffd26abe5c" data-setting="{&quot;addon_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;addon_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;120&quot;},&quot;addon_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;standard_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;standard_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;standard_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;expand_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;500&quot;},&quot;expand_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;big_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;big_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;800&quot;},&quot;big_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;500&quot;},&quot;show_default&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;addon,standard,expand,big&quot;,&quot;default&quot;:&quot;addon&quot;}}">Display Balloon Multiple Panels</option>
+                                                                            <option value="c948c8813cfd4f77968744b3ab18111c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Balloon Standard (iTVC) (VN)</option>
+                                                                            <option value="3a60fa99615c4e0798e8eb441aa0e3d2" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Balloon Standard (VN)</option>
+                                                                            <option value="a4780184500f4cb99e2b25ec5e57be3c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Big Balloon (iTVC) (VN)</option>
+                                                                            <option value="cf8a59535777457ab2f6e1f0a61787a0" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Big Balloon (VN)</option>
+                                                                            <option value="487d453904f246148842e4748cfb5466" data-setting="{&quot;source_billboard&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width_billboard&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height_billboard&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;source_balloon&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width_balloon&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height_balloon&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;location&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;right,left&quot;,&quot;default&quot;:&quot;right&quot;},&quot;bar_height_balloon&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Billboard-Balloon Synchronize (VN)</option>
+                                                                            <option value="e07a12c7337c4fa889afdf91462c1a8c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Bottom Up (iTVC) (VN)</option>
+                                                                            <option value="25597e3a653448a58e77a31e88d68e6a" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Bottom Up (VN)</option>
+                                                                            <option value="2159c0c257184a338ddcb04b24e38284" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display CPD</option>
+                                                                            <option value="780fc9f79f0b4c47ab4fde1005173cfe" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display IAB (iTVC) (VN)</option>
+                                                                            <option value="8c503920f6544d3ca098348b46343611" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display IAB Medium (iTVC) (VN)</option>
+                                                                            <option value="0f0391c7a41d4180ae4343c5281081d5" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;}}">Display IAB Medium (VN)</option>
+                                                                            <option value="27b28067702f471dbd161bb82ad50eea" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display IAB (VN)</option>
+                                                                            <option value="66d4b1857cbb47b8bba7369ef1d59a49" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;}}">Display In-feed Native (VN)</option>
+                                                                            <option value="b9eacc670d374414a34c982aaa50dc3a" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;slider_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;slider_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;slider_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;200&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image Carousel iTVC (VN)</option>
+                                                                            <option value="42f5dce1cb76455e83f86eeaa44a55d6" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;slider_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;slider_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;slider_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;200&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image Carousel (VN)</option>
+                                                                            <option value="c0ce20aefff44db6b319e3116ff9d4ac" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image iTVC (VN)</option>
+                                                                            <option value="9590692d9c0943c4a466df602e32b4f7" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image Takeover iTVC (VN)</option>
+                                                                            <option value="491c029de2d64b88912c40fd45f4b0a5" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image Takeover (VN)</option>
+                                                                            <option value="7a5c968d14dd43278e2901764fdc9306" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image (VN)</option>
+                                                                            <option value="f06d77115bab43b7b9254b5fad0428bd" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In-image With Image Under</option>
+                                                                            <option value="73917b58a6cd4f87b0b8c9c7700f52fe" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In-image With Image Under iTVC</option>
+                                                                            <option value="6a0afbb21792414fa61ce3418532463e" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display In Image With Inread Video (VN)</option>
+                                                                            <option value="71b8189ee68246b08867b2f4f6225f4b" data-setting="">Display In-Page</option>
+                                                                            <option value="3945e3a83f2d4dc8ac3ba574fc4dfeb7" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;expand_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;800&quot;},&quot;expand_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;500&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;}}">Display Inpage Expandable iTVC (VN)</option>
+                                                                            <option value="6175656b15c444b1b0d1d66a424a9436" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;expand_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;800&quot;},&quot;expand_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;500&quot;}}">Display Inpage Expandable (VN)</option>
+                                                                            <option value="ffd57628923240c89e45311d0e5cfeca" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Interscroller (iTVC) (VN)</option>
+                                                                            <option value="0f6bec5f6ee54d7391c1e404ba72f180" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Interscroller (VN)</option>
+                                                                            <option value="57da8284120d436bad25b9e5b78d2225" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;415&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;90&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Masthead (Billboard) Expandable (iTVC) (VN)</option>
+                                                                            <option value="12bced14d07849ffb35a787511b9d61f" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;415&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;90&quot;}}">Display Masthead (Billboard) Expandable (VN)</option>
+                                                                            <option value="5206c4076aaf4167a290292f0b2a1c0d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Display Masthead (Billboard) (iTVC) (VN)</option>
+                                                                            <option value="4d224c8d344d42c6aed63ea11472cd00" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Display Masthead (Billboard) (VN)</option>
+                                                                            <option value="0aa058018a55456580559eed85080e96" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Masthead Carousel (iTVC) (VN)</option>
+                                                                            <option value="18ed1495f3b84ab1a0dc97d19a91aceb" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display Masthead Carousel (VN)</option>
+                                                                            <option value="93e2307f1cc7428d819e5ca4f80829b2" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;}}">Display Native (VN)</option>
+                                                                            <option value="f634f12617174d3986e92999ec49ca35" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;portrait_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display On Image iTVC (VN)</option>
+                                                                            <option value="aa7dbf27a788441e9dd7fb2791e8f17e" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;portrait_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display On Image (VN)</option>
+                                                                            <option value="99399b094c4849999ec422b3d5b6de90" data-setting="{&quot;basic_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Page Takeover iTVC (VN)</option>
+                                                                            <option value="b86138baf0974f4790c6db65cb2bea11" data-setting="{&quot;basic_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;970&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Display Page Takeover (VN)</option>
+                                                                            <option value="e966da22bbd44b03b5e75681ccab75a3" data-setting="{&quot;basic_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;expand_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;850&quot;},&quot;expand_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;550&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Sidekick iTVC (VN)</option>
+                                                                            <option value="7d318be8688949b4a1940fcd01864fbf" data-setting="{&quot;basic_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;basic_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;basic_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;expand_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;850&quot;},&quot;expand_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;550&quot;},&quot;bar_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Display Sidekick (VN)</option>
+                                                                            <option value="0e782f33397347299ee3a3fa3a4b6180" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;}}">Display Widgets Native (VN)</option>
+                                                                            <option value="accf36e0e306425cacf8716426c333bc" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile 3D Box iTVC (VN)</option>
+                                                                            <option value="d7a1b46d7eef4faebdc4208a0ffbcd47" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile 3D Box (VN)</option>
+                                                                            <option value="c415a04edc2f41f499db3b2de893eea7" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;400&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;450&quot;}}">Mobile 3D Post Carousel (VN)</option>
+                                                                            <option value="8ccef601d69b492d83ccc2c2d14d3f19" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Bottom iTVC (VN)</option>
+                                                                            <option value="698fa96981474ab0916b30f704d81a4f" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Bottom (VN)</option>
+                                                                            <option value="1e0bba6d28954b5d8406f83a3a9d2d1d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Card iTVC (VN)</option>
+                                                                            <option value="51d01a23f9354665a27fc87709004960" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Card (VN)</option>
+                                                                            <option value="13c56d4e209a445bb73d90b36cc174bc" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile CPD</option>
+                                                                            <option value="002613361de4493c9581770bb435c33c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile Footer 3D Box Carousel iTVC (VN)</option>
+                                                                            <option value="5f0cffbe07164a02a4363763d97bfc8d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;collapse_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Footer 3D Box Carousel (VN)</option>
+                                                                            <option value="3b91128bbb0448e4aab61959fd18ffb3" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;collapse_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Footer Expand iTVC (VN)</option>
+                                                                            <option value="4644adab086548259f896898c0b493cd" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;collapse_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Footer Expand (VN)</option>
+                                                                            <option value="1f6e155558814556b39c586d448d1ed9" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile IAB Medium (VN)</option>
+                                                                            <option value="036265ec4dcd47d482d213c34a2c6458" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile IAB (VN)</option>
+                                                                            <option value="6694947b6b5a4abc9255005bcc813f69" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile In-feed Native (VN)</option>
+                                                                            <option value="90c2582be38a41eab15fac7728a89040" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;slider_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;slider_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;slider_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;200&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image Carousel iTVC (VN)</option>
+                                                                            <option value="d313324055de403ebc2647b0368e707f" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;slider_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;slider_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;680&quot;},&quot;slider_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;200&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image Carousel (VN)</option>
+                                                                            <option value="ffd83cbac75d4f168f72d11145c6e028" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image iTVC (VN)</option>
+                                                                            <option value="81094908b47a4caf89732187fe72346b" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image Takeover iTVC (VN)</option>
+                                                                            <option value="0b50c555b4df4f92a4ad1bb267401af3" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image Takeover (VN)</option>
+                                                                            <option value="05277abc8a2548009f56bd6bbc13c71b" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image (VN)</option>
+                                                                            <option value="00fc8b8dff184109b482dbc86d7c9cb5" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In-image With Image Under</option>
+                                                                            <option value="22736b455cc24065b44394ffa0a9bf91" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In-image With Image Under iTVC</option>
+                                                                            <option value="1ad7437321fc499db2cbbcf7eb2e19d1" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;video_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;video_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile In Image With Inread Video (VN)</option>
+                                                                            <option value="dc0cfd65d91f4772a1a6c689b19306d9" data-setting="">Mobile In-Page</option>
+                                                                            <option value="3a75aaece63f4b7fa604bb6bc8627851" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;360&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Inpage Carousel (VN)</option>
+                                                                            <option value="ed5a20a8f555408181aa0d52b16ed86a" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Interscroller (iTVC) (VN)</option>
+                                                                            <option value="5105731b7b5d4a0ab99bf1721b1808c0" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile Interscroller Shake (VN)</option>
+                                                                            <option value="7e61514152dc4d8b8a9cc1304495a3e6" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Interscroller (VN)</option>
+                                                                            <option value="0782370495be4712ba5a0e0e905a1bd8" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;close_delay&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile Interstitial (Firstview) (VN)</option>
+                                                                            <option value="747eea8fb78d4bb3980644dd8a6e1b4f" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;close_delay&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile Interstitial Interactive (Firstview) (VN)</option>
+                                                                            <option value="a236b74739c04f648606fec68327aea2" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;close_delay&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile Interstitial (iTVC) (Firstview) (VN)</option>
+                                                                            <option value="e0f930363604416faac71d1ee38a7e6e" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile Interstitial Shake (VN)</option>
+                                                                            <option value="2e9ff8fc44b041ad9f8cffeecef66a7c" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;}}">Mobile Masthead Carousel iTVC (VN)</option>
+                                                                            <option value="f979faa081a543d5b908e0d8f22d1d97" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;}}">Mobile Masthead Carousel (VN)</option>
+                                                                            <option value="9c4b262878004bc88d116fcc3f4d9477" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Masthead iTVC (VN)</option>
+                                                                            <option value="ae65598b543741fbb8e9237c7c0352c5" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;480&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;270&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Masthead (VN)</option>
+                                                                            <option value="b0de08e645a0499a9203f8a0ff475aa5" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile Native (VN)</option>
+                                                                            <option value="c6d1ce1667424788ab8c82612a9f0740" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;portrait_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile On Image iTVC (VN)</option>
+                                                                            <option value="23c9e5aad04a4a86903bbfb02bfe4011" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;portrait_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;600&quot;},&quot;portrait_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;125&quot;},&quot;content_min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;content_min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;250&quot;}}">Mobile On Image (VN)</option>
+                                                                            <option value="028bd6b77ccb4d8596d0d3b84d67a72d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Pull Ads (VN)</option>
+                                                                            <option value="b2c1a05f5d5b4e68b6cd2d258d3e2929" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Scratcher (VN)</option>
+                                                                            <option value="9347498eb4d148f59f850bdac419939a" data-setting="{&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;landscape_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Mobile Shake iTVC (VN)</option>
+                                                                            <option value="332ab1455e5a4985a7465bccc616de69" data-setting="{&quot;portrait_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;landscape_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile Shake (VN)</option>
+                                                                            <option value="82cf922247f8428592113357202d332e" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;collapse_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Spin Plus (New) (VN)</option>
+                                                                            <option value="591fe09fa5464f94809c31b929ef3c7f" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;640&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;640&quot;},&quot;expand_source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Spin Plus (VN)</option>
+                                                                            <option value="de6d44deea234de49b1974fd84a6523d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Tetris iTVC (VN)</option>
+                                                                            <option value="a1c2dfa26bee490f8a53bf1d13759b03" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Tetris (VN)</option>
+                                                                            <option value="98b66f24258b4e76bffd26dc9dd1a4f7" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Wheel iTVC (VN)</option>
+                                                                            <option value="53dcb16004934720b89558c35d75820a" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;min_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;min_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;max_width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;max_height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Wheel (VN)</option>
+                                                                            <option value="f6102254687b4df382c999ac28a3428b" data-setting="{&quot;title&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;short_intro&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;content&quot;:{&quot;type&quot;:&quot;text_area&quot;},&quot;small_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;medium_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;large_thumbnail&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;product_name&quot;:{&quot;type&quot;:&quot;input&quot;}}">Mobile Widgets Native (VN)</option>
+                                                                            <option value="5802d8775ff241c3bd2b1cffe2d18bb4" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;close_button&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;},&quot;logo&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Mobile Windmill (VN)</option>
+                                                                            <option value="2e8bba3709c24e49a14603951fea2da6" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;vast_type&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;inline,wrapper&quot;,&quot;default&quot;:&quot;inline&quot;},&quot;vast_version&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;2&quot;},&quot;poster&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;inview&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;autoplay,0_p,5_p,10_p,15_p,20_p,25_p,30_p,35_p,40_p,45_p,50_p,55_p,60_p,65_p,70_p,75_p,80_p,85_p,90_p,95_p,100_p&quot;,&quot;default&quot;:&quot;autoplay&quot;}}">Vertical Video Interscroller</option>
+                                                                            <option value="644c024a9d7c41258cb851831dd885af" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;vast_type&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;inline,wrapper&quot;,&quot;default&quot;:&quot;inline&quot;},&quot;vast_version&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;2&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;poster&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;always_show&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;yes,no&quot;,&quot;default&quot;:&quot;yes&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Inread 15s (VN)</option>
+                                                                            <option value="f4b4e652802e4792b29d3e5b2908c245" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;vast_type&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;inline,wrapper&quot;,&quot;default&quot;:&quot;inline&quot;},&quot;vast_version&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;2&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;poster&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;always_show&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;yes,no&quot;,&quot;default&quot;:&quot;yes&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Inread 30s (VN)</option>
+                                                                            <option value="d37fb1ddb82b435ca1e8871ef72d72a2" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;vast_type&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;inline,wrapper&quot;,&quot;default&quot;:&quot;inline&quot;},&quot;vast_version&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;2&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;poster&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;always_show&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;yes,no&quot;,&quot;default&quot;:&quot;yes&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Inread Jwplayer (VN)</option>
+                                                                            <option value="097a821020664930a09e80c6b0f160f2" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;vast_type&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;inline,wrapper&quot;,&quot;default&quot;:&quot;inline&quot;},&quot;vast_version&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;2&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;poster&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;always_show&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;yes,no&quot;,&quot;default&quot;:&quot;yes&quot;}}">Video Inread Vast (VN)</option>
+                                                                            <option value="86605b86018042bbb65c7e6e4b0730a1" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;}}">Video In-read (VN)</option>
+                                                                            <option value="a2febfe42a8e4403a37bd22a5abbcf26" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;width&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;300&quot;},&quot;height&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;50&quot;},&quot;min_duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;max_duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;}}">Video Overlay (VN)</option>
+                                                                            <option value="1c758d7b4c384542941531bb4a678b88" data-setting="">Video Pre-roll</option>
+                                                                            <option value="0ec07dd2dc7648538509f1f6a69bf230" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;vpaid&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Video Pre-roll 15s (Inline) (VN)</option>
+                                                                            <option value="e448676583664eb3ade9153a8f5c64d7" data-setting="{&quot;flash_player&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;flash_banner&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;}}">Video Pre-roll 15s (Vpaid) (VN)</option>
+                                                                            <option value="2b35201862c547fd80e02d67d327768e" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll 15s (Wrapper) (VN)</option>
+                                                                            <option value="66f5ee8f195d46ffa4e6860450e348e1" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;vpaid&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Video Pre-roll 30s (Inline) (VN)</option>
+                                                                            <option value="9c34181b3e2a4516979a1a665c6e91f6" data-setting="{&quot;flash_player&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;flash_banner&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;}}">Video Pre-roll 30s (Vpaid) (VN)</option>
+                                                                            <option value="0fb775e9884d4e5fbc692567c4f58cec" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll 30s (Wrapper) (VN)</option>
+                                                                            <option value="2b5380ed7a3a45c89a0fcf73559742ed" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;6&quot;},&quot;vpaid&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Video Pre-roll 6s (Inline) (VN)</option>
+                                                                            <option value="f39995de712b41b38b5589f5e7b7b613" data-setting="{&quot;flash_player&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;flash_banner&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;6&quot;}}">Video Pre-roll 6s (Vpaid) (VN)</option>
+                                                                            <option value="dd1c1b737e8a4e9db4952ac138fbf534" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;0&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;6&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll 6s (Wrapper) (VN)</option>
+                                                                            <option value="7c5b6f1b8e13434abeee00e67e08c922" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;30&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;third_party&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;spotx&quot;,&quot;default&quot;:&quot;spotx&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll Bidding Vpaid (VN)</option>
+                                                                            <option value="5370f220647b4199ad9edf287de1fae5" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;}}">Video Pre-roll (custom) (Inline) SSP (VN)</option>
+                                                                            <option value="c41157d76dc9479686c62d020acf53f3" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;vpaid&quot;:{&quot;type&quot;:&quot;checkbox&quot;,&quot;default&quot;:&quot;false&quot;}}">Video Pre-roll (custom) (Inline) (VN)</option>
+                                                                            <option value="9ae64be0762e482e9cb42e24d49b369b" data-setting="{&quot;source_js&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;media&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;}}">Video Pre-roll (custom) (Vpaid HTML5) (VN)</option>
+                                                                            <option value="fd7971f557c94120988d5dc91682a0d1" data-setting="{&quot;flash_player&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;flash_banner&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;}}">Video Pre-roll (custom) (Vpaid) SSP (VN)</option>
+                                                                            <option value="2a3cd6f5569c4ceaa5b0d4025ac28c3b" data-setting="{&quot;flash_player&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;flash_banner&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;}}">Video Pre-roll (custom) (Vpaid) (VN)</option>
+                                                                            <option value="877dc763468548e8b0a1fb266871819d" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll (custom) (Wrapper) SSP (VN)</option>
+                                                                            <option value="a99736d5c4884108a51ed92ab385a429" data-setting="{&quot;source&quot;:{&quot;type&quot;:&quot;input&quot;},&quot;skip_ad&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;7&quot;},&quot;duration&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;default&quot;:&quot;15&quot;},&quot;use_tag&quot;:{&quot;type&quot;:&quot;select&quot;,&quot;value&quot;:&quot;none,backup&quot;,&quot;default&quot;:&quot;none&quot;},&quot;backup_source&quot;:{&quot;type&quot;:&quot;input&quot;}}">Video Pre-roll (custom) (Wrapper) (VN)</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group local_source" id="source">
+                        <label for="txtSources" class="col-sm-3 control-label">File</label>
+                        <div class="col-sm-6">
+                           <input type="file" id="txtSources" name="" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group html_source" id="htmlSourceField" style="display:none">
+                        <label for="txtSources" class="col-sm-3 control-label">Source</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="htmlSources" name="" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group external_source" id="externalSourceField" style="display:none">
+                        <label for="txtSources" class="col-sm-3 control-label">Banner Link</label>
+                        <div class="col-sm-6">
+                           <input type="text" id="externalSources" name="" class="form-control" value="" placeholder="" maxlength="255">
+                        </div>
+                    </div>
+                    <div id="settings"></div>
+                    <div class="form-group" id="useTag">
+                        <label for="optUseTag" class="col-sm-3 control-label">Use Tag</label>
+                        <div class="col-sm-6">
+                           <select id="optUseTag" name="use_tag" class="chosen-select form-control">
+                                <option value="">None</option>
+                                                                                                            <option value="ias">Integral Ad Science (IAS)</option>
+                                    }
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="codeTag">
+                        <label for="txtCodeTag" class="col-sm-3 control-label">Code</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="txtCodeTag" name="code_tag" rows="6"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group" id="notes">
+                        <label for="txtNotes" class="col-sm-3 control-label">Notes</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="txtNotes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="chkActive" class="col-sm-3 control-label">Active</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkActive" name="active">
+                                <label class="onoffswitch-label" for="chkActive">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden"><input type="submit"></div>
+                </form>
+            </div>
+            <div class="ibox-content">
+                <div class="text-right">
+                    <button type="button" id="btnSave" onclick="$('#frmCreateBanner').submit();" class="btn btn-primary">Save changes</button>
+                    <button type="button" id="btnCancelCreate" class="btn btn-default">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(function () {
+        configOption();
+        //market change event
+        $("#optMarkets").change(function(){
+            var market = $(this).val();
+            var ad_view = $('#optAdViews').val();
+            getBannerFormat(market, ad_view);
+        });
+
+        //format change event
+        $("#optTemplates").change(function(){
+            var format_id = $(this).find(":selected").val();
+            var type = $("#optTypes").find(":selected").val();
+            if ($("#optTypes").val() == 'template') {
+                getBannerSetting(format_id, type);
+            }            
+        });
+
+        $("#optAdViews").change(function(){
+            getBannerAdUnit($(this).val());
+            var market = $('#optMarkets').val();
+            var ad_view = $('#optAdViews').val();
+            getBannerFormat(market, ad_view);
+            $("#settings").html('');        
+        });
+
+        if ($("#optUseTag").val() === '') {
+            $("#codeTag").hide();
+        } else {
+            $("#codeTag").show();
+        }
+
+        $("#optUseTag").change(function() {
+            if ($("#optUseTag").val() === '') {
+                $("#codeTag").hide();
+            } else {
+                $("#codeTag").show();
+            }
+        });
+        checkType($("#optTypes").val());
+
+        //type change event
+        $("#optTypes").change(function(){
+            selectedType = $(this).val();
+            $("#settings").html('');
+            switch (selectedType) {
+                case 'local_file':
+                    $(".local_source, #settings, #template").show();                    
+                    $(".html_source, .external_source").hide();
+                    break;
+                case 'external_file':
+                    $(".external_source, #settings, #template").show();
+                    $(".html_source, .local_source").hide();
+                    break;
+                case 'html_code':
+                    $(".html_source, #template").show();
+                    $(".external_source, .local_source, #settings").hide();
+                    break;
+                case 'template':
+                    $(".html_source, .local_source, .external_source").hide();
+                    $("#settings, #template").show();
+                    format_id = $("#optTemplates").find(":selected").val();
+                    if (format_id) {
+                        $.get('/banner/getSettings/'+format_id + '?type=' + selectedType, function(data){
+                            $("#settings").html(data.html);
+                        }).fail(function (jqXhr){
+                            if (jqXhr.status === 401) {
+                                $(location).prop('pathname', 'auth/login');
+                            }
+                        });
+                    }
+                    break;
+            }
+            
+        });
+        function checkType(val) {
+            $("#settings").html('');
+            switch (val) {
+                case 'local_file':
+                    $(".local_source, #settings, #template").show();                    
+                    $(".html_source, .external_source").hide();
+                    break;
+                case 'external_file':
+                    $(".external_source, #settings, #template").show();
+                    $(".html_source, .local_source").hide();
+                    break;
+                case 'html_code':
+                    $(".html_source, #template").show();
+                    $(".external_source, .local_source, #settings").hide();
+                    break;
+                case 'template':
+                    $(".html_source, .local_source, .external_source").hide();
+                    $("#settings, #template").show();
+                    format_id = $('#optTemplates').find(":selected").val();
+                    type = $("#optTypes").find(":selected").val();
+                    configSetting(format_id, type);
+                    break;
+            }
+        }
+        if ($("#optAdUnits").val()) {
+            $("#txtHeight").val($("#optAdUnits").find(':selected').data('height'));
+            $("#txtWidth").val($("#optAdUnits").find(':selected').data('width'));
+        }
+        $("#optAdUnits").change(function(){
+            if($(this).val() == ''){
+                $("#size").show();
+            }else{                
+                $("#size").hide();
+            }
+            $("#txtHeight").val($(this).find(':selected').data('height'));
+            $("#txtWidth").val($(this).find(':selected').data('width'));
+        });
+        var market = $('#optMarkets').val();
+        var ad_view = $('#optAdViews').val();
+        getBannerFormat(market, ad_view);
+        var format_id = $('#optTemplates').val();
+        var type = $("#optTypes").val();
+        if (format_id && type) {
+            getBannerSetting(format_id, type);
+        }        
+    });
+    
+    function configOption(){
+        setTimeout(function () {
+            $('input[name="banner_name"]').focus();
+        }, 1000);
+        
+        $('#btnCancelCreate').on('click', function () {
+            setTimeout(function () {
+                getBannerList();
+            }, 200);
+        });
+
+        /*=============================================*/
+        /* ACCOUNT, CATEGORY, MARKET, TIMEZONE CHOSEN  */
+        /*=============================================*/
+
+        var config = {
+            '.chosen-select'           : {search_contains: true},
+            '.chosen-select-deselect'  : {allow_single_deselect:true, search_contains: true},
+            '.chosen-select-no-single' : {disable_search_threshold:10, search_contains: true},
+            '.chosen-select-no-results': {no_results_text:'Oops, nothing found!', search_contains: true},
+            '.chosen-select-width'     : {width:"95%", search_contains: true}
+        }
+        for (var selector in config) {
+            $(selector).chosen(config[selector]);
+        }
+    }
+
+    function returnList(e) {
+        e.preventDefault();
+        if (e.keyCode === 27) {
+            setTimeout(function () {
+                getBannerList();
+            }, 200);
+            $('#CreateBanner').unbind('keyup');
+        }
+    }
+
+    function resetForm(){
+        $("#frmCreateBanner").trigger("reset");
+        $("#optTypes option, #optTemplates option, #optAccounts option, #optAdViews option").trigger('chosen:updated');
+        $(".form-group").removeClass('has-error');
+        $('.input-number').priceFormat({
+            prefix: '',
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit: '0',
+            limit:4
+        });
+    }
+
+    $('#CreateBanner').bind('keyup', returnList);
+    
+    /*=============================================*/
+    /*               SUBMIT FORM CREATE            */
+    /*=============================================*/
+    $('form[name="create_banner"]').submit(function(e){
+        e.preventDefault();
+        url = $(this).attr('action');
+        var type = $("#optTypes").val();
+        if(type == 'local_file'){
+            var source =  $("#txtSources")[0].files[0];     
+        }else{
+            var source = (type=='external_file') ? $("#externalSources").val() : $("#htmlSources").val();
+        }        
+        var width = $("#txtWidth").unmask();
+        var height = $("#txtHeight").unmask();
+        var active = ($('#chkActive').is(":checked")) ? 1 : 0;
+        
+        var fd = new FormData($("#frmCreateBanner")[0]);
+        
+        var banner_settings = {};
+        if(type!='html_code'){
+            var settings = $("#optTemplates").find(":selected").data('setting');
+            if(settings!=''){
+                for(var k in settings){
+                    if(settings[k].type == 'file' && type!='external_file'){  
+                        banner_settings[k] = 'file';
+                        fd.append("setting_"+k, ($("#setting_"+k)[0].files[0]));
+                    }else if(settings[k].type == 'checkbox'){
+                        var chkactive = ($("#setting_"+k).is(":checked")) ? 1 : 0; 
+                        fd.append('setting_'+k, chkactive);
+                        banner_settings[k] = chkactive;
+                    } else if (settings[k].type == 'number') {
+                        banner_settings[k] = $("#setting_"+k).unmask()
+                    } else{
+                        banner_settings[k] = $("#setting_"+k).val();    
+                    }
+                }
+            }
+        }
+        banner_settings = JSON.stringify(banner_settings);
+        fd.append('source', source);
+        fd.append('width', width);
+        fd.append('height', height);
+        fd.append('active', active);
+        fd.append('banner_settings', banner_settings);
+        fd.append('ad_view', $('#optAdViews').val());
+        $.ajax({
+            type:'POST',
+            url:url,
+            data:fd,
+            cache: false,
+            processData: false,
+            contentType: false,
+            async: true,
+            success:function(data){
+                resetForm();
+                setTimeout(function () {
+                    $('input[name="banner_name"]').focus();
+                }, 1000);
+                showNotification(data.message, 'success');
+            }
+        }).fail(function(jqXhr){
+            if (jqXhr.status === 401) {
+                $(location).prop('pathname', 'auth/login');
+            }
+            if (jqXhr.status === 422) {
+                var errors = jqXhr.responseJSON;
+                if (errors.message) {
+                    var errorsHtml = errors.message;
+                }else{
+                    var errorsHtml = "<strong>Whoops!</strong> There were some problems with your input.";
+                    var error_first = '';
+                    $(".form-group").removeClass('has-error');
+                    if ($.isPlainObject(errors)){
+                        $.each(errors, function(k,v){
+                            $('div').each(function(){
+                                if (error_first.length === 0){
+                                    error_first = k;
+                                }
+                                if(k=='source'){
+                                    $(this).find('#' + k).addClass('has-error');
+                                    $(this).find('#externalSourceField').addClass('has-error');
+                                    $(this).find('#htmlSourceField').addClass('has-error');
+                                }else{
+                                    $(this).find('#' + k).addClass('has-error');
+                                    $(this).find('#' + k + "_field").addClass('has-error');
+                                }
+
+                                if(k=='width' || k=='height'){
+                                    $(this).find("#" + k).addClass('has-error');
+                                }
+                            });
+                            if (v.length > 1){
+                                for (var i=0;i<v.length;i++){
+                                    errorsHtml += '<li>' + v[i] + '</li>';
+                                }
+                            }else{
+                                errorsHtml += '<li>' + v + '</li>';
+                            }
+                        });
+                    }else{
+                        errorsHtml += '<li>' + errors + '</li>';
+                    }
+                    errorsHtml += '';
+                    $('input[name="'+ error_first +'"]').focus();
+                }
+            }
+            showNotification(errorsHtml, 'error');
+        });
+        e.preventDefault();
+    });
+    /*==== END SUBMIT FORM CREATE  ====*/
+</script>

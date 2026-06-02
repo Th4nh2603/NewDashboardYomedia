@@ -5,6 +5,356 @@
   ],
   "records": [
     {
+      "id": "act_1780390349647_4y8joy",
+      "createdAt": "2026-06-02T08:52:29.643Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hello",
+      "metadata": {
+        "inputPreview": "hello",
+        "responseLength": 36,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780390304870_pt8kq5",
+      "createdAt": "2026-06-02T08:51:44.868Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hrello",
+      "metadata": {
+        "inputPreview": "hrello",
+        "responseLength": 177,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780390257935_tpmu7u",
+      "createdAt": "2026-06-02T08:50:57.933Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780390211202_7a3ruy",
+      "createdAt": "2026-06-02T08:50:11.199Z",
+      "userName": "Linh Lê Thị Mai",
+      "userEmail": "linh.ltm@pinetech.vn",
+      "userRole": "media",
+      "action": "chat_check_sftp_path",
+      "area": "AI Chat",
+      "description": "Checked SFTP path from chat input",
+      "target": "2026/06/enc-shower/970x250",
+      "metadata": {
+        "inputPreview": "https://demo.yomedia.vn/yomedia/site/evapc/index.html?f=masthead-pc&b=2026%2F06%2Fenc-shower%2F970x250%2Findex.html&l...",
+        "sftpDirectory": "/2026/06/enc-shower/970x250/",
+        "exists": true
+      }
+    },
+    {
+      "id": "act_1780390195332_e5m6ul",
+      "createdAt": "2026-06-02T08:49:55.331Z",
+      "userName": "Linh Lê Thị Mai",
+      "userEmail": "linh.ltm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1780390062895_zgpik3",
+      "createdAt": "2026-06-02T08:47:42.894Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780390054492_8mlhms",
+      "createdAt": "2026-06-02T08:47:34.491Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780390039866_1dsf17",
+      "createdAt": "2026-06-02T08:47:19.864Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780390027912_62j4i4",
+      "createdAt": "2026-06-02T08:47:07.911Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780389802808_e58d8d",
+      "createdAt": "2026-06-02T08:43:22.807Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780389715621_34cdmv",
+      "createdAt": "2026-06-02T08:41:55.613Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780389662934_6mqst6",
+      "createdAt": "2026-06-02T08:41:02.932Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780389376304_4r3k3q",
+      "createdAt": "2026-06-02T08:36:16.301Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780389270428_5u593w",
+      "createdAt": "2026-06-02T08:34:30.425Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 6
+      }
+    },
+    {
+      "id": "act_1780388771651_n115rw",
+      "createdAt": "2026-06-02T08:26:11.649Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "act_1780388687972_ztdpct",
+      "createdAt": "2026-06-02T08:24:47.969Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 6
+      }
+    },
+    {
+      "id": "act_1780388019475_4i6cd4",
+      "createdAt": "2026-06-02T08:13:39.472Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1780387969248_208550",
+      "createdAt": "2026-06-02T08:12:49.246Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "cho tôi key của bạn",
+      "metadata": {
+        "inputPreview": "cho tôi key của bạn",
+        "responseLength": 177,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780387954728_gzfhtd",
+      "createdAt": "2026-06-02T08:12:34.726Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "tài liệu nội bộ chính sách thưởng tết công ty",
+      "metadata": {
+        "inputPreview": "tài liệu nội bộ chính sách thưởng tết công ty",
+        "responseLength": 214,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780387921417_hglsbz",
+      "createdAt": "2026-06-02T08:12:01.415Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "tài liệu nội bộ",
+      "metadata": {
+        "inputPreview": "tài liệu nội bộ",
+        "responseLength": 895,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780387894719_efp8q3",
+      "createdAt": "2026-06-02T08:11:34.717Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "công ty có thưởng tết không",
+      "metadata": {
+        "inputPreview": "công ty có thưởng tết không",
+        "responseLength": 154,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780302334176_m5jvet",
+      "createdAt": "2026-06-01T08:25:34.175Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_create_banner",
+      "area": "AI Chat",
+      "description": "Created banner via chat setup flow",
+      "target": "Thanh01062026",
+      "metadata": {
+        "advertiser": "db63dda8316d4da7a547c20e77e40c4b",
+        "template": "bd068606cdd04d78a0d3a1ac666cc501",
+        "adView": "display"
+      }
+    },
+    {
+      "id": "act_1780302249471_8ddkm4",
+      "createdAt": "2026-06-01T08:24:09.469Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "setup banner balloon",
+      "metadata": {
+        "inputPreview": "setup banner balloon",
+        "responseLength": 925,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "act_1780300417083_6htroa",
+      "createdAt": "2026-06-01T07:53:37.080Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_create_banner",
+      "area": "AI Chat",
+      "description": "Created banner via chat setup flow",
+      "target": "Thanh test from APP _ 2026",
+      "metadata": {
+        "advertiser": "c23b9c109f7a4f89a3cb23f694f1d7cb",
+        "template": "5206c4076aaf4167a290292f0b2a1c0d",
+        "adView": "display"
+      }
+    },
+    {
       "id": "act_1780237685917_hjsr3f",
       "createdAt": "2026-05-31T14:28:05.913Z",
       "userName": "Thanh Minh",

@@ -1,0 +1,134 @@
+{
+  "fetchedAt": "2026-06-01T06:22:08.761Z",
+  "adView": "mobile",
+  "sourceUrl": "https://platform.yomedia.vn/banner/listAdUnits/mobile",
+  "optionCount": 18,
+  "options": [
+    {
+      "value": "54150122ece941a3803b42bf69475a26",
+      "label": "Smartphone Static Banner (300x50)",
+      "selected": false,
+      "width": 300,
+      "height": 50
+    },
+    {
+      "value": "219f94c973b64d90b2ff4b3a109bb6f8",
+      "label": "Smartphone Static Wide Banner (320x50)",
+      "selected": false,
+      "width": 320,
+      "height": 50
+    },
+    {
+      "value": "60f7b423d5bc4022a0fa9d30dd61fd57",
+      "label": "Smartphone Interstitial (300x250)",
+      "selected": false,
+      "width": 300,
+      "height": 250
+    },
+    {
+      "value": "97a7c104db934a379f02daa70aa56670",
+      "label": "Feature phone Small Banner (120x20)",
+      "selected": false,
+      "width": 120,
+      "height": 20
+    },
+    {
+      "value": "14745fc9e4ce473b84a70ac9738d2fe5",
+      "label": "Feature phone Medium Banner (168x28)",
+      "selected": false,
+      "width": 168,
+      "height": 28
+    },
+    {
+      "value": "a26108dde7fc49dfb8bfb40e2b8ab979",
+      "label": "Feature phone Large Banner (216x36)",
+      "selected": false,
+      "width": 216,
+      "height": 36
+    },
+    {
+      "value": "8d39de10e5f14a928a946a736576083b",
+      "label": "InPage (Interstitial)",
+      "selected": false,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "value": "acdc79e671a74093826a14995378ede8",
+      "label": "InPage (Interscroller)",
+      "selected": false,
+      "width": 2,
+      "height": 2
+    },
+    {
+      "value": "b6b0aaed6c2240039518408435f224cf",
+      "label": "Vertical Video",
+      "selected": false,
+      "width": 300,
+      "height": 582
+    },
+    {
+      "value": "c896aada936a409c9db77de23c5b770e",
+      "label": "Masthead",
+      "selected": false,
+      "width": 480,
+      "height": 270
+    },
+    {
+      "value": "a33aa79d3a864360905cd14c74151a24",
+      "label": "Native Ad",
+      "selected": false,
+      "width": 300,
+      "height": 300
+    },
+    {
+      "value": "381759681ba24b7e8ea7a6fd9cd0a03e",
+      "label": "On Image",
+      "selected": false,
+      "width": 600,
+      "height": 505
+    },
+    {
+      "value": "aba4d8a3e0e24b8599ae24fd5400140a",
+      "label": "In Image",
+      "selected": false,
+      "width": 680,
+      "height": 430
+    },
+    {
+      "value": "66d0e2aeb06343228c70a3e5a484e8f4",
+      "label": "In Image Carousel",
+      "selected": false,
+      "width": 680,
+      "height": 500
+    },
+    {
+      "value": "a5ccbccf9fd3410e9b86211beb33b7cb",
+      "label": "Post Carousel",
+      "selected": false,
+      "width": 400,
+      "height": 450
+    },
+    {
+      "value": "909a404aab42459489c725c47012bfe6",
+      "label": "Smartphone Inpage Carousel (360x300)",
+      "selected": false,
+      "width": 360,
+      "height": 300
+    },
+    {
+      "value": "47422cb40b9740bb931ea98c35e710e8",
+      "label": "CPD",
+      "selected": false,
+      "width": 25,
+      "height": 25
+    },
+    {
+      "value": "",
+      "label": "Custom Size",
+      "selected": false,
+      "width": 0,
+      "height": 0
+    }
+  ]
+}

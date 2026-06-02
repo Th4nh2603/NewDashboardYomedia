@@ -55,6 +55,92 @@ export type PlatformBannerCreateForm = {
   fields: PlatformFormField[];
 };
 
+/** JSON export: all `<select>` options from /banner/create (no UI cap). */
+export type PlatformBannerCreateOptionsJson = {
+  fetchedAt: string;
+  sourceUrl: string;
+  title: string;
+  formAction: string;
+  selects: Array<{
+    id: string;
+    name: string;
+    label: string;
+    value?: string;
+    optionCount: number;
+    options: PlatformFormFieldOption[];
+  }>;
+  /** Ad Unit options per Ad View (`GET /banner/listAdUnits/{ad_view}`). */
+  adUnitsByAdView: Record<
+    string,
+    {
+      sourceUrl: string;
+      optionCount: number;
+      options: PlatformFormFieldOption[];
+    }
+  >;
+  /** Template options per Ad View (`GET /banner/listFormats/{market}?env={ad_view}`). */
+  templatesByAdView: Record<
+    string,
+    {
+      market: string;
+      sourceUrl: string;
+      optionCount: number;
+      options: PlatformFormFieldOption[];
+    }
+  >;
+};
+
+export type PlatformAdUnitOptionsForAdView = {
+  fetchedAt: string;
+  adView: string;
+  sourceUrl: string;
+  optionCount: number;
+  options: PlatformFormFieldOption[];
+};
+
+export type PlatformTemplateOptionsForAdView = {
+  fetchedAt: string;
+  adView: string;
+  market: string;
+  sourceUrl: string;
+  optionCount: number;
+  options: PlatformFormFieldOption[];
+};
+
+export type PlatformBannerSettingField = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "checkbox";
+  value?: string;
+  checked?: boolean;
+};
+
+export type PlatformBannerSettingsFragment = {
+  formatId: string;
+  type: string;
+  sourceUrl: string;
+  fields: PlatformBannerSettingField[];
+};
+
+export type BannerCreateSubmitInput = {
+  banner_name: string;
+  advertiser: string;
+  market: string;
+  landing_page: string;
+  ad_view: string;
+  adunit: string;
+  type: string;
+  template?: string;
+  use_tag: string;
+  code_tag: string;
+  notes: string;
+  width: string;
+  height: string;
+  active: number;
+  source: string;
+  banner_settings: Record<string, string | number>;
+};
+
 export type PlatformBannerPage = {
   url: string;
   fetchedAt: string;
@@ -150,6 +236,7 @@ function stripTags(fragment: string): string {
 
 function parseSelectOptions(
   selectHtml: string,
+  maxOptions = MAX_SELECT_OPTIONS,
 ): { options: PlatformFormFieldOption[]; total: number } {
   const options: PlatformFormFieldOption[] = [];
   const re = /<option([^>]*)>([\s\S]*?)<\/option>/gi;
@@ -174,13 +261,29 @@ function parseSelectOptions(
     });
   }
   const total = options.length;
+  const limit =
+    maxOptions <= 0 || !Number.isFinite(maxOptions)
+      ? total
+      : Math.min(maxOptions, total);
   return {
-    options: options.slice(0, MAX_SELECT_OPTIONS),
+    options: options.slice(0, limit),
     total,
   };
 }
 
-function fieldFromFormGroup(block: string, groupId: string): PlatformFormField | null {
+function parseOptionsFromSelectHtml(
+  html: string,
+  maxOptions = MAX_SELECT_OPTIONS,
+): PlatformFormFieldOption[] {
+  const inner = html.match(/<select[^>]*>([\s\S]*?)<\/select>/i)?.[1] ?? html;
+  return parseSelectOptions(inner, maxOptions).options;
+}
+
+function fieldFromFormGroup(
+  block: string,
+  groupId: string,
+  maxSelectOptions = MAX_SELECT_OPTIONS,
+): PlatformFormField | null {
   const label = stripTags(
     block.match(/<label[^>]*class="[^"]*control-label[^"]*"[^>]*>([\s\S]*?)<\/label>/i)?.[1] ||
       "",
@@ -206,7 +309,10 @@ function fieldFromFormGroup(block: string, groupId: string): PlatformFormField |
   const selectMatch = block.match(/<select[^>]*name="([^"]*)"[^>]*>([\s\S]*?)<\/select>/i);
   if (selectMatch) {
     const name = selectMatch[1];
-    const { options, total } = parseSelectOptions(selectMatch[2]);
+    const { options, total } = parseSelectOptions(
+      selectMatch[2],
+      maxSelectOptions,
+    );
     const selected = options.find((o) => o.selected);
     return {
       id: groupId,
@@ -305,7 +411,11 @@ function extractFormGroups(html: string): { id: string; block: string }[] {
   return groups;
 }
 
-export function parseBannerCreateForm(html: string): PlatformBannerCreateForm {
+export function parseBannerCreateForm(
+  html: string,
+  options?: { maxSelectOptions?: number },
+): PlatformBannerCreateForm {
+  const maxSelectOptions = options?.maxSelectOptions ?? MAX_SELECT_OPTIONS;
   const title = stripTags(
     html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "Create a Banner",
   );
@@ -315,7 +425,7 @@ export function parseBannerCreateForm(html: string): PlatformBannerCreateForm {
 
   const fields: PlatformFormField[] = [];
   for (const { id, block } of extractFormGroups(html)) {
-    const field = fieldFromFormGroup(block, id);
+    const field = fieldFromFormGroup(block, id, maxSelectOptions);
     if (!field) continue;
     field.id = resolveFormGroupId(id, field);
     if (field.name === "active") field.id = "active";
@@ -467,6 +577,149 @@ async function fetchBannerCreateFragment(
   });
 }
 
+async function fetchBannerListAdUnitsHtml(
+  jar: CookieJar,
+  base: string,
+  adView: string,
+): Promise<string> {
+  const res = await platformFetch(
+    `${base}/banner/listAdUnits/${encodeURIComponent(adView)}`,
+    jar,
+    {
+      headers: {
+        "x-requested-with": "XMLHttpRequest",
+        accept: "application/json, text/html, */*",
+        referer: `${base}/banner`,
+      },
+    },
+  );
+  const text = await res.text();
+  if (!res.ok) {
+    throw new HttpError(502, `Platform listAdUnits/${adView} returned ${res.status}`, {
+      code: "PLATFORM_LIST_ADUNITS_FAILED",
+    });
+  }
+  try {
+    const parsed = JSON.parse(text) as { html?: string };
+    if (parsed.html) return parsed.html;
+  } catch {
+    /* raw HTML fragment */
+  }
+  return text;
+}
+
+/** Ad Unit `<option>` list for a given Ad View (platform: `GET /banner/listAdUnits/{ad_view}`). */
+export async function fetchAdUnitOptionsForAdView(
+  adView: string,
+): Promise<PlatformAdUnitOptionsForAdView> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  await loginPlatform(jar, base);
+  const html = await fetchBannerListAdUnitsHtml(jar, base, adView);
+  const options = parseOptionsFromSelectHtml(html, Number.MAX_SAFE_INTEGER);
+  const path = `/banner/listAdUnits/${encodeURIComponent(adView)}`;
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    adView,
+    sourceUrl: `${base}${path}`,
+    optionCount: options.length,
+    options,
+  };
+}
+
+const AD_VIEW_VALUES = ["display", "mobile", "application", "video"] as const;
+const DEFAULT_BANNER_MARKET = "vn";
+
+async function fetchBannerListFormatsHtml(
+  jar: CookieJar,
+  base: string,
+  market: string,
+  adView: string,
+): Promise<string> {
+  const path = `/banner/listFormats/${encodeURIComponent(market)}?env=${encodeURIComponent(adView)}`;
+  const res = await platformFetch(`${base}${path}`, jar, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "application/json, text/html, */*",
+      referer: `${base}/banner`,
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new HttpError(502, `Platform listFormats returned ${res.status}`, {
+      code: "PLATFORM_LIST_FORMATS_FAILED",
+    });
+  }
+  try {
+    const parsed = JSON.parse(text) as { html?: string };
+    if (parsed.html) return parsed.html;
+  } catch {
+    /* raw HTML fragment */
+  }
+  return text;
+}
+
+/** Template `<option>` list for Ad View + market (`GET /banner/listFormats/{market}?env={ad_view}`). */
+export async function fetchTemplateOptionsForAdView(
+  adView: string,
+  market = DEFAULT_BANNER_MARKET,
+): Promise<PlatformTemplateOptionsForAdView> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  await loginPlatform(jar, base);
+  const html = await fetchBannerListFormatsHtml(jar, base, market, adView);
+  const options = parseOptionsFromSelectHtml(html, Number.MAX_SAFE_INTEGER);
+  const path = `/banner/listFormats/${encodeURIComponent(market)}?env=${encodeURIComponent(adView)}`;
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    adView,
+    market,
+    sourceUrl: `${base}${path}`,
+    optionCount: options.length,
+    options,
+  };
+}
+
+async function fetchAllAdUnitsByAdView(
+  jar: CookieJar,
+  base: string,
+): Promise<PlatformBannerCreateOptionsJson["adUnitsByAdView"]> {
+  const out: PlatformBannerCreateOptionsJson["adUnitsByAdView"] = {};
+  for (const adView of AD_VIEW_VALUES) {
+    const html = await fetchBannerListAdUnitsHtml(jar, base, adView);
+    const options = parseOptionsFromSelectHtml(html, Number.MAX_SAFE_INTEGER);
+    const path = `/banner/listAdUnits/${encodeURIComponent(adView)}`;
+    out[adView] = {
+      sourceUrl: `${base}${path}`,
+      optionCount: options.length,
+      options,
+    };
+  }
+  return out;
+}
+
+async function fetchAllTemplatesByAdView(
+  jar: CookieJar,
+  base: string,
+  market = DEFAULT_BANNER_MARKET,
+): Promise<PlatformBannerCreateOptionsJson["templatesByAdView"]> {
+  const out: PlatformBannerCreateOptionsJson["templatesByAdView"] = {};
+  for (const adView of AD_VIEW_VALUES) {
+    const html = await fetchBannerListFormatsHtml(jar, base, market, adView);
+    const options = parseOptionsFromSelectHtml(html, Number.MAX_SAFE_INTEGER);
+    const path = `/banner/listFormats/${encodeURIComponent(market)}?env=${encodeURIComponent(adView)}`;
+    out[adView] = {
+      market,
+      sourceUrl: `${base}${path}`,
+      optionCount: options.length,
+      options,
+    };
+  }
+  return out;
+}
+
 async function fetchBannerListFragment(
   jar: CookieJar,
   base: string,
@@ -604,4 +857,216 @@ export async function fetchPlatformBannerPage(options?: {
     grid,
     createForm,
   };
+}
+
+/** Fetch /banner/create and return every select option (for JSON export). */
+export async function fetchBannerCreateFormOptions(): Promise<PlatformBannerCreateOptionsJson> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  const csrf = await loginPlatform(jar, base);
+  const createHtml = await fetchBannerCreateFragment(jar, base, csrf);
+  const form = parseBannerCreateForm(createHtml, {
+    maxSelectOptions: Number.MAX_SAFE_INTEGER,
+  });
+  const [adUnitsByAdView, templatesByAdView] = await Promise.all([
+    fetchAllAdUnitsByAdView(jar, base),
+    fetchAllTemplatesByAdView(jar, base),
+  ]);
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    sourceUrl: `${base}/banner/create`,
+    title: form.title,
+    formAction: form.formAction,
+    selects: form.fields
+      .filter((f) => f.type === "select")
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        label: f.label,
+        value: f.value,
+        optionCount: f.options?.length ?? 0,
+        options: f.options ?? [],
+      })),
+    adUnitsByAdView,
+    templatesByAdView,
+  };
+}
+
+/** Parse `#settings` HTML fragment (`id="setting_*"`). */
+export function parseBannerSettingsFields(html: string): PlatformBannerSettingField[] {
+  const fields: PlatformBannerSettingField[] = [];
+  const seen = new Set<string>();
+
+  const knownCheckboxKeys = new Set(["close_button", "logo"]);
+  const inputRe = /<input[^>]*\bid="setting_([^"]+)"([^>]*)\/?>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = inputRe.exec(html))) {
+    const key = m[1];
+    if (seen.has(key) || key.endsWith("_field")) continue;
+
+    const attrs = m[2];
+    if (/type\s*=\s*"hidden"/i.test(attrs)) continue;
+    seen.add(key);
+    const idx = m.index ?? 0;
+    const context = html.slice(Math.max(0, idx - 500), idx);
+    const label = stripTags(
+      context.match(/control-label[^>]*>([\s\S]*?)<\/label>/i)?.[1] ?? key,
+    );
+    const nearby = html.slice(idx, idx + 400);
+    const isCheckbox =
+      knownCheckboxKeys.has(key) ||
+      /type\s*=\s*"checkbox"/i.test(attrs + nearby) ||
+      /onoffswitch-checkbox/i.test(nearby);
+    const isNumber =
+      !isCheckbox &&
+      (/input-number/i.test(attrs) ||
+        /type\s*=\s*"number"/i.test(attrs) ||
+        /class="[^"]*number/i.test(attrs));
+
+    if (isCheckbox) {
+      fields.push({
+        key,
+        label,
+        type: "checkbox",
+        checked: /\bchecked\b/i.test(attrs + nearby),
+      });
+    } else if (isNumber) {
+      fields.push({
+        key,
+        label,
+        type: "number",
+        value: attrs.match(/\bvalue="([^"]*)"/i)?.[1] ?? "",
+      });
+    } else {
+      fields.push({
+        key,
+        label,
+        type: "text",
+        value: attrs.match(/\bvalue="([^"]*)"/i)?.[1] ?? "",
+      });
+    }
+  }
+
+  return fields;
+}
+
+async function fetchBannerSettingsHtml(
+  jar: CookieJar,
+  base: string,
+  formatId: string,
+  type: string,
+): Promise<string> {
+  const path = `/banner/getSettings/${encodeURIComponent(formatId)}?type=${encodeURIComponent(type)}`;
+  const res = await platformFetch(`${base}${path}`, jar, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "application/json, text/html, */*",
+      referer: `${base}/banner`,
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new HttpError(502, `Platform getSettings returned ${res.status}`, {
+      code: "PLATFORM_GET_SETTINGS_FAILED",
+    });
+  }
+  try {
+    const parsed = JSON.parse(text) as { html?: string };
+    if (parsed.html) return parsed.html;
+  } catch {
+    /* raw HTML */
+  }
+  return text;
+}
+
+export async function fetchBannerSettingsForTemplate(
+  formatId: string,
+  type: string,
+): Promise<PlatformBannerSettingsFragment> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  await loginPlatform(jar, base);
+  const html = await fetchBannerSettingsHtml(jar, base, formatId, type);
+  const path = `/banner/getSettings/${encodeURIComponent(formatId)}?type=${encodeURIComponent(type)}`;
+
+  return {
+    formatId,
+    type,
+    sourceUrl: `${base}${path}`,
+    fields: parseBannerSettingsFields(html),
+  };
+}
+
+function appendBannerSettingsToFormData(
+  fd: FormData,
+  settings: Record<string, string | number>,
+): void {
+  for (const [key, raw] of Object.entries(settings)) {
+    fd.append(`setting_${key}`, String(raw));
+  }
+}
+
+/** POST /banner/store (multipart) using platform session. */
+export async function submitBannerCreate(
+  input: BannerCreateSubmitInput,
+): Promise<{ message: string }> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  const csrf = await loginPlatform(jar, base);
+  const fd = new FormData();
+
+  fd.append("_token", csrf);
+  fd.append("banner_name", input.banner_name);
+  fd.append("advertiser", input.advertiser);
+  fd.append("market", input.market);
+  fd.append("landing_page", input.landing_page);
+  fd.append("adunit", input.adunit);
+  fd.append("type", input.type);
+  if (input.template) fd.append("template", input.template);
+  fd.append("use_tag", input.use_tag);
+  fd.append("code_tag", input.code_tag);
+  fd.append("notes", input.notes);
+  fd.append("ad_view", input.ad_view);
+  fd.append("width", String(input.width));
+  fd.append("height", String(input.height));
+  fd.append("active", String(input.active));
+  fd.append("source", input.source);
+  fd.append("banner_settings", JSON.stringify(input.banner_settings));
+  appendBannerSettingsToFormData(fd, input.banner_settings);
+
+  const res = await platformFetch(`${base}/banner/store`, jar, {
+    method: "POST",
+    headers: {
+      referer: `${base}/banner`,
+      origin: base,
+    },
+    body: fd,
+  });
+
+  const text = await res.text();
+  let body: { message?: string; errors?: Record<string, string[]> };
+  try {
+    body = JSON.parse(text) as { message?: string; errors?: Record<string, string[]> };
+  } catch {
+    throw new HttpError(502, "Platform banner/store returned non-JSON", {
+      code: "PLATFORM_BANNER_STORE_INVALID",
+      detail: text.slice(0, 500),
+    });
+  }
+
+  if (!res.ok) {
+    const detail =
+      body.message ||
+      (body.errors
+        ? Object.entries(body.errors)
+            .map(([k, v]) => `${k}: ${v.join(", ")}`)
+            .join("; ")
+        : text.slice(0, 300));
+    throw new HttpError(res.status === 422 ? 422 : 502, detail || "Banner create failed", {
+      code: "PLATFORM_BANNER_STORE_FAILED",
+    });
+  }
+
+  return { message: body.message ?? "Banner created" };
 }
