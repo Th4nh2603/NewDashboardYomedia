@@ -4,7 +4,7 @@ import Button from "../components/Button";
 import InputPopup from "../components/InputPopup";
 import NoticePopup from "../components/NoticePopup";
 import { useAuth } from "../contexts/AuthContext";
-import brandColors from "../data/brandColors.json";
+import { getBrandColorClass } from "../lib/brandColors";
 import { backendErrorFromResponse, fetchJsonOrThrow } from "../lib/apiError";
 import { api } from "../lib/trpc/api";
 import { fetchWithApiAuth } from "../lib/apiAuth";
@@ -208,25 +208,6 @@ function getDownloadNameFromDisposition(header: string | null): string | null {
   }
   const plainMatch = header.match(/filename="?([^";]+)"?/i);
   return plainMatch?.[1]?.trim() || null;
-}
-
-function getBrandColorClass(name: string) {
-  const lower = name.toLowerCase();
-  const match = (
-    brandColors as {
-      keyword: string;
-      className: string;
-      match?: "start" | "any";
-    }[]
-  ).find((item) => {
-    const kw = item.keyword.toLowerCase();
-    if (!kw) return false;
-    if (item.match === "start") {
-      return lower.startsWith(kw);
-    }
-    return lower.includes(kw);
-  });
-  return match?.className || "text-[#e5e7eb]";
 }
 
 const ManageSftp: React.FC = () => {

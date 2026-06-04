@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { trpcTransformer } from "@yomedia/api";
 import type { TrpcContext } from "./context.js";
-import { HttpError, isHttpError } from "../lib/http/errors.js";
+import { errToHttpError, HttpError, isHttpError } from "../lib/http/errors.js";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: trpcTransformer,
@@ -46,14 +46,28 @@ export function throwHttp(err: HttpError): never {
   });
 }
 
+/** Maps any thrown value to TRPC + HttpError (used by procedure middleware). */
+export function normalizeThrownError(err: unknown): never {
+  if (err instanceof TRPCError) throw err;
+  const http = isHttpError(err) ? err : errToHttpError(err);
+  throwHttp(http);
+}
+
 export async function runHandler<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (isHttpError(err)) throwHttp(err);
-    throw err;
+    normalizeThrownError(err);
   }
 }
+
+const httpErrorMiddleware = t.middleware(async ({ next }) => {
+  try {
+    return await next();
+  } catch (err) {
+    normalizeThrownError(err);
+  }
+});
 
 const requireAuth = t.middleware(({ ctx, next }) => {
   if (!ctx.auth) {
@@ -77,6 +91,6 @@ const requireAdmin = t.middleware(({ ctx, next }) => {
 });
 
 export const router = t.router;
-export const publicProcedure = t.procedure;
-export const protectedProcedure = t.procedure.use(requireAuth);
+export const publicProcedure = t.procedure.use(httpErrorMiddleware);
+export const protectedProcedure = publicProcedure.use(requireAuth);
 export const adminProcedure = protectedProcedure.use(requireAdmin);

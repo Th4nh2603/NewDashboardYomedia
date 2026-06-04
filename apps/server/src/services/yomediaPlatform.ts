@@ -1051,7 +1051,7 @@ export async function submitBannerCreate(
   } catch {
     throw new HttpError(502, "Platform banner/store returned non-JSON", {
       code: "PLATFORM_BANNER_STORE_INVALID",
-      detail: text.slice(0, 500),
+      details: { bodyPreview: text.slice(0, 500) },
     });
   }
 

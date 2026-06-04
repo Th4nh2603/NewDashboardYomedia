@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { isBackendRequestError } from '../lib/apiError';
+import { getApiErrorPresentation } from '../lib/apiErrorPresentation';
+import { normalizeApiError } from '../lib/normalizeApiError';
 import Button from '../components/Button';
 
 export type ErrorSeverity = 'error' | 'warning' | 'info';
@@ -37,60 +38,22 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleApiError = useCallback((error: unknown, context: string = 'Operation') => {
     console.error(`[${context}] API Error:`, error);
+    const backend = normalizeApiError(error);
+    let { message, severity, title } = getApiErrorPresentation(backend, context);
 
-    let message =
-      error instanceof Error ? error.message : 'An unexpected error occurred.';
-    let severity: ErrorSeverity = 'error';
-    let title = `${context} failed`;
-
-    const backend = isBackendRequestError(error) ? error : null;
-    if (backend) {
-      if (backend.status === 429) {
-        message =
-          'Too many requests. Please wait a moment before trying again.';
-        severity = 'warning';
-        title = 'Rate limit';
-      } else if (backend.status === 403 || backend.code === 'FORBIDDEN') {
-        title = 'Access denied';
-        severity = 'warning';
-      } else if (
-        backend.status === 404 ||
-        backend.code === 'NOT_FOUND' ||
-        backend.code === 'ENOENT'
-      ) {
-        title = 'Not found';
-        severity = 'warning';
-      } else if (backend.status === 409 || backend.code === 'CONFLICT') {
-        title = 'Conflict';
-        severity = 'warning';
-      } else if (backend.status === 400 || backend.status === 422) {
-        title = 'Invalid request';
-        severity = 'warning';
-      } else if (backend.status >= 500) {
-        title = 'Server error';
-        severity = 'error';
-      }
-      notify(message, severity, title);
-      return;
-    }
-
-    if (/429|rate limit/i.test(message)) {
-      message =
-        'Too many requests. Please wait a moment before trying again.';
-      severity = 'warning';
-      title = 'Rate limit';
-    } else if (/\b401\b|\b403\b|forbidden/i.test(message)) {
-      message = 'Access denied. Check permissions or API credentials.';
-      title = 'Access denied';
-    } else if (message.includes('Requested entity was not found')) {
+    // Client-only Gemini / AI Studio errors (not from our API layer).
+    if (
+      backend.status >= 500 &&
+      /Requested entity was not found/i.test(backend.message)
+    ) {
       message =
         'The requested model or resource was not found. This might be an API key project issue.';
       title = 'Resource not found';
       severity = 'warning';
-    } else if (/\b500\b|\b503\b|overloaded/i.test(message)) {
-      message =
-        'The AI server is busy or returned an error. Retrying might help.';
-      title = 'Server error';
+    } else if (/overloaded/i.test(backend.message)) {
+      message = 'The AI server is busy. Retrying might help.';
+      title = 'Server busy';
+      severity = 'warning';
     }
 
     notify(message, severity, title);

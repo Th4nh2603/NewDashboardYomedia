@@ -16,6 +16,8 @@ type ChatAttachmentMeta = {
   relativePath?: string;
   size: number;
   mimeType?: string;
+  contentBase64?: string;
+  encoding?: "base64";
 };
 
 function normalizeApiRole(role: string): AccountRole {
@@ -150,9 +152,17 @@ export const api = {
       question: string,
       provider?: "gemini" | "openai",
       attachments?: ChatAttachmentMeta[],
+      sessionId?: string,
     ) =>
       call(() =>
-        trpcClient.rag.query.mutate({ question, provider, attachments }),
+        trpcClient.rag.query.mutate({
+          question,
+          provider,
+          attachments,
+          sessionId,
+        }),
       ),
+    clearSession: (input?: { sessionId?: string; allSessions?: boolean }) =>
+      call(() => trpcClient.rag.clearSession.mutate(input ?? {})),
   },
 };

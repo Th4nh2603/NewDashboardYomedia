@@ -2,6 +2,20 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 
 export type HttpErrorDetails = Record<string, unknown>;
 
+/** Stable codes for clients and logs (see errorFormatter / fetch JSON `code`). */
+export const ErrorCode = {
+  VALIDATION: "VALIDATION",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  NOT_FOUND: "NOT_FOUND",
+  CONFLICT: "CONFLICT",
+  EXTERNAL_API: "EXTERNAL_API",
+  SFTP: "SFTP",
+  INTERNAL: "INTERNAL",
+} as const;
+
+export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
+
 export class HttpError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -24,16 +38,66 @@ export function isHttpError(err: unknown): err is HttpError {
   return err instanceof HttpError;
 }
 
+function httpErrorFromMessage(message: string): HttpError | null {
+  if (/API_KEY is missing/i.test(message)) {
+    return new HttpError(503, message, { code: ErrorCode.EXTERNAL_API });
+  }
+  if (/Missing SFTP|SFTP_|on SFTP|SFTP credentials/i.test(message)) {
+    return new HttpError(502, message, { code: ErrorCode.SFTP });
+  }
+  if (/Missing role|Forbidden|not allowed|Access denied/i.test(message)) {
+    return new HttpError(403, message, { code: ErrorCode.FORBIDDEN });
+  }
+  if (/not found|does not exist/i.test(message)) {
+    return new HttpError(404, message, { code: ErrorCode.NOT_FOUND });
+  }
+  return null;
+}
+
+export function badRequest(
+  message: string,
+  details?: HttpErrorDetails,
+): HttpError {
+  return new HttpError(400, message, {
+    code: ErrorCode.VALIDATION,
+    details,
+  });
+}
+
+export function unauthorized(message: string): HttpError {
+  return new HttpError(401, message, { code: ErrorCode.UNAUTHORIZED });
+}
+
+export function forbidden(message: string): HttpError {
+  return new HttpError(403, message, { code: ErrorCode.FORBIDDEN });
+}
+
+export function notFound(message: string): HttpError {
+  return new HttpError(404, message, { code: ErrorCode.NOT_FOUND });
+}
+
+export function serviceUnavailable(
+  message: string,
+  options?: { code?: ErrorCodeValue; details?: HttpErrorDetails },
+): HttpError {
+  return new HttpError(503, message, {
+    code: options?.code ?? ErrorCode.EXTERNAL_API,
+    details: options?.details,
+  });
+}
+
 export function errToHttpError(err: unknown): HttpError {
   if (isHttpError(err)) return err;
   const nodeErr = err as NodeJS.ErrnoException;
   if (nodeErr?.code === "ENOENT") {
-    return new HttpError(404, "Not found", { code: "ENOENT" });
+    return new HttpError(404, "Not found", { code: ErrorCode.NOT_FOUND });
   }
   if (err instanceof Error) {
-    return new HttpError(500, err.message, { code: "INTERNAL" });
+    const mapped = httpErrorFromMessage(err.message);
+    if (mapped) return mapped;
+    return new HttpError(500, err.message, { code: ErrorCode.INTERNAL });
   }
-  return new HttpError(500, "Internal server error", { code: "INTERNAL" });
+  return new HttpError(500, "Internal server error", { code: ErrorCode.INTERNAL });
 }
 
 function clientSafeMessage(http: HttpError): string {

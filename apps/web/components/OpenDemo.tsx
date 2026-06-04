@@ -252,7 +252,12 @@ async function getFormatFromData(
       ? preloadedActiveDemos
       : await loadActiveCreativeDemos();
 
-  const foundBySize = demos.find((item) => {
+  const sizeKey = size.toLowerCase();
+  const preferredBySize: Record<string, string> = {
+    "384x683": "mobile-interstitial-firstview",
+  };
+  const preferredValue = preferredBySize[sizeKey];
+  const matchesSize = (item: CreativeDemoItem) => {
     const sizes: unknown[] = [];
     const raw = item.size;
     if (Array.isArray(raw)) {
@@ -263,8 +268,16 @@ async function getFormatFromData(
     } else if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
       sizes.push(raw);
     }
-    return sizes.some((s) => sizeMatches(s, size)) && Boolean(item.value);
-  });
+    return sizes.some((s) => sizeMatches(s, sizeKey)) && Boolean(item.value);
+  };
+  const foundBySize =
+    (preferredValue
+      ? demos.find(
+          (item) =>
+            String(item.value ?? "").trim() === preferredValue &&
+            matchesSize(item),
+        )
+      : undefined) ?? demos.find(matchesSize);
 
   const format = foundBySize?.value || fallbackFormatBySize(size, demos);
   const category = foundBySize?.category ? String(foundBySize.category) : null;

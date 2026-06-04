@@ -1,12 +1,7 @@
-export type UserIntentLabel =
-  | "knowledge_qa"
-  | "action_request"
-  | "hybrid"
-  | "clarification_needed"
-  | "unsupported";
+import type { Intent } from "../core/types.js";
 
-export type UserIntentClassification = {
-  label: UserIntentLabel;
+export type IntentClassification = {
+  intent: Intent;
   confidence: number;
   reason: string;
 };

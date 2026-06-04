@@ -1,9 +1,9 @@
 
 import React from "react";
-import ChatView from "../components/ChatView";
+import ChatContent from "../components/Chat";
 
 const Chat: React.FC = () => {
-  return <ChatView />;
+  return <ChatContent />;
 };
 
 export default Chat;

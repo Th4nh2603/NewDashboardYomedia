@@ -1,28 +1,29 @@
-import type { UserIntentClassification } from "../intent/types.js";
+export type ChatProvider = "gemini" | "openai";
 
-export type ChatAiProvider = "gemini" | "openai";
+export type Intent = "knowledge_qa" | "free_chat" | "actions";
+
+export type MemoryMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export type ChatAttachmentMeta = {
   name: string;
   relativePath?: string;
   size: number;
   mimeType?: string;
+  contentBase64?: string;
+  encoding?: "base64";
 };
 
-export type AnswerMode =
-  | "delete_demo"
-  | "upload_demo"
-  | "web"
-  | "rag"
-  | "clarification"
-  | "unsupported";
-
 export type RagAnswerResult = {
+  ok: true;
   answer: string;
-  provider: ChatAiProvider;
-  mode: AnswerMode;
-  intent?: UserIntentClassification;
-  action?: unknown;
-  sources: Array<{ source: string; preview: string }>;
-  rag: { readyAt: number; sourceCount: number } | null;
+  provider: ChatProvider;
+  intent: Intent;
+  sources: string[];
+  fallbackUsed: boolean;
+  toolCalled?: "time_now" | "help" | "build_demo";
+  /** True while server executed Build Demo (upload) on this request. */
+  buildDemoProcessing?: boolean;
 };

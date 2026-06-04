@@ -77,9 +77,10 @@ const ImageGenerator: React.FC = () => {
       } else {
         throw new Error('No image was generated in the response');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Generation error:', error);
-      if (error.message?.includes("Requested entity was not found")) {
+      const errMessage = error instanceof Error ? error.message : '';
+      if (errMessage.includes("Requested entity was not found")) {
         setHasApiKey(false);
         notify('API Key error. Please select a valid key again.', 'error', 'Key Error');
       } else {

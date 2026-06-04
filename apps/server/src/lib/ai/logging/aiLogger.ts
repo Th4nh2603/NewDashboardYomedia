@@ -1,26 +1,25 @@
-type AiLogLevel = "info" | "warn" | "error";
+import { appendActivityLog } from "../../../services/activityLog.js";
+import { logBestEffort } from "../../logBestEffort.js";
 
-function safeJson(value: unknown): string {
+export async function logChatEvent(input: {
+  action: string;
+  description: string;
+  role: string;
+  email?: string;
+  metadata?: Record<string, unknown>;
+}) {
   try {
-    return JSON.stringify(value);
-  } catch {
-    return '"[unserializable]"';
+    await appendActivityLog({
+      userName: input.email || "unknown",
+      userEmail: input.email || "",
+      userRole: input.role,
+      action: input.action,
+      area: "Chat",
+      description: input.description,
+      target: "rag.query",
+      metadata: input.metadata,
+    });
+  } catch (err) {
+    logBestEffort("ai.activityLog", err, { action: input.action });
   }
-}
-
-export function logAiEvent(
-  event: string,
-  payload: Record<string, unknown>,
-  level: AiLogLevel = "info",
-): void {
-  const line = `[ai.${event}] ${safeJson(payload)}`;
-  if (level === "warn") {
-    console.warn(line);
-    return;
-  }
-  if (level === "error") {
-    console.error(line);
-    return;
-  }
-  console.info(line);
 }

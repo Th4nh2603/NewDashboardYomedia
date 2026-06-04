@@ -23,7 +23,7 @@ function normalizeBrandLookupKey(value: string): string {
 const UPLOAD_DEMO_BRAND_NAME =
   String.raw`(?:[a-z0-9][a-z0-9_-]*(?:\s+[a-z0-9][a-z0-9_-]*)*)`;
 const UPLOAD_DEMO_BRAND_STOP =
-  String.raw`\s+(?:format|demoValue|demo_value|value|path|to|target|demoId|demo_id|creativeId|creative_id)\b`;
+  String.raw`\s+(?:format|html|video|mp4|webm|mov|demoValue|demo_value|value|path|to|target|demoId|demo_id|creativeId|creative_id)\b`;
 
 export function extractUploadDemoBrandFromText(input: string): string | null {
   const patterns = [

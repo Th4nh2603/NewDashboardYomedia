@@ -6,7 +6,6 @@ import {
   loginWithEmailPassword,
   resolveSessionUser,
 } from "../../services/auth.js";
-import { normalizeAccountText } from "../../lib/auth/accounts.js";
 import {
   protectedProcedure,
   publicProcedure,
@@ -22,13 +21,15 @@ export const authRouter = router({
         password: z.string().min(1),
       }),
     )
-    .mutation(({ input }) => {
-      const result = loginWithEmailPassword(input.email, input.password);
-      if (!result.ok) {
-        throw new HttpError(401, result.error);
-      }
-      return result;
-    }),
+    .mutation(({ input }) =>
+      runHandler(async () => {
+        const result = loginWithEmailPassword(input.email, input.password);
+        if (!result.ok) {
+          throw new HttpError(401, result.error, { code: "UNAUTHORIZED" });
+        }
+        return result;
+      }),
+    ),
 
   me: protectedProcedure
     .input(
@@ -70,12 +71,14 @@ export const authRouter = router({
 
   accountProfile: publicProcedure
     .input(z.object({ email: z.string().email().or(z.string().min(1)) }))
-    .query(({ input }) => {
-      const result = getAccountProfile(input.email);
-      if (!result.ok) {
-        const status = result.error === "Account not found" ? 404 : 400;
-        throw new HttpError(status, result.error);
-      }
-      return result;
-    }),
+    .query(({ input }) =>
+      runHandler(async () => {
+        const result = getAccountProfile(input.email);
+        if (!result.ok) {
+          const status = result.error === "Account not found" ? 404 : 400;
+          throw new HttpError(status, result.error);
+        }
+        return result;
+      }),
+    ),
 });

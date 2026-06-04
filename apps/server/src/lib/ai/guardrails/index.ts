@@ -1,51 +1,14 @@
-type GuardrailAllow = { allowed: true };
-type GuardrailBlock = {
-  allowed: false;
-  reason: string;
-  userMessage: string;
-};
+import { MAX_QUESTION_LENGTH } from "../core/config.js";
 
-export type GuardrailDecision = GuardrailAllow | GuardrailBlock;
-
-export function guardQuestionInput(question: string): GuardrailDecision {
-  const trimmed = question.trim();
-  if (!trimmed) {
-    return {
-      allowed: false,
-      reason: "empty_question",
-      userMessage: "Câu hỏi đang trống. Vui lòng nhập nội dung.",
-    };
+export function runInputGuardrails(input: string): string | null {
+  const text = String(input || "").trim();
+  if (!text) return "Tin nhắn trống. Vui lòng nhập câu hỏi.";
+  if (text.length > MAX_QUESTION_LENGTH) {
+    return `Tin nhắn quá dài (>${MAX_QUESTION_LENGTH} ký tự). Vui lòng rút gọn.`;
   }
-  if (trimmed.length > 8000) {
-    return {
-      allowed: false,
-      reason: "question_too_long",
-      userMessage:
-        "Nội dung quá dài để xử lý an toàn trong một lượt. Vui lòng chia nhỏ câu hỏi.",
-    };
+  const banned = /(password|token|api key|private key|credit card|cvv)/i;
+  if (banned.test(text)) {
+    return "Yêu cầu chứa nội dung nhạy cảm. Vui lòng bỏ thông tin bí mật trước khi gửi.";
   }
-  return { allowed: true };
-}
-
-export function guardActionPlan(plan: {
-  tool?: string;
-  remotePath?: string | null;
-}): GuardrailDecision {
-  const allowedTools = new Set(["build_demo_convert_upload", "delete_uploaded_demo"]);
-  if (!plan.tool || !allowedTools.has(plan.tool)) {
-    return {
-      allowed: false,
-      reason: "tool_not_allowed",
-      userMessage: "Tool này hiện chưa được phép thực thi.",
-    };
-  }
-  const remotePath = String(plan.remotePath ?? "").trim();
-  if (remotePath && /(^|\/)\.\.(\/|$)/.test(remotePath)) {
-    return {
-      allowed: false,
-      reason: "invalid_remote_path",
-      userMessage: "Đường dẫn không hợp lệ.",
-    };
-  }
-  return { allowed: true };
+  return null;
 }

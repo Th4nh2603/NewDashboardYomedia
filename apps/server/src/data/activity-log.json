@@ -5,6 +5,3068 @@
   ],
   "records": [
     {
+      "id": "act_1780570428225_gqd1s6",
+      "createdAt": "2026-06-04T10:53:48.213Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780570045628_fqdw5q",
+      "createdAt": "2026-06-04T10:47:25.623Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780569976666_p8g4vy",
+      "createdAt": "2026-06-04T10:46:16.663Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780565720076",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780569893956_ktqjnz",
+      "createdAt": "2026-06-04T10:44:53.952Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ brand demo → media (có ghi đè thư mục đã tồn tại)",
+      "target": "/media/2026/06/romano",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/06/romano",
+        "year": "2026",
+        "month": "06",
+        "brand": "romano",
+        "copiedFiles": 79,
+        "copiedDirectories": 2,
+        "skippedDirectories": [],
+        "overwriteDirectories": [
+          "",
+          "all",
+          "all/video",
+          "all/video-1",
+          "all/video-2",
+          "all/html",
+          "all/html/384x683",
+          "all/html/600x125",
+          "all/html/600x125/video",
+          "all/html/600x125/video/images",
+          "all/html/600x125/video/videos",
+          "all/html/600x125/video/components",
+          "all/html/600x125/video/components/sdk",
+          "all/html/600x125/video/components/ui",
+          "all/html/600x125/video/components/ui/src",
+          "all/html/600x125/video/components/video",
+          "all/html/600x125/video/components/video/src",
+          "all/html/600x125-1",
+          "all/html/600x125-1/video",
+          "all/html/600x125-1/video/images",
+          "all/html/600x125-1/video/videos",
+          "all/html/600x125-1/video/components",
+          "all/html/600x125-1/video/components/sdk",
+          "all/html/600x125-1/video/components/ui",
+          "all/html/600x125-1/video/components/ui/src",
+          "all/html/600x125-1/video/components/video",
+          "all/html/600x125-1/video/components/video/src",
+          "all/html/600x125-2",
+          "all/html/600x125-2/video",
+          "all/html/600x125-2/video/images",
+          "all/html/600x125-2/video/videos",
+          "all/html/600x125-2/video/components",
+          "all/html/600x125-2/video/components/sdk",
+          "all/html/600x125-2/video/components/ui",
+          "all/html/600x125-2/video/components/ui/src",
+          "all/html/600x125-2/video/components/video",
+          "all/html/600x125-2/video/components/video/src",
+          "all/html/384x683-1",
+          "all/html/384x683-1/images",
+          "all/video-3",
+          "all/video-4",
+          "all/video-5"
+        ]
+      }
+    },
+    {
+      "id": "act_1780569756081_t1s9ht",
+      "createdAt": "2026-06-04T10:42:36.076Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ brand demo → media (chỉ thư mục mới)",
+      "target": "/media/2026/06/romano",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/06/romano",
+        "year": "2026",
+        "month": "06",
+        "brand": "romano",
+        "copiedFiles": 0,
+        "copiedDirectories": 0,
+        "skippedDirectories": [
+          ""
+        ],
+        "overwriteDirectories": []
+      }
+    },
+    {
+      "id": "act_1780569702088_mhnpg0",
+      "createdAt": "2026-06-04T10:41:42.084Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780569677431_e7ic6y",
+      "createdAt": "2026-06-04T10:41:17.427Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780569582658_9elgll",
+      "createdAt": "2026-06-04T10:39:42.655Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780569108765_ml5zr3",
+      "createdAt": "2026-06-04T10:31:48.763Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780567319060",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780569108599_or5zah",
+      "createdAt": "2026-06-04T10:31:48.597Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780567319060",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780569108465_k81r52",
+      "createdAt": "2026-06-04T10:31:48.462Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780567319060",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780569108281_0aww5w",
+      "createdAt": "2026-06-04T10:31:48.279Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780567319060",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780569108085_5ailf4",
+      "createdAt": "2026-06-04T10:31:48.082Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780567319060",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568564756_5xv7iu",
+      "createdAt": "2026-06-04T10:22:44.754Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780568530477",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568564634_mo8qen",
+      "createdAt": "2026-06-04T10:22:44.632Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780568530477",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568564620_05vp84",
+      "createdAt": "2026-06-04T10:22:44.618Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780568530477",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568564607_s79pup",
+      "createdAt": "2026-06-04T10:22:44.604Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780568530477",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568536459_xq9seb",
+      "createdAt": "2026-06-04T10:22:16.444Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780565105098",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780568347799_38l4au",
+      "createdAt": "2026-06-04T10:19:07.796Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 31
+      }
+    },
+    {
+      "id": "act_1780567771302_kbwagp",
+      "createdAt": "2026-06-04T10:09:31.298Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780567643498_sxrlsa",
+      "createdAt": "2026-06-04T10:07:23.496Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 31
+      }
+    },
+    {
+      "id": "act_1780567233647_hc9rmp",
+      "createdAt": "2026-06-04T10:00:33.644Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780565720076",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780567233483_ot1fkc",
+      "createdAt": "2026-06-04T10:00:33.481Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780565720076",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780567233347_cgwtxq",
+      "createdAt": "2026-06-04T10:00:33.345Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780565720076",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780567231683_0jc7ht",
+      "createdAt": "2026-06-04T10:00:31.671Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780394451169",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780565108726_q8k4qq",
+      "createdAt": "2026-06-04T09:25:08.709Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780563036036",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780564481493_3yvdq7",
+      "createdAt": "2026-06-04T09:14:41.491Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ brand demo → media (chỉ thư mục mới)",
+      "target": "/media/2026/06/bbhh",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/06/bbhh",
+        "year": "2026",
+        "month": "06",
+        "brand": "bbhh",
+        "copiedFiles": 6,
+        "copiedDirectories": 6,
+        "skippedDirectories": [],
+        "overwriteDirectories": []
+      }
+    },
+    {
+      "id": "act_1780563557454_7dlnjp",
+      "createdAt": "2026-06-04T08:59:17.450Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780563529268_l6hnsu",
+      "createdAt": "2026-06-04T08:58:49.265Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780563436298",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780563457375_6jcn2j",
+      "createdAt": "2026-06-04T08:57:37.364Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780563083199_mk3qfd",
+      "createdAt": "2026-06-04T08:51:23.194Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780563039125_b8x6pg",
+      "createdAt": "2026-06-04T08:50:39.099Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780561009885",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780563037659_zd1eo0",
+      "createdAt": "2026-06-04T08:50:37.656Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780563036036",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780562946457_yruq22",
+      "createdAt": "2026-06-04T08:49:06.453Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780562933638_6jwxcb",
+      "createdAt": "2026-06-04T08:48:53.636Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780562887942_ssmipx",
+      "createdAt": "2026-06-04T08:48:07.941Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780562810044_prj2sv",
+      "createdAt": "2026-06-04T08:46:50.041Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting build results"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780562287758",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780562395694_ycs6kc",
+      "createdAt": "2026-06-04T08:39:55.688Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780562383456_vduga2",
+      "createdAt": "2026-06-04T08:39:43.451Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780562366507_9synft",
+      "createdAt": "2026-06-04T08:39:26.502Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 2
+      }
+    },
+    {
+      "id": "act_1780561194658_gom8ix",
+      "createdAt": "2026-06-04T08:19:54.654Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780561181981_t659b0",
+      "createdAt": "2026-06-04T08:19:41.979Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780561145483_793knd",
+      "createdAt": "2026-06-04T08:19:05.481Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780561138164_f0pt99",
+      "createdAt": "2026-06-04T08:18:58.161Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780561128288_tx08be",
+      "createdAt": "2026-06-04T08:18:48.283Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780561041460_k02g7l",
+      "createdAt": "2026-06-04T08:17:21.454Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780561009885",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780560783713_vmupkc",
+      "createdAt": "2026-06-04T08:13:03.709Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780560769234_zsnfp3",
+      "createdAt": "2026-06-04T08:12:49.230Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780560757907_nps890",
+      "createdAt": "2026-06-04T08:12:37.905Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780558030954_8jzi3s",
+      "createdAt": "2026-06-04T07:27:10.952Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780557992476_4lwrwk",
+      "createdAt": "2026-06-04T07:26:32.473Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780557960809_d697ck",
+      "createdAt": "2026-06-04T07:26:00.807Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780557698141_12xnkj",
+      "createdAt": "2026-06-04T07:21:38.137Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.9,
+          "reason": "related to internal tool usage"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556721426",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780557687488_oxo986",
+      "createdAt": "2026-06-04T07:21:27.484Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780556721426",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780556974275_2qr8pi",
+      "createdAt": "2026-06-04T07:09:34.273Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780556949777_he8lt4",
+      "createdAt": "2026-06-04T07:09:09.775Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780556818599_aym8zg",
+      "createdAt": "2026-06-04T07:06:58.595Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation about Osgiliath"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556721426",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780556796356_v9olbh",
+      "createdAt": "2026-06-04T07:06:36.352Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation about Gondor"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556721426",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780556457601_y1kh95",
+      "createdAt": "2026-06-04T07:00:57.598Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "README.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting specific format information"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556450602",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780556436107_39gnr0",
+      "createdAt": "2026-06-04T07:00:36.103Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.7,
+          "reason": "potential reference to ad dimensions"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556222664",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780556268501_ljt6sf",
+      "createdAt": "2026-06-04T06:57:48.499Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "README.md",
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.9,
+          "reason": "request for documentation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780556222664",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780554288981_gxv2r0",
+      "createdAt": "2026-06-04T06:24:48.978Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780554280681_0j9rxt",
+      "createdAt": "2026-06-04T06:24:40.679Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780554266868",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780554271396_51ou66",
+      "createdAt": "2026-06-04T06:24:31.389Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780488488633",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780546950941_fp9ec0",
+      "createdAt": "2026-06-04T04:22:30.937Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780488667256",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780546583047_02a501",
+      "createdAt": "2026-06-04T04:16:23.043Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "sync_brand_demo_to_media",
+      "area": "Manage SFTP",
+      "description": "Đồng bộ brand demo → media (có ghi đè thư mục đã tồn tại)",
+      "target": "/media/2026/06/romano",
+      "metadata": {
+        "logicalPath": "/script/demo/2026/06/romano",
+        "year": "2026",
+        "month": "06",
+        "brand": "romano",
+        "copiedFiles": 75,
+        "copiedDirectories": 39,
+        "skippedDirectories": [],
+        "overwriteDirectories": [
+          "",
+          "all",
+          "all/video-3"
+        ]
+      }
+    },
+    {
+      "id": "act_1780488660357_549f1p",
+      "createdAt": "2026-06-03T12:11:00.355Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780488488633",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780488605547_jwga3h",
+      "createdAt": "2026-06-03T12:10:05.531Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780483779231",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780488537226_8vbyi4",
+      "createdAt": "2026-06-03T12:08:57.224Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/bbhh",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780488519041_pf9b2p",
+      "createdAt": "2026-06-03T12:08:39.039Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780488494034_jbs2g9",
+      "createdAt": "2026-06-03T12:08:14.029Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780488488633",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780488245396_shui2b",
+      "createdAt": "2026-06-03T12:04:05.392Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general term without specific context"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780488210697",
+        "memoryTurns": 4
+      }
+    },
+    {
+      "id": "act_1780488235904_0958z4",
+      "createdAt": "2026-06-03T12:03:55.899Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "README.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting brand information"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780488210697",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780488225769_xkp68h",
+      "createdAt": "2026-06-03T12:03:45.760Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780487997115_joizqa",
+      "createdAt": "2026-06-03T11:59:57.112Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md",
+          "README.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting information on video formatting process"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487926977",
+        "memoryTurns": 10
+      }
+    },
+    {
+      "id": "act_1780487980920_dycgqo",
+      "createdAt": "2026-06-03T11:59:40.918Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting information related to video catalog"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487926977",
+        "memoryTurns": 8
+      }
+    },
+    {
+      "id": "act_1780487964968_t6w1sf",
+      "createdAt": "2026-06-03T11:59:24.964Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "brand mention without specific inquiry"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487926977",
+        "memoryTurns": 6
+      }
+    },
+    {
+      "id": "act_1780487950958_kymf97",
+      "createdAt": "2026-06-03T11:59:10.954Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.7,
+          "reason": "possible reference to a product or internal document"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487926977",
+        "memoryTurns": 4
+      }
+    },
+    {
+      "id": "act_1780487940231_a5ld74",
+      "createdAt": "2026-06-03T11:59:00.228Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780487934187_zs6n7s",
+      "createdAt": "2026-06-03T11:58:54.183Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487926977",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780487889596_hilorv",
+      "createdAt": "2026-06-03T11:58:09.594Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "delete_path",
+      "area": "Manage Demo",
+      "description": "Deleted folder from SFTP",
+      "target": "/script/demo/2026/06/yomedia",
+      "metadata": {
+        "scope": "demo",
+        "isDir": true
+      }
+    },
+    {
+      "id": "act_1780487636036_7602rt",
+      "createdAt": "2026-06-03T11:53:56.033Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780487617915_inntnx",
+      "createdAt": "2026-06-03T11:53:37.911Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 1,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487561009",
+        "memoryTurns": 8
+      }
+    },
+    {
+      "id": "act_1780487603132_cgftoc",
+      "createdAt": "2026-06-03T11:53:23.130Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general term without specific context"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487561009",
+        "memoryTurns": 6
+      }
+    },
+    {
+      "id": "act_1780487595572_kn4jma",
+      "createdAt": "2026-06-03T11:53:15.569Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general conversation about the company name"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487561009",
+        "memoryTurns": 4
+      }
+    },
+    {
+      "id": "act_1780487577322_y4zukz",
+      "createdAt": "2026-06-03T11:52:57.319Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780487569165_hi8gq0",
+      "createdAt": "2026-06-03T11:52:49.159Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780487561009",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780487009758_q378kf",
+      "createdAt": "2026-06-03T11:43:29.754Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md",
+          "README.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting demo build for brand and format"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780486975204",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780486994521_eggqas",
+      "createdAt": "2026-06-03T11:43:14.514Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780486946421_ji65e9",
+      "createdAt": "2026-06-03T11:42:26.419Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general mention of the company name"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780486804705",
+        "memoryTurns": 10
+      }
+    },
+    {
+      "id": "act_1780486927888_65dv1f",
+      "createdAt": "2026-06-03T11:42:07.886Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780486912333_803tr9",
+      "createdAt": "2026-06-03T11:41:52.329Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "related to internal tool usage"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780486804705",
+        "memoryTurns": 6
+      }
+    },
+    {
+      "id": "act_1780486866612_f9hpc6",
+      "createdAt": "2026-06-03T11:41:06.609Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780486854537_0au8eb",
+      "createdAt": "2026-06-03T11:40:54.533Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780486804705",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780486822165_2ce3tb",
+      "createdAt": "2026-06-03T11:40:22.158Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780485664542_9gjsrv",
+      "createdAt": "2026-06-03T11:21:04.538Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "upload_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780485655576_jk67ni",
+      "createdAt": "2026-06-03T11:20:55.573Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general term without specific context"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780485618419",
+        "memoryTurns": 4
+      }
+    },
+    {
+      "id": "act_1780485645534_0h4t36",
+      "createdAt": "2026-06-03T11:20:45.520Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md",
+          "README.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "requesting information about a specific brand"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780485618419",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780485631358_qq648q",
+      "createdAt": "2026-06-03T11:20:31.355Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780484798497_k0ctmv",
+      "createdAt": "2026-06-03T11:06:38.495Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md",
+          "README.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.9,
+          "reason": "requesting internal document or resource"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780484736388",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780484774896_tjl48h",
+      "createdAt": "2026-06-03T11:06:14.893Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780484736388",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780483989624_891rlk",
+      "createdAt": "2026-06-03T10:53:09.622Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483955320_rp3or3",
+      "createdAt": "2026-06-03T10:52:35.318Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "build_demo_session",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483938463_0ykun2",
+      "createdAt": "2026-06-03T10:52:18.461Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "build_demo_session",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483868922_k07i6c",
+      "createdAt": "2026-06-03T10:51:08.921Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "build_demo_session",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483832492_xy5feg",
+      "createdAt": "2026-06-03T10:50:32.490Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483827959_cxuf9l",
+      "createdAt": "2026-06-03T10:50:27.957Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780483817087",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780483796477_0ywpqk",
+      "createdAt": "2026-06-03T10:49:56.476Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: build_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "build_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780483793459_oua4gf",
+      "createdAt": "2026-06-03T10:49:53.456Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780483779231",
+        "memoryTurns": 0
+      }
+    },
+    {
+      "id": "act_1780483781344_3tbkqy",
+      "createdAt": "2026-06-03T10:49:41.335Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780397041367",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1780483139759_9l6bzn",
+      "createdAt": "2026-06-03T10:38:59.757Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "upload_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 1
+      }
+    },
+    {
+      "id": "act_1780483130089_4lg0ik",
+      "createdAt": "2026-06-03T10:38:50.085Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780483021311",
+        "memoryTurns": 2
+      }
+    },
+    {
+      "id": "act_1780483121853_sc45eq",
+      "createdAt": "2026-06-03T10:38:41.850Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_demo",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "upload_demo",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool",
+        "attachmentCount": 0
+      }
+    },
+    {
+      "id": "act_1780482845390_9onf72",
+      "createdAt": "2026-06-03T10:34:05.389Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "greeting in Vietnamese"
+        },
+        "classifierSource": "llm"
+      }
+    },
+    {
+      "id": "act_1780482357605_5ls6u5",
+      "createdAt": "2026-06-03T10:25:57.600Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1780477704400_0xxw5q",
+      "createdAt": "2026-06-03T09:08:24.398Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video-5",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video-5",
+        "remoteBase": "/script/demo/2026/06/romano/all/video-5",
+        "totalFiles": 2,
+        "creativeDemo": "Vertical Video Inpage",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780477613957_atm3fx",
+      "createdAt": "2026-06-03T09:06:53.954Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video-4",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video-4",
+        "remoteBase": "/script/demo/2026/06/romano/all/video-4",
+        "totalFiles": 2,
+        "creativeDemo": "Vertical Video Inpage",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780477500960_xvo3dn",
+      "createdAt": "2026-06-03T09:05:00.957Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "setup_media_sftp",
+      "area": "Build Demo",
+      "description": "Set up converted files on media SFTP",
+      "target": "2026/06/romano/all/video-3",
+      "metadata": {
+        "sourcePath": "/script/demo/2026/06/romano/all/video-3",
+        "copiedFiles": 2,
+        "copiedDirectories": 1
+      }
+    },
+    {
+      "id": "act_1780477103417_324c1q",
+      "createdAt": "2026-06-03T08:58:23.415Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video-3",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video-3",
+        "remoteBase": "/script/demo/2026/06/romano/all/video-3",
+        "totalFiles": 2,
+        "creativeDemo": "Vertical Video Inpage",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780463279695_4kpvpa",
+      "createdAt": "2026-06-03T05:07:59.693Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 10 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/html/384x683-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/html/384x683-1",
+        "remoteBase": "/script/demo/2026/06/romano/all/html/384x683-1",
+        "totalFiles": 10,
+        "creativeDemo": "Mobile In Image With Inread Video",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780463134211_czcq01",
+      "createdAt": "2026-06-03T05:05:34.208Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/html/384x683",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/html/384x683",
+        "remoteBase": "/script/demo/2026/06/romano/all/html/384x683",
+        "totalFiles": 2,
+        "creativeDemo": "Mobile Interstitial Interactive FirstView",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780462959732_vex6uc",
+      "createdAt": "2026-06-03T05:02:39.730Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video-2",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video-2",
+        "remoteBase": "/script/demo/2026/06/romano/all/video-2",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780462776273_shmno1",
+      "createdAt": "2026-06-03T04:59:36.271Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video-1",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video-1",
+        "remoteBase": "/script/demo/2026/06/romano/all/video-1",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780462574942_mzmryd",
+      "createdAt": "2026-06-03T04:56:14.939Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "upload_demo_success",
+      "area": "Build Demo",
+      "description": "Uploaded 2 demo file(s) to SFTP",
+      "target": "/script/demo/2026/06/romano/all/video",
+      "metadata": {
+        "uploadKind": "full",
+        "targetPath": "2026/06/romano/all/video",
+        "remoteBase": "/script/demo/2026/06/romano/all/video",
+        "totalFiles": 2,
+        "creativeDemo": "Video In-read",
+        "brand": "Romano"
+      }
+    },
+    {
+      "id": "act_1780398362960_8wmdmi",
+      "createdAt": "2026-06-02T11:06:02.958Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "create_folder",
+      "area": "Manage SFTP",
+      "description": "Created folder on SFTP",
+      "target": "/script/demo/MThanh/test",
+      "metadata": {
+        "scope": "demo"
+      }
+    },
+    {
+      "id": "act_1780398230858_9cv18t",
+      "createdAt": "2026-06-02T11:03:50.856Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: time_now",
+      "target": "rag.query",
+      "metadata": {
+        "tool": "time_now",
+        "provider": "openai",
+        "intent": "actions",
+        "classifierSource": "rule_tool"
+      }
+    },
+    {
+      "id": "act_1780398084207_o8mlos",
+      "createdAt": "2026-06-02T11:01:24.205Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm"
+      }
+    },
+    {
+      "id": "act_1780398061151_92km4j",
+      "createdAt": "2026-06-02T11:01:01.147Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general task request"
+        },
+        "classifierSource": "llm"
+      }
+    },
+    {
+      "id": "act_1780397967024_5new8e",
+      "createdAt": "2026-06-02T10:59:27.021Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm"
+      }
+    },
+    {
+      "id": "act_1780397949525_m08mm6",
+      "createdAt": "2026-06-02T10:59:09.521Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "upload-demo-chat-guide.md",
+          "README.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.9,
+          "reason": "requesting documentation on URL transmission"
+        },
+        "classifierSource": "llm"
+      }
+    },
+    {
+      "id": "act_1780397536114_9x0doh",
+      "createdAt": "2026-06-02T10:52:16.111Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780397437015_527als",
+      "createdAt": "2026-06-02T10:50:37.012Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780397388215_uqx253",
+      "createdAt": "2026-06-02T10:49:48.213Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780397357272_l8l1jf",
+      "createdAt": "2026-06-02T10:49:17.269Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396390671_hoxucs",
+      "createdAt": "2026-06-02T10:33:10.669Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md",
+          "README.md",
+          "upload-demo-chat-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "Looks like internal-doc question"
+        }
+      }
+    },
+    {
+      "id": "act_1780396282081_33lj4x",
+      "createdAt": "2026-06-02T10:31:22.079Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396266076_safj6f",
+      "createdAt": "2026-06-02T10:31:06.074Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396254223_1tqr47",
+      "createdAt": "2026-06-02T10:30:54.220Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396099161_it9bhp",
+      "createdAt": "2026-06-02T10:28:19.160Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396037607_rtx1dm",
+      "createdAt": "2026-06-02T10:27:17.604Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780396018856_ekhi6q",
+      "createdAt": "2026-06-02T10:26:58.853Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "Looks like internal-doc question"
+        }
+      }
+    },
+    {
+      "id": "act_1780395987441_k2v32d",
+      "createdAt": "2026-06-02T10:26:27.440Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "README.md",
+          "upload-demo-chat-guide.md",
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "Looks like internal-doc question"
+        }
+      }
+    },
+    {
+      "id": "act_1780395898885_s92v2s",
+      "createdAt": "2026-06-02T10:24:58.881Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780395771237_eqd6z9",
+      "createdAt": "2026-06-02T10:22:51.236Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780395613691_gy4f39",
+      "createdAt": "2026-06-02T10:20:13.689Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "Default to free chat"
+        }
+      }
+    },
+    {
+      "id": "act_1780394732087_1yswbv",
+      "createdAt": "2026-06-02T10:05:32.085Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0
+      }
+    },
+    {
+      "id": "act_1780394680980_s1o477",
+      "createdAt": "2026-06-02T10:04:40.975Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0
+      }
+    },
+    {
+      "id": "act_1780394654101_mihjk2",
+      "createdAt": "2026-06-02T10:04:14.099Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0
+      }
+    },
+    {
+      "id": "act_1780393977865_fp2fbc",
+      "createdAt": "2026-06-02T09:52:57.862Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0
+      }
+    },
+    {
+      "id": "act_1780393967129_f8ia8a",
+      "createdAt": "2026-06-02T09:52:47.066Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
       "id": "act_1780390349647_4y8joy",
       "createdAt": "2026-06-02T08:52:29.643Z",
       "userName": "Thanh Nguyen Tran Minh",

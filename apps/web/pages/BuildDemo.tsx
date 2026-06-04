@@ -13,7 +13,7 @@ import {
   VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import demoConfig from "../data/demoConfig.json";
-import brandColors from "../data/brandColors.json";
+import { getBrandColorClass } from "../lib/brandColors";
 import { openYomediaDemoPreview } from "../components/OpenDemo";
 import { useAuth } from "../contexts/AuthContext";
 import { recordActivity } from "../lib/activityLog";
@@ -604,25 +604,6 @@ const BuildDemo: React.FC = () => {
     }
     return out;
   }, [files]);
-
-  const getBrandColorClass = (name: string) => {
-    const lower = name.toLowerCase();
-    const match = (
-      brandColors as {
-        keyword: string;
-        className: string;
-        match?: "start" | "any";
-      }[]
-    ).find((item) => {
-      const kw = item.keyword.toLowerCase();
-      if (!kw) return false;
-      if (item.match === "start") {
-        return lower.startsWith(kw);
-      }
-      return lower.includes(kw);
-    });
-    return match?.className || "text-[#e5e7eb]";
-  };
 
   const getDemoFormatSegment = () =>
     normalizePathToken(config.demoFormat.toLowerCase());

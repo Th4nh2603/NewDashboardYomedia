@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
-import brandColors from "../data/brandColors.json";
+import { getBrandColorClass } from "../lib/brandColors";
 import {
   PhotoIcon,
   SignalIcon,
@@ -680,25 +680,6 @@ const ManageDemo: React.FC = () => {
     if (!previewUrl) return;
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }, [previewUrl]);
-
-  const getBrandColorClass = (name: string) => {
-    const lower = name.toLowerCase();
-    const match = (
-      brandColors as {
-        keyword: string;
-        className: string;
-        match?: "start" | "any";
-      }[]
-    ).find((item) => {
-      const kw = item.keyword.toLowerCase();
-      if (!kw) return false;
-      if (item.match === "start") {
-        return lower.startsWith(kw);
-      }
-      return lower.includes(kw);
-    });
-    return match?.className || "text-[#e5e7eb]";
-  };
 
   const formatSizeInMb = React.useCallback((bytes: number) => {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";

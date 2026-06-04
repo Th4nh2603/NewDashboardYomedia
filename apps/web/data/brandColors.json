@@ -1,5 +1,10 @@
 [
   {
+    "keyword": "yomedia",
+    "className": "text-cyan-300",
+    "match": "any"
+  },
+  {
     "keyword": "enchanteur",
     "className": "text-yellow-300",
     "match": "any"
