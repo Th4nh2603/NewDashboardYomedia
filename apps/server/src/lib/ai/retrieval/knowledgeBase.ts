@@ -40,42 +40,92 @@ async function loadKnowledgeDocs(): Promise<KnowledgeDoc[]> {
   }
 }
 
-function scoreDoc(question: string, doc: KnowledgeDoc): number {
-  const q = toSearchableText(question);
-  const normalizedContent = toSearchableText(doc.content);
-  const lines = normalizedContent.split(/\r?\n/);
-  const keywords = q
-    .split(/[^a-z0-9\u00C0-\u024F]+/i)
+const MAX_SNIPPET_CHARS = 2400;
+
+function questionKeywords(question: string): string[] {
+  return toSearchableText(question)
+    .split(/[^a-z0-9]+/i)
     .map((w) => w.trim())
     .filter((w) => w.length >= 3);
+}
+
+function scoreText(question: string, text: string): number {
+  const keywords = questionKeywords(question);
   if (!keywords.length) return 0;
+  const normalized = toSearchableText(text);
+  const lines = normalized.split(/\r?\n/);
   let score = 0;
   for (const keyword of keywords) {
-    if (normalizedContent.includes(keyword)) score += 2;
+    if (normalized.includes(keyword)) score += 2;
     if (lines.some((line) => line.includes(keyword))) score += 1;
   }
   return score;
 }
 
+function scoreDoc(question: string, doc: KnowledgeDoc): number {
+  return scoreText(question, doc.content);
+}
+
+type MarkdownSection = { heading: string; body: string };
+
+function splitMarkdownSections(content: string): MarkdownSection[] {
+  const lines = content.split(/\r?\n/);
+  const sections: MarkdownSection[] = [];
+  let current: MarkdownSection | null = null;
+
+  for (const line of lines) {
+    const match = /^(#{1,6})\s+/.exec(line);
+    if (match) {
+      if (current) sections.push(current);
+      current = { heading: line.trim(), body: "" };
+      continue;
+    }
+    if (!current) {
+      current = { heading: "", body: line };
+      continue;
+    }
+    current.body = current.body ? `${current.body}\n${line}` : line;
+  }
+  if (current) sections.push(current);
+  return sections;
+}
+
+function trimSnippet(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= MAX_SNIPPET_CHARS) return trimmed;
+  return `${trimmed.slice(0, MAX_SNIPPET_CHARS).trimEnd()}…`;
+}
+
 function extractBestSnippet(question: string, doc: KnowledgeDoc): string {
-  const q = toSearchableText(question);
+  const sections = splitMarkdownSections(doc.content)
+    .map((section) => ({
+      section,
+      score: scoreText(question, `${section.heading}\n${section.body}`),
+      text: [section.heading, section.body].filter(Boolean).join("\n").trim(),
+    }))
+    .filter((x) => x.score > 0 && x.text.length > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (sections.length) {
+    return trimSnippet(sections.slice(0, 2).map((x) => x.text).join("\n\n"));
+  }
+
+  const keywords = questionKeywords(question);
   const lines = doc.content.split(/\r?\n/);
   const scored = lines
     .map((line) => {
-      const lower = line.toLowerCase();
+      const normalized = toSearchableText(line);
+      if (!normalized) return { line, s: 0 };
       let s = 0;
-      if (!lower.trim()) return { line, s: 0 };
-      for (const token of q.split(/\s+/)) {
-        if (token.length >= 3 && lower.includes(token)) s += 1;
+      for (const keyword of keywords) {
+        if (normalized.includes(keyword)) s += 1;
       }
       return { line: line.trim(), s };
     })
     .filter((x) => x.line.length > 0)
     .sort((a, b) => b.s - a.s);
-  return scored
-    .slice(0, 3)
-    .map((x) => x.line)
-    .join("\n");
+
+  return trimSnippet(scored.slice(0, 6).map((x) => x.line).join("\n"));
 }
 
 export async function retrieveKnowledgeContext(question: string): Promise<{
@@ -112,8 +162,8 @@ export async function retrieveKnowledgeContext(question: string): Promise<{
     .map((x) => `Source: ${x.doc.file}\n${extractBestSnippet(question, x.doc)}`)
     .join("\n\n---\n\n");
   const contextPrompt = [
-    "Trả lời dựa trên knowledge context bên dưới.",
-    "Nếu context không đủ thì nói rõ không đủ dữ liệu.",
+    "Trả lời ngắn gọn, chính xác bằng tiếng Việt dựa trên Knowledge Context bên dưới.",
+    "Ưu tiên nội dung trong context; chỉ nói không đủ dữ liệu khi context hoàn toàn không liên quan.",
     "",
     `Question: ${question}`,
     "",

@@ -1,9 +1,9 @@
 import path from "node:path";
-import type { ChatAttachmentMeta } from "../core/types.js";
+import type { ChatAttachmentMeta } from "../../core/types.js";
 import {
   replaceImagesToBase64,
   type ImageBase64Entry,
-} from "../../buildDemoAssets.js";
+} from "../../../buildDemoAssets.js";
 
 const IMAGE_EXTS = new Set([
   ".png",

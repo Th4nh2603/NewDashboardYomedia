@@ -9,26 +9,24 @@ import {
 import {
   extractUploadDemoBrandFromText,
   resolveCanonicalBuildDemoBrand,
-} from "../../buildDemoBrands.js";
+} from "../../../buildDemoBrands.js";
 
-import { getModel } from "../core/config.js";
-import { serviceUnavailable } from "../../http/errors.js";
-import { logBestEffort } from "../../logBestEffort.js";
+import { getModel } from "../../core/config.js";
+import { serviceUnavailable } from "../../../http/errors.js";
+import { logBestEffort } from "../../../logBestEffort.js";
 
 import type {
   ChatAttachmentMeta,
   ChatProvider,
   MemoryMessage,
-} from "../core/types.js";
+} from "../../core/types.js";
 
 import {
   filterAllowedBrandIds,
-  getProductCateOptions,
   listAllowedBrandOptions,
-  resolveProductCateId,
 } from "./buildDemoConfig.js";
 
-import type { BuildDemoFormat, BuildDemoToolInput } from "./types.js";
+import type { BuildDemoFormat, BuildDemoToolInput } from "../types.js";
 
 export type BuildDemoAgentResult =
   | { kind: "tool_call"; input: BuildDemoToolInput }
@@ -53,13 +51,6 @@ const BUILD_DEMO_OPENAI_TOOL = {
           description: "Canonical brand id (e.g. Romano, Yomedia).",
         },
 
-        productCateId: {
-          type: "string",
-
-          description:
-            "Product category / subject id for the brand. Default `all` when user omits subject.",
-        },
-
         demoFormat: {
           type: "string",
 
@@ -81,7 +72,7 @@ const BUILD_DEMO_OPENAI_TOOL = {
         },
       },
 
-      required: ["brandId", "productCateId", "demoFormat"],
+      required: ["brandId", "demoFormat"],
 
       additionalProperties: false,
     },
@@ -99,8 +90,6 @@ const BUILD_DEMO_GEMINI_DECLARATION: FunctionDeclaration = {
     properties: {
       brandId: { type: SchemaType.STRING },
 
-      productCateId: { type: SchemaType.STRING },
-
       demoFormat: {
         type: SchemaType.STRING,
 
@@ -112,7 +101,7 @@ const BUILD_DEMO_GEMINI_DECLARATION: FunctionDeclaration = {
       formatValue: { type: SchemaType.STRING },
     },
 
-    required: ["brandId", "productCateId", "demoFormat"],
+    required: ["brandId", "demoFormat"],
   },
 };
 
@@ -178,42 +167,6 @@ function extractFormatHint(text: string): BuildDemoFormat | null {
   return null;
 }
 
-function extractSubjectHint(
-  text: string,
-  brandId: string | null,
-): string | null {
-  if (!brandId) return null;
-
-  const patterns = [
-    /\bsubject\s+([a-z0-9][a-z0-9 _-]*)/i,
-
-    /\b(?:product\s*cate(?:gory)?|chủ đề|chu de|danh mục|danh muc)\s*[:=]?\s*([a-z0-9][a-z0-9 _-]*)/i,
-
-    /\bcategory\s+([a-z0-9][a-z0-9 _-]*)/i,
-  ];
-
-  for (const re of patterns) {
-    const match = text.match(re);
-
-    const raw = match?.[1]?.trim();
-
-    if (!raw) continue;
-
-    const resolved = resolveProductCateId(raw, brandId);
-
-    if (resolved) return resolved;
-  }
-
-  return null;
-}
-
-function formatSubjectOptions(brandId: string): string {
-  return getProductCateOptions(brandId)
-    .map((item) => `${item.id} (${item.label ?? item.id})`)
-
-    .join(", ");
-}
-
 function attachmentsHavePayload(attachments: ChatAttachmentMeta[]): boolean {
   return attachments.some((att) => Boolean(att.contentBase64?.trim()));
 }
@@ -243,8 +196,6 @@ export function resolveBuildDemoToolInput(input: {
 
   if (!brandId || !demoFormat) return null;
 
-  const subjectHint = extractSubjectHint(conversation, brandId);
-
   const formatValue = conversation
     .match(
       /\b(?:formatValue|demoValue|creative)\s*[:=]?\s*([a-z0-9][a-z0-9_-]*)/i,
@@ -253,8 +204,6 @@ export function resolveBuildDemoToolInput(input: {
 
   return {
     brandId,
-
-    productCateId: subjectHint ?? "all",
 
     demoFormat,
 
@@ -293,31 +242,13 @@ function buildAgentPrompt(input: {
 
   const formatHint = extractFormatHint(conversation);
 
-  const subjectHint = extractSubjectHint(conversation, brandHint);
-
   const brandOptions = listAllowedBrandOptions(input.allowedBrands)
     .map((b) => b.label)
 
     .join(", ");
 
-  const subjectBlock = brandHint
-    ? `Valid subjects for brand ${brandHint}: ${formatSubjectOptions(brandHint)}.`
-    : "Resolve brand first, then pick productCateId from that brand's subject list.";
-
-  const effectiveSubjectHint = subjectHint ?? (brandHint ? "all" : null);
-
-  const defaultSubjectRule = [
-    "Product subject (productCateId) — all brands:",
-    "- DEFAULT: if user named a brand but did not specify subject/category, use productCateId=`all` (label ALL). Do NOT ask for subject.",
-    "- Use another subject id/label only when the user explicitly names one from the brand's valid list.",
-    "- When brand + format + session files are ready, call build_demo (default productCateId=all if subject omitted).",
-  ].join("\n");
-
   const knownSlots = [
     brandHint ? `brand=${brandHint}` : null,
-    effectiveSubjectHint
-      ? `productCateId=${effectiveSubjectHint}${!subjectHint && brandHint ? " (default)" : ""}`
-      : null,
     formatHint ? `demoFormat=${formatHint}` : null,
     input.attachments.length ? `files=${input.attachments.length}` : null,
   ]
@@ -327,16 +258,14 @@ function buildAgentPrompt(input: {
   return [
     "You route Build Demo requests for YoMedia dashboard.",
     "Merge metadata across the full conversation (history + latest message).",
-    "Subject is optional — default productCateId=all for every brand; ask only for brand, format, or files if missing.",
-    "If brand, format HTML|Video, and session files are all satisfied, call tool `build_demo` once (productCateId defaults to all).",
-    "If files are already in session, do NOT ask user to re-upload; confirm other missing fields only.",
+    "Ask only for brand, format, or files if missing.",
+    "If brand, format HTML|Video, and session files are all satisfied, call tool `build_demo` once.",
+    "If Session attachments lists one or more files with size > 0, treat files as already uploaded — never ask the user to attach or re-upload them; only ask for missing brand or format.",
     "HTML demos: user should attach HTML/JS plus image assets in the same session; server inlines images as base64 into manifest before SFTP (images are not uploaded as separate files).",
     "HTML folder on SFTP: derived from the uploaded .html filename (480x270.html → folder 480x270). Do not pass folderName unless user explicitly names a folder; never map yes/ok/confirm to folderName.",
     "If metadata is missing, reply in Vietnamese listing exactly what is still needed (no tool call).",
     "",
     `Allowed brands: ${brandOptions || "(none — contact admin)"}`,
-    subjectBlock,
-    defaultSubjectRule,
     "",
     `Session attachments: ${summarizeAttachments(input.attachments)}`,
     knownSlots
@@ -358,8 +287,6 @@ function parseToolArgs(raw: unknown): BuildDemoToolInput | null {
 
   const brandId = String(obj.brandId ?? "").trim();
 
-  const productCateId = String(obj.productCateId ?? "").trim() || "all";
-
   if (!brandId) return null;
 
   const folderName = String(obj.folderName ?? "").trim();
@@ -368,8 +295,6 @@ function parseToolArgs(raw: unknown): BuildDemoToolInput | null {
 
   return {
     brandId,
-
-    productCateId,
 
     demoFormat: demoFormat as BuildDemoFormat,
 
@@ -450,7 +375,7 @@ async function callOpenAiBuildDemoAgent(
 
     text:
       text ||
-      "Chưa đủ thông tin Build Demo. Cần: brand, format (HTML hoặc Video), file đính kèm (subject mặc định: all).",
+      "Chưa đủ thông tin Build Demo. Cần: brand, format (HTML hoặc Video), file đính kèm.",
   };
 }
 
@@ -525,7 +450,7 @@ async function callGeminiBuildDemoAgent(
 
     text:
       text ||
-      "Chưa đủ thông tin Build Demo. Cần: brand, format (HTML hoặc Video), file đính kèm (subject mặc định: all).",
+      "Chưa đủ thông tin Build Demo. Cần: brand, format (HTML hoặc Video), file đính kèm.",
   };
 }
 

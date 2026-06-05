@@ -56,6 +56,11 @@ export function getShortMemory(key: string): MemoryMessage[] {
 }
 
 /** Merge pending Build Demo files with this turn; persists until upload succeeds. */
+export function getBuildDemoAttachments(key: string): ChatAttachmentMeta[] {
+  pruneExpired();
+  return [...(sessions.get(key)?.buildDemoAttachments ?? [])];
+}
+
 export function mergeBuildDemoAttachments(
   key: string,
   incoming: ChatAttachmentMeta[],

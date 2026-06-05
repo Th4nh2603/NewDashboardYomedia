@@ -6,15 +6,12 @@ import type {
 
   MemoryMessage,
 
-} from "../core/types.js";
+} from "../../core/types.js";
 
 import {
-
   clearBuildDemoAttachments,
-
   mergeBuildDemoAttachments,
-
-} from "../memory/shortMemory.js";
+} from "../../memory/shortMemory.js";
 
 import {
   invokeBuildDemoAgent,
@@ -22,6 +19,7 @@ import {
 } from "./buildDemoAgent.js";
 
 import { executeBuildDemo } from "./buildDemoExecutor.js";
+import type { ActionTool } from "../types.js";
 
 
 
@@ -48,6 +46,8 @@ export async function runBuildDemoTool(input: {
   allowedBrands: string[] | null;
 
   memoryKey: string;
+
+  actionTool: Extract<ActionTool, "upload_sftp_demo" | "compress_demo_assets">;
 
 }): Promise<BuildDemoToolRunResult> {
 
@@ -130,6 +130,11 @@ export async function runBuildDemoTool(input: {
     attachments,
 
     allowedBrands: input.allowedBrands,
+
+    intent:
+      input.actionTool === "upload_sftp_demo"
+        ? "upload_sftp"
+        : "compress_demo_assets",
 
   });
 

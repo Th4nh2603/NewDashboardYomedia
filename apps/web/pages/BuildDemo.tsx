@@ -119,7 +119,6 @@ interface SftpUploadPopupPayload {
     /** Catalog category: idvd/VAST only when this is `Video`, not for Mobile in-page MP4. */
     demoCategory: string;
     brand: string;
-    productCate: string;
     demoFormat: string;
     year: string;
     month: string;
@@ -147,7 +146,6 @@ function buildSftpUploadFingerprint(input: {
   model: string;
   quality: string;
   mode: string;
-  productCate: string;
   demoFormat: string;
 }): string {
   const fileKeys = [...input.files]
@@ -161,7 +159,6 @@ function buildSftpUploadFingerprint(input: {
     model: input.model,
     quality: input.quality,
     mode: input.mode,
-    productCate: input.productCate,
     demoFormat: input.demoFormat,
   });
 }
@@ -310,36 +307,6 @@ const BuildDemo: React.FC = () => {
   }, [allBrands, allowedBuildDemoBrands]);
   const years = (demoConfig as any).ListYears ?? [];
   const months = (demoConfig as any).ListMonth ?? [];
-  const productCates = (demoConfig as any).ListProductCate ?? [];
-  const productCateIdsByBrand = (demoConfig as any).ProductCateIdsByBrand ?? {};
-  const getProductCateOptionsByBrand = (brandId: string) => {
-    if (!brandId?.trim()) {
-      return productCates.filter(
-        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
-      );
-    }
-    const allowedRaw: string[] | undefined =
-      productCateIdsByBrand[brandId] ??
-      Object.entries(productCateIdsByBrand).find(
-        ([k]) => k.toLowerCase() === brandId.toLowerCase(),
-      )?.[1];
-    if (!allowedRaw?.length) {
-      return productCates.filter(
-        (item: any) => String(item?.id ?? "").toLowerCase() === "all",
-      );
-    }
-    const allowed = new Set(
-      allowedRaw.map((id) => String(id).trim().toLowerCase()),
-    );
-    allowed.add("all");
-    return productCates.filter((item: any) =>
-      allowed.has(
-        String(item?.id ?? "")
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-  };
   const demoFormats = ["HTML", "Video"] as const;
   const IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
   const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
@@ -378,13 +345,11 @@ const BuildDemo: React.FC = () => {
     model: string;
     quality: string;
     mode: string;
-    productCate: string;
     demoFormat: (typeof demoFormats)[number];
   }>({
     model: "",
     quality: currentYearId,
     mode: currentMonthId,
-    productCate: productCates[0]?.id ?? "",
     demoFormat: demoFormats[0],
   });
   const [sourceUrl, setSourceUrl] = useState("");
@@ -440,7 +405,6 @@ const BuildDemo: React.FC = () => {
     latency: 18,
     health: "Optimal",
   });
-  const productCateOptions = getProductCateOptionsByBrand(config.model);
   const baseUrl = serverApiOrigin();
 
   React.useEffect(() => {
@@ -448,18 +412,12 @@ const BuildDemo: React.FC = () => {
     if (isBuildDemoBrandAllowed(config.model, allowedBuildDemoBrands)) return;
     const fallbackId = String(brands[0]?.id ?? "").trim();
     if (!fallbackId) {
-      setConfig((prev) => ({ ...prev, model: "", productCate: "" }));
+      setConfig((prev) => ({ ...prev, model: "" }));
       return;
     }
-    const nextProductCates = getProductCateOptionsByBrand(fallbackId);
     setConfig((prev) => ({
       ...prev,
       model: fallbackId,
-      productCate: nextProductCates.some(
-        (item: { id?: string }) => item.id === prev.productCate,
-      )
-        ? prev.productCate
-        : (nextProductCates[0]?.id ?? ""),
     }));
   }, [allowedBuildDemoBrands, brands, config.model]);
   const sftpClient = React.useMemo(
@@ -614,10 +572,7 @@ const BuildDemo: React.FC = () => {
     const brand = normalizePathToken(
       getItemLabelById(brands, config.model).toLowerCase(),
     );
-    const productCate = normalizePathToken(
-      getItemLabelById(productCates, config.productCate).toLowerCase(),
-    );
-    return [year, month, brand, productCate];
+    return [year, month, brand];
   };
 
   const buildRemoteBaseSegments = (formatDirSegment?: string) => {
@@ -716,7 +671,6 @@ const BuildDemo: React.FC = () => {
     config.model,
     config.quality,
     config.mode,
-    config.productCate,
     sftpClient,
   ]);
 
@@ -781,7 +735,6 @@ const BuildDemo: React.FC = () => {
     config.model,
     config.quality,
     config.mode,
-    config.productCate,
     resolveAvailableRemoteSegment,
   ]);
 
@@ -917,7 +870,6 @@ const BuildDemo: React.FC = () => {
         model: config.model,
         quality: config.quality,
         mode: config.mode,
-        productCate: config.productCate,
         demoFormat: config.demoFormat,
       }),
     [
@@ -927,7 +879,6 @@ const BuildDemo: React.FC = () => {
       config.model,
       config.quality,
       config.mode,
-      config.productCate,
       config.demoFormat,
     ],
   );
@@ -1037,7 +988,6 @@ const BuildDemo: React.FC = () => {
         demoValue: pickedDemo?.value?.trim() ?? "",
         demoCategory: pickedDemo?.category?.trim() ?? "",
         brand: getItemLabelById(brands, config.model),
-        productCate: getItemLabelById(productCates, config.productCate),
         demoFormat: config.demoFormat,
         year: getItemLabelById(years, config.quality),
         month: getItemLabelById(months, config.mode).padStart(2, "0"),
@@ -1046,10 +996,8 @@ const BuildDemo: React.FC = () => {
       selectedDemoOption,
       brands,
       config.model,
-      config.productCate,
       config.demoFormat,
       config.quality,
-      productCates,
       years,
       months,
     ]);
@@ -1088,19 +1036,6 @@ const BuildDemo: React.FC = () => {
     if (!onlyId || selectedDemoId === onlyId) return;
     setSelectedDemoId(onlyId);
   }, [categoryScopedDemoTitleOptions, selectedDemoId]);
-
-  useEffect(() => {
-    if (
-      productCateOptions.length > 0 &&
-      !productCateOptions.some((item: any) => item.id === config.productCate)
-    ) {
-      setConfig((prev) => ({
-        ...prev,
-        productCate: productCateOptions[0].id,
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.model]);
 
   // Simulate real-time metrics
   useEffect(() => {
@@ -2747,17 +2682,9 @@ const BuildDemo: React.FC = () => {
                   <select
                     value={config.model}
                     onChange={(e) => {
-                      const nextModel = e.target.value;
-                      const nextProductCates =
-                        getProductCateOptionsByBrand(nextModel);
                       setConfig({
                         ...config,
-                        model: nextModel,
-                        productCate: nextProductCates.some(
-                          (item: any) => item.id === config.productCate,
-                        )
-                          ? config.productCate
-                          : (nextProductCates[0]?.id ?? ""),
+                        model: e.target.value,
                       });
                     }}
                     className={`w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:shadow-xl ${
@@ -2782,30 +2709,6 @@ const BuildDemo: React.FC = () => {
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
                     <BoltIcon className="w-4 h-4 text-[#4cceac]" />
                   </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 ml-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-[#a3a3a3]">
-                    Product Category
-                  </label>
-                </div>
-                <div className="relative group">
-                  <select
-                    value={config.productCate}
-                    onChange={(e) =>
-                      setConfig({ ...config, productCate: e.target.value })
-                    }
-                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs font-bold text-slate-900 shadow-sm outline-none transition-all focus:border-[#4cceac]/50 dark:border-white/5 dark:bg-[#141b2d] dark:text-white dark:shadow-xl"
-                  >
-                    {productCateOptions.map((item: any) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               </div>
 
@@ -3324,8 +3227,8 @@ const BuildDemo: React.FC = () => {
         {sftpUploadPopupPayload ? (
           <div className="space-y-4 text-left">
             <p className="text-xs leading-relaxed text-[#94a3b8]">
-              Remote path starts with Year, Month, Brand, and Product Category,
-              then Demo format (html or video), plus the demo folder name (from
+              Remote path starts with Year, Month, and Brand, then Demo format
+              (html or video), plus the demo folder name (from
               your HTML/JS or replacement name). Values below are what was used
               for this upload.
             </p>
@@ -3347,12 +3250,6 @@ const BuildDemo: React.FC = () => {
               </dt>
               <dd className="font-semibold text-white/95">
                 {sftpUploadPopupPayload.meta.brand}
-              </dd>
-              <dt className="font-black uppercase tracking-wider text-[#64748b]">
-                Category
-              </dt>
-              <dd className="font-semibold text-white/95">
-                {sftpUploadPopupPayload.meta.productCate}
               </dd>
               <dt className="font-black uppercase tracking-wider text-[#64748b]">
                 Year

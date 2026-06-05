@@ -36,6 +36,7 @@
     .footer { margin-top: 2em; font-size: 9pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
     ul { margin: 0.4em 0; }
     li { margin: 0.2em 0; }
+    .tree { font-size: 9pt; }
   </style>
 </head>
 <body>
@@ -44,12 +45,13 @@
 <p class="meta"><strong>YoMedia Dashboard · NovaAI Assistant</strong><br />Tài liệu nội bộ · Cập nhật 2026-06 · Nguồn: <code>docs/chat-agent-flow.md</code></p>
 
 <h2>1. Tổng quan</h2>
-<p>Hệ thống chat AI: <strong>request/response qua tRPC</strong> (không streaming). Hai lớp bộ nhớ tách biệt:</p>
+<p>Hệ thống chat AI: <strong>request/response qua tRPC</strong> (không streaming). Kiến trúc <strong>Supervisor → Router → Agents → Composer</strong>.</p>
 <table>
   <tr><th>Lớp</th><th>File</th><th>Vai trò</th></tr>
   <tr><td>Client</td><td><code>apps/web/components/Chat.tsx</code></td><td>UI, localStorage, provider, file/folder</td></tr>
   <tr><td>API</td><td><code>api.rag.query</code></td><td>Mutation có auth</td></tr>
-  <tr><td>Server</td><td><code>answerWithRag</code></td><td>Guardrails, tool/intent, RAG, LLM, short memory</td></tr>
+  <tr><td>Entry</td><td><code>answerWithRag</code></td><td>Wrapper gọi <code>runSupervisor</code></td></tr>
+  <tr><td>Supervisor</td><td><code>runSupervisor.ts</code></td><td>Guardrails, routing, agents, compose, log</td></tr>
 </table>
 <div class="note"><strong>Lưu ý:</strong> Bubble UI (localStorage) ≠ ngữ cảnh LLM (server RAM). Refresh/xóa tin local không xóa short memory — dùng <strong>Xóa phiên</strong> hoặc <code>rag.clearSession</code>.</div>
 
@@ -57,91 +59,91 @@
 <pre>User → Chat.tsx → localStorage (bubble user)
      → readFileAsDataUrl → base64 (nếu có file/folder)
      → api.rag.query(question, provider, attachments, sessionId)
-     → ragRouter (protected) → answerWithRag
-     → getShortMemory(email::sessionId)
-     → guardrails → resolveActionTool → classify intent
-     → [actions] runBuildDemoTool / executeTool
-     → [knowledge_qa] RAG → LLM
-     → [free_chat] LLM
-     → appendShortMemoryTurn + logChatEvent
+     → ragRouter (protected) → answerWithRag → runSupervisor
+     → guardrails → getShortMemory + mergeBuildDemoAttachments
+     → resolveRoute → agents[] (1 hoặc nhiều)
+     → runAgents (Promise.all — song song)
+     → composeMultiResponse → appendShortMemoryTurn + logChatEvent
      → Response → bubble assistant (+ BuildDemoProgress nếu UI)</pre>
 <p><code>sessionId</code> server = <code>activeConversation.id</code> client (vd. <code>c-1717...</code>).</p>
 
-<h2>3. Pipeline server (answerWithRag)</h2>
-<p>Thứ tự cố định: <strong>Guardrails → Short memory → Tool → Intent → Nhánh xử lý</strong></p>
+<h2>3. Pipeline server (runSupervisor)</h2>
+<p>Thứ tự cố định: <strong>Guardrails → Short memory → resolveRoute → runAgents → composeMultiResponse</strong></p>
 
 <h3>3.1 Guardrails</h3>
 <ul>
   <li>Tin trống, &gt; 1500 ký tự, từ nhạy cảm (password, api key, credit card, …)</li>
-  <li>Trả lỗi, không gọi AI — <code>apps/server/src/lib/ai/guardrails/index.ts</code></li>
+  <li>Trả lỗi, không gọi AI — <code>guardrails/index.ts</code></li>
 </ul>
 
 <h3>3.2 Short memory</h3>
 <ul>
   <li>Key: <code>{email hoặc role:guest}::{sessionId hoặc default}</code></li>
-  <li>TTL 2h (<code>SHORT_MEMORY_TTL_MS</code>) · tối đa 8 cặp turn</li>
+  <li>TTL 2h · tối đa 8 cặp turn</li>
   <li><code>buildDemoAttachments</code> — file pending đến khi upload thành công</li>
 </ul>
 
-<h3>3.3 Tool (ưu tiên cao nhất)</h3>
+<h3>3.3 Routing (resolveRoute)</h3>
+<table>
+  <tr><th>Bước</th><th>Nguồn</th><th>Kết quả</th></tr>
+  <tr><td>1</td><td>resolveActionTool</td><td>agents: ["actions"]</td></tr>
+  <tr><td>2</td><td>detectAgentCandidates (scoring)</td><td>multi_intent — nhiều agent song song</td></tr>
+  <tr><td>3</td><td>Scoring 1 agent</td><td>sql / dashboard / rag</td></tr>
+  <tr><td>4</td><td>LLM → rule classifyUserIntent</td><td>rag / free_chat / sql / dashboard</td></tr>
+</table>
+
+<h3>3.4 Tool (ưu tiên cao nhất)</h3>
 <table>
   <tr><th>Tool</th><th>Trigger</th></tr>
   <tr><td>help</td><td>help, hướng dẫn, trợ giúp</td></tr>
   <tr><td>time_now</td><td>mấy giờ, time now, giờ hiện tại</td></tr>
-  <tr><td>build_demo</td><td>build/upload demo, sftp, tải lên, tạo demo…</td></tr>
+  <tr><td>compress_demo_assets</td><td>build demo, nén, compress, tvc, tạo demo…</td></tr>
+  <tr><td>upload_sftp_demo</td><td>upload, sftp, tải lên, gửi file…</td></tr>
 </table>
-<p><strong>Phiên Build Demo active</strong> (<code>isBuildDemoSessionActive</code>): file pending trên server; history đã bắt đầu demo; assistant hỏi brand/format + user trả lời tiếp → mọi turn route <code>build_demo</code> dù không lặp từ khóa.</p>
+<p><strong>Phiên Build Demo active</strong> (<code>isBuildDemoSessionActive</code>): file pending; history đã bắt đầu demo; assistant hỏi brand/format + user trả lời tiếp.</p>
 
-<h3>3.4 Intent (khi không có tool)</h3>
-<ol>
-  <li>LLM classifier → <code>knowledge_qa</code> | <code>free_chat</code> (ưu tiên knowledge_qa khi mơ hồ)</li>
-  <li>Fallback rule <code>classifyUserIntent</code></li>
-  <li>Có tool → <code>actions</code>, <code>classifierSource: rule_tool</code></li>
-</ol>
-
-<h3>3.5 Nhánh &amp; fallback</h3>
+<h3>3.5 Agents</h3>
 <table>
-  <tr><th>Intent</th><th>Xử lý</th></tr>
-  <tr><td>actions</td><td><code>executeTool</code> / <code>runBuildDemoTool</code></td></tr>
-  <tr><td>knowledge_qa</td><td>Score <code>apps/server/rag/docs</code> → contextPrompt → LLM</td></tr>
-  <tr><td>free_chat</td><td>LLM + system prompt</td></tr>
+  <tr><th>Agent</th><th>File</th><th>Xử lý</th></tr>
+  <tr><td>actions</td><td>runActionAgent.ts</td><td>help, time_now, build demo</td></tr>
+  <tr><td>rag</td><td>runRagAgent.ts</td><td>RAG docs → LLM</td></tr>
+  <tr><td>free_chat</td><td>runFreeChatAgent.ts</td><td>LLM trực tiếp</td></tr>
+  <tr><td>sql</td><td>runSqlAgent.ts</td><td>LLM sinh SQL → MySQL whitelist</td></tr>
+  <tr><td>dashboard</td><td>runDashboardAgent.ts</td><td>Activity log → LLM tóm tắt</td></tr>
 </table>
-<p>Provider lỗi → fallback OpenAI ↔ Gemini (<code>fallbackUsed: true</code>).</p>
+<p>Chạy <strong>song song</strong> khi multi-intent. Provider lỗi → fallback OpenAI ↔ Gemini.</p>
 
 <h2>4. Quyết định routing</h2>
 <pre>User message
   ├─ Guardrail fail → lỗi (không gọi AI)
-  ├─ resolveActionTool → actions → tool
+  ├─ resolveActionTool → actions agent
+  ├─ detectAgentCandidates > 1 → multi_intent (song song)
+  ├─ Scoring 1 agent → sql / dashboard / rag
   ├─ LLM / rule intent
-  │     ├─ knowledge_qa → RAG → LLM
-  │     └─ free_chat → LLM
-  └─ appendShortMemoryTurn + log</pre>
+  │     ├─ knowledge_qa → rag
+  │     ├─ sql_query → sql
+  │     ├─ dashboard_insight → dashboard
+  │     └─ free_chat → free_chat
+  └─ composeMultiResponse + appendShortMemoryTurn + log</pre>
 
 <h2>5. Build Demo</h2>
+<table>
+  <tr><th>Tool</th><th>Mục đích</th></tr>
+  <tr><td>upload_sftp_demo</td><td>Upload SFTP trực tiếp, không nén</td></tr>
+  <tr><td>compress_demo_assets</td><td>Nén ảnh/video rồi upload SFTP</td></tr>
+</table>
 <pre>runBuildDemoTool
   → mergeBuildDemoAttachments(memoryKey)
   → invokeBuildDemoAgent (function build_demo)
        → message: hỏi thêm metadata
-       → tool_call: brandId, productCateId, demoFormat, folderName?
+       → tool_call: brandId, demoFormat, folderName?
   → resolveBuildDemoToolInput (rule fallback nếu cần)
   → executeBuildDemo
-       → validate brand (admin = all)
+       → upload_sftp_demo / compress_demo_assets executor
        → SFTP /script/demo/{year}/{month}/...
        → Video: makeVastXml · HTML: buildDemoInlineImages
   → "Build Demo thành công" → clearBuildDemoAttachments</pre>
 <p>Response: <code>buildDemoProcessing: true</code> khi SFTP thực sự chạy.</p>
-
-<h3>5.1 Nhiều lượt</h3>
-<table>
-  <tr><th>Lượt</th><th>User</th><th>Server</th></tr>
-  <tr><td>1</td><td>File/folder</td><td>mergeBuildDemoAttachments — giữ file</td></tr>
-  <tr><td>2</td><td>Brand, format (text)</td><td>Agent/rule trích metadata</td></tr>
-  <tr><td>3+</td><td>Bổ sung</td><td>Hỏi thêm hoặc execute</td></tr>
-</table>
-
-<h3>5.2 Client — BuildDemoProgress</h3>
-<p>Thanh tiến độ <strong>giả lập</strong> khi <code>shouldShowBuildDemoProgress</code>: có file + brand trong corpus + hint format. Không phản ánh SFTP thật.</p>
-<p>File: <code>apps/web/lib/buildDemoChatProgress.ts</code></p>
 
 <h2>6. Client (Chat.tsx)</h2>
 <pre>api.rag.query(text || "upload demo", provider, attachments, activeConversation.id)</pre>
@@ -151,15 +153,10 @@
   <tr><td>Short memory</td><td>Server RAM Map</td><td>8 turn LLM</td></tr>
   <tr><td>Pending files</td><td>Server buildDemoAttachments</td><td>Đến upload OK</td></tr>
 </table>
-<ul>
-  <li><strong>Xóa phiên:</strong> reset messages + <code>rag.clearSession({ sessionId })</code></li>
-  <li><strong>Xóa cũ:</strong> xóa conversations khác + clearSession từng id</li>
-  <li><strong>Folder:</strong> webkitdirectory → <code>chatAttachments.ts</code></li>
-</ul>
 
 <h2>7. RAG</h2>
 <p>Index: <strong>.md, .txt, .json</strong> trong <code>apps/server/rag/docs</code> — score keyword → top 3 → snippet → LLM.</p>
-<p class="note">PDF trong <code>rag/docs</code> hiện <strong>không</strong> được index bởi knowledgeBase.</p>
+<p class="note">PDF trong <code>rag/docs</code> hiện <strong>không</strong> được index.</p>
 
 <h2>8. API tRPC</h2>
 <table>
@@ -168,20 +165,94 @@
   <tr><td>rag.clearSession</td><td>Xóa short memory (một session hoặc allSessions)</td></tr>
 </table>
 <p><strong>Output:</strong> <code>ok, answer, provider, intent, sources, toolCalled, buildDemoProcessing, fallbackUsed</code></p>
+<p><strong>Intent:</strong> <code>actions | knowledge_qa | free_chat | sql_query | dashboard_insight | multi_intent</code></p>
 
-<h2>9. Bản đồ file</h2>
+<h2>9. Bản đồ file chi tiết</h2>
+
+<h3>Client</h3>
 <table>
-  <tr><th>Thành phần</th><th>Đường dẫn</th></tr>
-  <tr><td>UI Chat</td><td>apps/web/components/Chat.tsx</td></tr>
-  <tr><td>Progress heuristic</td><td>apps/web/lib/buildDemoChatProgress.ts</td></tr>
-  <tr><td>Attachments</td><td>apps/web/lib/chatAttachments.ts</td></tr>
-  <tr><td>Router</td><td>apps/server/src/trpc/routers/rag.ts</td></tr>
-  <tr><td>Orchestrator</td><td>apps/server/src/lib/ai/orchestration/answerWithRag.ts</td></tr>
-  <tr><td>detectTool</td><td>apps/server/src/lib/ai/actions/detectTool.ts</td></tr>
-  <tr><td>Build Demo</td><td>buildDemoTool → buildDemoAgent → buildDemoExecutor</td></tr>
-  <tr><td>RAG</td><td>apps/server/src/lib/ai/retrieval/knowledgeBase.ts</td></tr>
-  <tr><td>Memory</td><td>apps/server/src/lib/ai/memory/shortMemory.ts</td></tr>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>components/Chat.tsx</td><td>UI chat, gửi tin, conversation</td></tr>
+  <tr><td>components/ChatMessageContent.tsx</td><td>Render bubble</td></tr>
+  <tr><td>components/BuildDemoProgress.tsx</td><td>Progress bar giả lập</td></tr>
+  <tr><td>lib/buildDemoChatProgress.ts</td><td>Heuristic progress</td></tr>
+  <tr><td>lib/chatAttachments.ts</td><td>Merge folder/file upload</td></tr>
+  <tr><td>lib/trpc/api.ts</td><td>tRPC client</td></tr>
 </table>
+
+<h3>Server — Entry &amp; Supervisor</h3>
+<table>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>trpc/routers/rag.ts</td><td>API router</td></tr>
+  <tr><td>orchestration/answerWithRag.ts</td><td>Entry wrapper</td></tr>
+  <tr><td>agents/supervisor/runSupervisor.ts</td><td>Orchestrator chính</td></tr>
+</table>
+
+<h3>Server — Routing &amp; Intent</h3>
+<table>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>agents/router/routeIntent.ts</td><td>resolveRoute</td></tr>
+  <tr><td>tools/detectTool.ts</td><td>Action tool detection</td></tr>
+  <tr><td>intent/scoring.ts</td><td>Multi-agent scoring</td></tr>
+  <tr><td>intent/classifyUserIntent.ts</td><td>Rule classifier</td></tr>
+  <tr><td>services/llm/classifyIntent.ts</td><td>LLM classifier</td></tr>
+</table>
+
+<h3>Server — Orchestration &amp; Agents</h3>
+<table>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>orchestration/runAgents.ts</td><td>Agent registry + Promise.all</td></tr>
+  <tr><td>orchestration/responseComposer.ts</td><td>Gộp response</td></tr>
+  <tr><td>orchestration/aggregator.ts</td><td>Rank + merge answers</td></tr>
+  <tr><td>agents/actions/runActionAgent.ts</td><td>Tools + Build Demo</td></tr>
+  <tr><td>agents/rag/runRagAgent.ts</td><td>RAG + LLM</td></tr>
+  <tr><td>agents/freeChat/runFreeChatAgent.ts</td><td>Free chat</td></tr>
+  <tr><td>agents/sql/runSqlAgent.ts</td><td>SQL agent</td></tr>
+  <tr><td>agents/dashboard/runDashboardAgent.ts</td><td>Dashboard agent</td></tr>
+</table>
+
+<h3>Server — Tools</h3>
+<table>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>tools/buildDemo/buildDemoTool.ts</td><td>Build Demo orchestration</td></tr>
+  <tr><td>tools/buildDemo/buildDemoAgent.ts</td><td>Function calling</td></tr>
+  <tr><td>tools/buildDemo/buildDemoExecutor.ts</td><td>Router upload/compress</td></tr>
+  <tr><td>tools/buildDemo/buildDemoUploadSftpExecutor.ts</td><td>SFTP upload</td></tr>
+  <tr><td>tools/buildDemo/buildDemoCompressExecutor.ts</td><td>Nén + upload</td></tr>
+  <tr><td>tools/mysql/</td><td>MySQL query (whitelist)</td></tr>
+  <tr><td>tools/analytics/</td><td>Activity log summary</td></tr>
+</table>
+
+<h3>Server — Core</h3>
+<table>
+  <tr><th>File</th><th>Vai trò</th></tr>
+  <tr><td>core/types.ts</td><td>Types chính</td></tr>
+  <tr><td>core/config.ts</td><td>Model, prompt, limits</td></tr>
+  <tr><td>memory/shortMemory.ts</td><td>Short memory + attachments</td></tr>
+  <tr><td>retrieval/knowledgeBase.ts</td><td>RAG indexing</td></tr>
+  <tr><td>services/llm/callProvider.ts</td><td>OpenAI / Gemini</td></tr>
+  <tr><td>logging/aiLogger.ts</td><td>Chat event logging</td></tr>
+</table>
+
+<h3>Cây thư mục AI</h3>
+<pre class="tree">apps/server/src/lib/ai/
+├── agents/
+│   ├── actions/runActionAgent.ts
+│   ├── dashboard/runDashboardAgent.ts
+│   ├── freeChat/runFreeChatAgent.ts
+│   ├── rag/runRagAgent.ts
+│   ├── router/routeIntent.ts
+│   ├── sql/runSqlAgent.ts
+│   └── supervisor/runSupervisor.ts
+├── core/ (config.ts, types.ts)
+├── guardrails/index.ts
+├── intent/ (classifyUserIntent, scoring, types)
+├── logging/aiLogger.ts
+├── memory/shortMemory.ts
+├── orchestration/ (aggregator, answerWithRag, responseComposer, runAgents)
+├── retrieval/knowledgeBase.ts
+├── services/llm/ (callProvider, classifyIntent)
+└── tools/ (analytics, buildDemo, mysql, detectTool, index, types)</pre>
 
 <h2>10. Biến môi trường</h2>
 <table>
@@ -190,6 +261,7 @@
   <tr><td>OPENAI_CHAT_MODEL / GEMINI_CHAT_MODEL</td><td>Model</td></tr>
   <tr><td>CHAT_SYSTEM_PROMPT</td><td>System prompt</td></tr>
   <tr><td>SHORT_MEMORY_TTL_MS</td><td>TTL memory (ms)</td></tr>
+  <tr><td>MYSQL_*</td><td>SQL Agent</td></tr>
 </table>
 
 <h2>11. Gỡ lỗi thường gặp</h2>
@@ -197,9 +269,11 @@
   <tr><th>Triệu chứng</th><th>Nguyên nhân có thể</th></tr>
   <tr><td>AI quên ngữ cảnh sau refresh</td><td>UI vs server memory khác session / chưa clear</td></tr>
   <tr><td>Mọi câu → Build Demo</td><td>Phiên demo active — Xóa phiên</td></tr>
-  <tr><td>Progress nhưng không upload</td><td>UI heuristic true, agent chưa execute (thiếu metadata)</td></tr>
+  <tr><td>Progress nhưng không upload</td><td>UI heuristic true, agent chưa execute</td></tr>
   <tr><td>RAG không trả PDF</td><td>Chỉ index md/txt/json</td></tr>
   <tr><td>Provider lỗi</td><td>API key / cả hai provider fail</td></tr>
+  <tr><td>SQL Agent từ chối</td><td>Role hoặc MySQL chưa cấu hình</td></tr>
+  <tr><td>Multi-intent nhiều section</td><td>mergeAgentAnswers ghép ### SQL, ### Dashboard…</td></tr>
 </table>
 
 <p class="footer">YoMedia Dashboard · In PDF: mở file HTML → Print → Save as PDF · Đồng bộ với chat-agent-flow.md</p>
