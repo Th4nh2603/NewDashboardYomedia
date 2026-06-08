@@ -111,15 +111,6 @@ const routes: RouteInfo[] = [
       "Internal housekeeping — naming, tags, hide outdated demos, keep the library tidy.",
   },
   {
-    path: "/build-demo",
-    name: "Build Demo",
-    group: "Data Management",
-    description:
-      "Ingest HTML/JS/images, replace scripts & inline base64, upload to SFTP, build bundle.",
-    usage:
-      "Onboard new creatives: upload source assets and mapping metadata; deploy a finished demo for Showcase.",
-  },
-  {
     path: "/documentation",
     name: "Documentation",
     group: "Data Management",
@@ -187,7 +178,7 @@ const DocumentPage: React.FC = () => {
             </code>
             ,{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
-              #/build-demo
+              #/manage-demo
             </code>{" "}
             in the URL bar.
           </li>
@@ -203,7 +194,7 @@ const DocumentPage: React.FC = () => {
             <span className="font-semibold">Role-based UI</span>: some menu
             items hide per role (for example{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
-              /build-demo
+              /upload
             </code>{" "}
             may be hidden for{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">

@@ -1,0 +1,19 @@
+{
+  "site": [
+    {
+      "name": "eva",
+      "pc": "evapc",
+      "mb": "evamb"
+    },
+    {
+      "name": "tuoitre",
+      "pc": "ttpc",
+      "mb": "ttmb"
+    },
+    {
+      "name": "default",
+      "pc": "idpc",
+      "mb": "idmb"
+    }
+  ]
+}

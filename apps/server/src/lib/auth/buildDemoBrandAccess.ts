@@ -3,7 +3,7 @@ import { HttpError } from "../http/errors.js";
 import {
   isBuildDemoBrandAllowed,
   resolveCanonicalBuildDemoBrand,
-} from "../buildDemoBrands.js";
+} from "../../repositories/brand.repository.js";
 import {
   loadAccounts,
   normalizeAccountText,

@@ -58,7 +58,6 @@
         "/ai-gmail",
         "/test-data",
         "/creative-demos-edit",
-        "/build-demo",
         "/upload",
         "/manage-sftp",
         "/admin/users",
@@ -89,8 +88,8 @@
         "/documentation",
         "/manage-demo",
         "/chat",
-        "/build-demo",
-        "/history"
+        "/history",
+        "/manage-sftp"
       ]
     },
     "creativeShowcase": {
@@ -122,7 +121,7 @@
         "/cinema",
         "/live",
         "/ai-gmail",
-        "/build-demo"
+        "/manage-sftp"
       ]
     },
     "creativeShowcase": {
@@ -154,8 +153,8 @@
         "/cinema",
         "/live",
         "/ai-gmail",
-        "/build-demo",
-        "/upload"
+        "/upload",
+        "/manage-sftp"
       ]
     },
     "creativeShowcase": {

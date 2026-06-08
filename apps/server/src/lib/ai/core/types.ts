@@ -73,6 +73,8 @@ export type AgentContext = {
   memoryKey: string;
   history: MemoryMessage[];
   attachments: ChatAttachmentMeta[];
+  /** Express request for controller-level auth policy (build demo SFTP ACL). */
+  req?: import("express").Request;
 };
 
 export type AgentResult = {

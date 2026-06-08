@@ -58,10 +58,9 @@ const ROLE_OPTIONS = [
 
 /** <Route path="…"> in apps/web/App.tsx; HashRouter exposes them as `#/…` in the browser URL. */
 const WEB_MANAGE_DEMO = "/manage-demo";
-const WEB_BUILD_DEMO = "/build-demo";
+const WEB_CHAT = "/chat";
 const WEB_MANAGE_SFTP = "/manage-sftp";
 const WEB_CREATIVE = "/creative";
-const WEB_BUILD_DEMO_SETUP = "/build-demo";
 
 const SFTP_ACL_FIELDS: {
   key:
@@ -77,13 +76,13 @@ const SFTP_ACL_FIELDS: {
   {
     key: "canSftpUploadBinary",
     title: "Upload binary",
-    paths: [WEB_MANAGE_DEMO, WEB_BUILD_DEMO],
+    paths: [WEB_MANAGE_DEMO, WEB_CHAT],
   },
   {
     key: "canSftpWriteFile",
     title: "Write file",
     detail: "Text + base64",
-    paths: [WEB_MANAGE_DEMO, WEB_BUILD_DEMO, WEB_MANAGE_SFTP],
+    paths: [WEB_MANAGE_DEMO, WEB_CHAT, WEB_MANAGE_SFTP],
   },
   {
     key: "canSftpDelete",
@@ -936,8 +935,8 @@ const AdminUsers: React.FC = () => {
                                   canSetupMediaSftp
                                 </span>
                               }
-                              subtitle="Build Demo: copy converted upload from demo SFTP to media SFTP"
-                              paths={[WEB_BUILD_DEMO_SETUP]}
+                              subtitle="Chat build demo: copy converted upload from demo SFTP to media SFTP"
+                              paths={[WEB_CHAT]}
                             />
                             <div className="flex flex-col gap-2 rounded-xl border border-[#4cceac]/25 bg-[#4cceac]/[0.08] p-2.5 dark:border-[#4cceac]/15 dark:bg-[#4cceac]/[0.04]">
                               <div className="px-1">
@@ -1047,7 +1046,7 @@ const AdminUsers: React.FC = () => {
               </h2>
               <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-500">
                 <span>Default brand access per role on</span>
-                <WebRouteChips paths={[WEB_BUILD_DEMO]} />
+                <WebRouteChips paths={[WEB_CHAT]} />
                 <span>· empty = all brands</span>
               </p>
             </div>

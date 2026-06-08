@@ -9,7 +9,7 @@ import {
 import {
   extractUploadDemoBrandFromText,
   resolveCanonicalBuildDemoBrand,
-} from "../../../buildDemoBrands.js";
+} from "../../../../repositories/brand.repository.js";
 
 import { getModel } from "../../core/config.js";
 import { serviceUnavailable } from "../../../http/errors.js";
@@ -24,9 +24,12 @@ import type {
 import {
   filterAllowedBrandIds,
   listAllowedBrandOptions,
-} from "./buildDemoConfig.js";
+} from "../../../../services/buildDemo/config.js";
 
-import type { BuildDemoFormat, BuildDemoToolInput } from "../types.js";
+import type {
+  BuildDemoFormat,
+  BuildDemoInput as BuildDemoToolInput,
+} from "../../../../shared/schemas/buildDemo.schema.js";
 
 export type BuildDemoAgentResult =
   | { kind: "tool_call"; input: BuildDemoToolInput }

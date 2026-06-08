@@ -1,5 +1,6 @@
 import type { AgentContext, AgentResult } from "../../core/types.js";
-import { executeTool, resolveActionTool, runBuildDemoTool } from "../../tools/index.js";
+import { runBuildDemoTool } from "../../../../controllers/ai/buildDemoTool.js";
+import { executeTool, resolveActionTool } from "../../tools/index.js";
 import { hasBuildDemoAttachments } from "../../memory/shortMemory.js";
 import { findAccountByEmail } from "../../../auth/accounts.js";
 import { resolveAllowedBuildDemoBrands } from "../../../../services/permissions.js";
@@ -43,15 +44,21 @@ export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
 
   const buildDemoRun =
     tool === "upload_sftp_demo" || tool === "compress_demo_assets"
-      ? await runBuildDemoTool({
-          question: ctx.question,
-          provider: ctx.provider,
-          history: ctx.history,
-          attachments: ctx.attachments,
-          allowedBrands: allowedBuildDemoBrands,
-          memoryKey: ctx.memoryKey,
-          actionTool: tool,
-        })
+      ? ctx.req
+        ? await runBuildDemoTool({
+            question: ctx.question,
+            provider: ctx.provider,
+            history: ctx.history,
+            attachments: ctx.attachments,
+            allowedBrands: allowedBuildDemoBrands,
+            memoryKey: ctx.memoryKey,
+            actionTool: tool,
+            req: ctx.req,
+          })
+        : {
+            answer: "Không thể chạy Build Demo: thiếu request context.",
+            executed: false,
+          }
       : null;
   const answer = buildDemoRun?.answer ?? executeTool(tool);
 

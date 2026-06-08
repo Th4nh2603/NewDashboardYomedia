@@ -6,7 +6,7 @@ import {
   saveAccounts,
   type Account,
 } from "../lib/auth/accounts.js";
-import { normalizeBuildDemoBrandIds } from "../lib/buildDemoBrands.js";
+import { normalizeBuildDemoBrandIds } from "../repositories/brand.repository.js";
 import {
   mapClerkUserToAdminAccount,
   roleTitleFromRole,

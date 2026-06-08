@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import { randomUUID } from "node:crypto";
 import { runInputGuardrails } from "../../guardrails/index.js";
 import {
@@ -25,6 +26,7 @@ type SupervisorInput = {
   role: string;
   email?: string;
   sessionId?: string;
+  req?: Request;
 };
 
 export async function runSupervisor(
@@ -65,6 +67,7 @@ export async function runSupervisor(
     memoryKey,
     history,
     attachments: sessionAttachments,
+    req: input.req,
   };
 
   const route = await resolveRoute(ctx);

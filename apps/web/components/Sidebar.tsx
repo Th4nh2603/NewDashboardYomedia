@@ -27,7 +27,6 @@ import {
   CommandLineIcon,
   SparklesIcon as SparklesIconFilled,
   TableCellsIcon,
-  WrenchScrewdriverIcon,
   BeakerIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
@@ -170,11 +169,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     },
   };
 
-  const adminSectionItems: SectionSpec["items"] = isAdmin
-    ? ADMIN_SECTION_ROUTES.filter((path) => canShowNavRoute(access, path)).map(
-        (path) => adminNavByPath[path],
-      )
-    : [];
+  const adminSectionItems: SectionSpec["items"] = ADMIN_SECTION_ROUTES.filter((path) =>
+    canShowNavRoute(access, path),
+  ).map((path) => adminNavByPath[path]);
 
   const toolsAdminNavByPath: Record<
     (typeof TOOLS_ADMIN_ROUTES)[number],
@@ -204,14 +201,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     },
     {
       titleKey: "sectionTools",
-      items: [
-        {
-          nameKey: "navBuildDemo",
-          path: "/build-demo",
-          icon: WrenchScrewdriverIcon,
-        },
-        ...toolsAdminItems,
-      ],
+      items: [...toolsAdminItems],
     },
     {
       titleKey: "sectionDataManagement",

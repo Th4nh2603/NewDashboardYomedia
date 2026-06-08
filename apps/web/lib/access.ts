@@ -6,7 +6,7 @@ export const ROUTE_ROLE_GUARDS: Record<
   string,
   { allow?: string[]; deny?: string[] }
 > = {
-  "/manage-sftp": { allow: ["admin"] },
+  "/manage-sftp": { allow: ["admin", "manager", "media", "design"] },
   "/test-data": { deny: ["guest"] },
   "/creative-demos-edit": { allow: ["admin"] },
   "/smtp-mail": { deny: ["guest"] },
@@ -88,7 +88,8 @@ function passesAllowedRoutes(
 export function canShowNavRoute(ctx: AccessContext, path: string): boolean {
   if (
     (ADMIN_SECTION_ROUTES as readonly string[]).includes(path) &&
-    ctx.role !== "admin"
+    ctx.role !== "admin" &&
+    path !== "/manage-sftp"
   ) {
     return false;
   }

@@ -1,14 +1,14 @@
 import { router } from "./trpc.js";
-import { healthRouter } from "./routers/health.js";
-import { authRouter } from "./routers/auth.js";
-import { userRouter } from "./routers/user.js";
-import { permissionsRouter } from "./routers/permissions.js";
-import { adminRouter } from "./routers/admin.js";
-import { creativeRouter } from "./routers/creative.js";
-import { activityLogRouter } from "./routers/activityLog.js";
-import { testDataRouter } from "./routers/testData.js";
-import { toolTestRouter } from "./routers/toolTest.js";
-import { ragRouter } from "./routers/rag.js";
+import { healthRouter } from "../controllers/trpc/health.js";
+import { authRouter } from "../controllers/trpc/auth.js";
+import { userRouter } from "../controllers/trpc/user.js";
+import { permissionsRouter } from "../controllers/trpc/permissions.js";
+import { adminRouter } from "../controllers/trpc/admin.js";
+import { creativeRouter } from "../controllers/trpc/creative.js";
+import { activityLogRouter } from "../controllers/trpc/activityLog.js";
+import { testDataRouter } from "../controllers/trpc/testData.js";
+import { toolTestRouter } from "../controllers/trpc/toolTest.js";
+import { ragRouter } from "../controllers/trpc/ragRouter.js";
 
 export const appRouter = router({
   health: healthRouter,

@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import type {
   ChatAttachmentMeta,
   ChatProvider,
@@ -12,6 +13,7 @@ export async function answerWithRag(input: {
   role: string;
   email?: string;
   sessionId?: string;
+  req?: Request;
 }): Promise<RagAnswerResult | { ok: false; answer: string; provider: ChatProvider }> {
   const result = await runSupervisor(input);
   if (!result.ok) {

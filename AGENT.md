@@ -7,7 +7,7 @@ Supervisor -> Planner/Router -> cac agent chuyen trach -> Aggregator -> Response
 
 ### Hien trang trong project
 
-- API Gateway: `apps/server/src/trpc/routers/rag.ts`
+- API Gateway: `apps/server/src/controllers/trpc/ragRouter.ts`
 - Supervisor (dang all-in-one): `apps/server/src/lib/ai/orchestration/answerWithRag.ts`
 - Router/Intent: `apps/server/src/lib/ai/intent/classifyUserIntent.ts`
 - RAG retrieval: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`

@@ -1,9 +1,10 @@
 # Chat Agent — Luồng và xử lý chi tiết
 
 **YoMedia Dashboard · NovaAI Assistant**  
-*Tài liệu nội bộ · Cập nhật: 2026-06*
+*Tài liệu nội bộ · Cập nhật: 2026-06-08*
 
-> Bản HTML/PDF in: [`chat-agent-flow.html`](./chat-agent-flow.html)
+> Bản HTML/PDF in: [`chat-agent-flow.html`](./chat-agent-flow.html) · Mind map: [`chat-agent-mindmap.pdf`](./chat-agent-mindmap.pdf)  
+> Kiến trúc Build Demo 4 lớp: [`server-build-demo-architecture.md`](./server-build-demo-architecture.md)
 
 ---
 
@@ -14,11 +15,68 @@ Hệ thống chat AI hoạt động theo mô hình **request/response qua tRPC**
 | Lớp | File / thành phần | Vai trò |
 |-----|-------------------|---------|
 | **Client** | `apps/web/components/Chat.tsx` | UI, lịch sử `localStorage`, chọn Gemini/OpenAI, đính kèm file/thư mục |
-| **API** | `apps/web/lib/trpc/api.ts` → `rag.query` | Mutation có auth |
-| **Entry** | `answerWithRag` | Wrapper mỏng, gọi `runSupervisor` |
+| **API** | `apps/web/lib/trpc/api.ts` → `rag.query` | Mutation có auth (Clerk Bearer) |
+| **Controller** | `controllers/trpc/ragRouter.ts` | Zod input + `assertChatAccess(/chat)` + gọi `answerWithRag` |
+| **Entry** | `answerWithRag` | Wrapper mỏng, gọi `runSupervisor` (truyền `req` cho Build Demo ACL) |
 | **Supervisor** | `runSupervisor` | Guardrails, memory, routing, chạy agent(s), gộp response, log |
 
 **Quan trọng:** Lịch sử bubble trên UI **không** đồng bộ tự động với ngữ cảnh LLM trên server. Xóa tin trên client hoặc refresh trang không xóa short memory — cần **Xóa phiên** hoặc `rag.clearSession`.
+
+### 1.1 Mind map — tổng quan hệ thống
+
+> Bản HTML/PDF mind map: [`chat-agent-mindmap.html`](./chat-agent-mindmap.html) · [`chat-agent-mindmap.pdf`](./chat-agent-mindmap.pdf)
+
+```mermaid
+mindmap
+  root((NovaAI Chat RAG))
+    Client
+      Chat.tsx
+      localStorage UI
+      api.rag.query
+      Gemini / OpenAI
+      File base64
+    Controller L1
+      ragRouter.ts
+      Zod rag.schema
+      assertChatAccess
+      clearSession
+    Supervisor
+      guardrails
+      shortMemory
+      resolveRoute
+      runAgents parallel
+      composeResponse
+      aiLogger
+    Routing
+      detectTool
+      scoring candidates
+      LLM classify
+      rule classify
+      QA ưu tiên Build Demo
+    Agents
+      RAG
+        knowledgeBase
+        rag/docs
+        callProvider
+        fallback
+      Actions
+        help time_now
+        Build Demo upload
+        Build Demo compress
+      free_chat
+      sql MySQL
+      dashboard activity
+    Memory
+      key email sessionId
+      TTL 2h 8 turns
+      buildDemoAttachments
+      UI khác server
+    Response
+      answer
+      intent sources
+      toolCalled
+      buildDemoProcessing
+```
 
 ---
 
@@ -32,7 +90,8 @@ sequenceDiagram
   participant C as Chat.tsx
   participant LS as localStorage
   participant API as api.rag.query
-  participant R as ragRouter
+  participant R as controllers/trpc/ragRouter
+  participant Pol as authPolicy.service
   participant A as answerWithRag
   participant S as runSupervisor
   participant RT as resolveRoute
@@ -43,9 +102,10 @@ sequenceDiagram
   C->>LS: Lưu bubble user
   C->>C: readFileAsDataUrl → base64
   C->>API: question, provider, attachments, sessionId
-  API->>R: protectedProcedure (auth)
-  R->>A: role, email, sessionId
-  A->>S: runSupervisor(input)
+  API->>R: protectedProcedure (Clerk auth)
+  R->>Pol: assertChatAccess(/chat)
+  R->>A: role, email, sessionId, req
+  A->>S: runSupervisor(input + req)
   S->>M: getShortMemory + mergeBuildDemoAttachments
   S->>RT: resolveRoute(ctx)
   RT-->>S: RouteDecision (agents[], intent)
@@ -120,10 +180,11 @@ Chat.tsx ──► localStorage (lưu message user)
 api.rag.query(question, provider, attachments, sessionId)
   │
   ▼
-ragRouter (protectedProcedure) ──► email, role từ auth
+controllers/trpc/ragRouter (protectedProcedure + Zod)
   │
+  ├── assertChatAccess(req) — role phải có route /chat
   ▼
-answerWithRag → runSupervisor
+answerWithRag → runSupervisor(req, role, email…)
   │
   ├── guardrails
   ├── getShortMemory + mergeBuildDemoAttachments
@@ -137,6 +198,197 @@ Response → Chat.tsx bubble assistant (+ BuildDemoProgress nếu UI nhận di�
 ```
 
 **`sessionId`** trên server = `activeConversation.id` trên client (ví dụ `c-1717...`).
+
+### 2.4 Sequence end-to-end chi tiết (4 lớp + nhánh RAG)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant Chat as Chat.tsx
+  participant LS as localStorage
+  participant Web as api.rag.query
+  participant HTTP as POST /api/trpc/rag.query
+  participant Ctx as trpc/context.ts
+  participant Ctrl as controllers/trpc/ragRouter
+  participant Pol as authPolicy.service
+  participant Sch as shared/schemas/rag.schema
+  participant Orch as answerWithRag
+  participant Sup as runSupervisor
+  participant Mem as shortMemory
+  participant RT as resolveRoute
+  participant RAG as runRagAgent
+  participant KB as knowledgeBase
+  participant LLM as callProvider
+  participant Comp as responseComposer
+  participant Log as aiLogger
+
+  U->>Chat: Nhập câu hỏi (+ file optional)
+  Chat->>LS: Lưu bubble user (UI only)
+  Chat->>Chat: readFileAsDataUrl → base64
+  Chat->>Web: question, provider, sessionId, attachments
+  Web->>HTTP: tRPC mutation + Authorization
+  HTTP->>Ctx: createContext → ctx.auth
+  HTTP->>Ctrl: protectedProcedure
+  Ctrl->>Sch: Zod ragQueryInputSchema
+  Ctrl->>Pol: assertChatAccess(/chat)
+  Ctrl->>Orch: role, email, sessionId, req
+  Orch->>Sup: runSupervisor(input)
+  Sup->>Sup: runInputGuardrails
+  Sup->>Mem: buildShortMemoryKey + getShortMemory
+  Sup->>RT: resolveRoute(AgentContext)
+  alt Route → agent rag
+    RT-->>Sup: agents rag, intent knowledge_qa
+    Sup->>RAG: runRagAgent(ctx)
+    RAG->>KB: retrieveKnowledgeContext
+    KB-->>RAG: contextPrompt + sources
+    RAG->>LLM: callProvider + history
+    RAG-->>Sup: AgentResult
+  end
+  Sup->>Comp: composeMultiResponse
+  Sup->>Mem: appendShortMemoryTurn
+  Sup->>Log: logChatEvent
+  Sup-->>Chat: answer, intent, sources, provider
+  Chat->>LS: Lưu bubble assistant
+```
+
+### 2.5 Kiến trúc 4 lớp (sau refactor `controllers/`)
+
+```mermaid
+flowchart TB
+  subgraph Client["CLIENT — apps/web"]
+    UI[Chat.tsx]
+    API[lib/trpc/api.ts]
+    UI --> API
+  end
+
+  subgraph L1["LAYER 1 — Controllers"]
+    RagCtrl["controllers/trpc/ragRouter.ts"]
+    RestCtrl["controllers/rest/* — SFTP, upload, SMTP"]
+    AiCtrl["controllers/ai/buildDemoTool.ts"]
+  end
+
+  subgraph Infra["tRPC Infra"]
+    AppR[trpc/appRouter.ts]
+    Trpc[trpc/trpc.ts]
+    Ctx[trpc/context.ts]
+    AppR --> RagCtrl
+    Trpc --> RagCtrl
+    Ctx --> Trpc
+  end
+
+  subgraph L2["LAYER 2 — Orchestration / Services"]
+    AWR[answerWithRag.ts]
+    SUP[runSupervisor.ts]
+    POL[authPolicy.service.ts]
+  end
+
+  subgraph AI["AI — lib/ai/"]
+    RT[resolveRoute]
+    RAG[runRagAgent]
+    KB[knowledgeBase]
+    LLM[callProvider]
+    MEM[shortMemory]
+  end
+
+  subgraph L4["LAYER 4 — Shared"]
+    SCH[shared/schemas/rag.schema.ts]
+  end
+
+  API -->|POST /api/trpc| AppR
+  RagCtrl --> SCH
+  RagCtrl --> POL
+  RagCtrl --> AWR --> SUP
+  SUP --> MEM --> RT --> RAG
+  RAG --> KB --> LLM
+```
+
+| Lớp | Thư mục | Trách nhiệm |
+|-----|---------|-------------|
+| **L1 Controller** | `controllers/trpc/`, `controllers/rest/`, `controllers/ai/` | Validate Zod, auth/policy, gọi service/orchestrator |
+| **L2 Service** | `services/`, `lib/ai/orchestration/` | Business logic, supervisor, policy |
+| **L3 Repository** | `repositories/` | Đọc/ghi data (JSON file) |
+| **L4 Shared** | `shared/schemas/` | Zod schema dùng chung |
+
+### 2.6 Nhánh RAG — retrieval → LLM
+
+```mermaid
+flowchart LR
+  subgraph Input
+    Q[question]
+    H[history từ shortMemory]
+    P[provider gemini hoặc openai]
+  end
+
+  subgraph Retrieval["retrieveKnowledgeContext"]
+    LOAD["apps/server/rag/docs/*.md|txt|json"]
+    KW[questionKeywords + scoreText]
+    SNIP[Top 3 doc, snippet ~2400 chars]
+    PROMPT[contextPrompt]
+  end
+
+  subgraph Generate
+    CP[callProvider]
+    FB{Primary fail?}
+    CP2[Fallback provider]
+  end
+
+  Q --> LOAD --> KW --> SNIP --> PROMPT
+  PROMPT --> CP
+  H --> CP
+  P --> CP
+  CP --> FB
+  FB -->|yes| CP2
+  FB -->|no| OUT[AgentResult answer + sources]
+  CP2 --> OUT
+```
+
+**Khi nào route vào RAG** (`resolveRoute`):
+
+| Điều kiện | Kết quả |
+|-----------|---------|
+| Tool Build Demo + candidate `rag` | Chỉ `rag` — QA ưu tiên phiên demo |
+| `detectAgentCandidates` = rag | `agents: ["rag"]` |
+| LLM/rule → `knowledge_qa` | `agents: ["rag"]` |
+| Multi-intent có rag | Chạy song song với agents khác |
+
+### 2.7 `rag.clearSession` — xóa memory server
+
+```mermaid
+sequenceDiagram
+  participant Chat as Chat.tsx
+  participant Ctrl as ragRouter.clearSession
+  participant Pol as assertChatAccess
+  participant Mem as shortMemory
+
+  Chat->>Ctrl: sessionId hoặc allSessions true
+  Ctrl->>Pol: role có /chat?
+  alt allSessions
+    Ctrl->>Mem: clearShortMemoryByPrefix(email)
+  else một session
+    Ctrl->>Mem: clearShortMemory(memoryKey)
+  end
+  Ctrl->>Ctrl: logChatEvent chat_clear_history
+  Ctrl-->>Chat: ok cleared
+```
+
+**Request `rag.query`:**
+
+| Field | Mô tả |
+|-------|--------|
+| `question` | Bắt buộc |
+| `provider` | `gemini` \| `openai` (mặc định gemini) |
+| `sessionId` | Phân tách short memory theo hội thoại |
+| `attachments` | File base64 (Build Demo; RAG thuần thường không cần) |
+
+**Response khi RAG:**
+
+| Field | Ý nghĩa |
+|-------|---------|
+| `answer` | Câu trả lời LLM (có context từ docs) |
+| `intent` | `knowledge_qa` hoặc `multi_intent` |
+| `sources` | Tên file doc được retrieve |
+| `fallbackUsed` | Đã đổi provider khi primary lỗi |
 
 ---
 
@@ -169,12 +421,14 @@ File: `apps/server/src/lib/ai/memory/shortMemory.ts`
 
 File: `apps/server/src/lib/ai/agents/router/routeIntent.ts`
 
-Thứ tự ưu tiên:
+Thứ tự ưu tiên (theo `routeIntent.ts`):
 
-| Bước | Nguồn | Kết quả |
-|------|-------|---------|
-| 1 | `resolveActionTool` | `agents: ["actions"]`, `source: rule_tool` |
-| 2 | `detectAgentCandidates` (scoring) | Nhiều agent → `multi_intent`, `source: rule_multi` |
+| Bước | Điều kiện | Kết quả |
+|------|-----------|---------|
+| 1a | `resolveActionTool` **và** `detectAgentCandidates` có `rag` | **Chỉ `rag`** — Knowledge QA ưu tiên hơn phiên Build Demo đang mở |
+| 1b | `resolveActionTool` **và** có candidate khác | `multi_intent`: `["actions", …candidates]`, `source: rule_multi` |
+| 1c | Chỉ `resolveActionTool` | `agents: ["actions"]`, `source: rule_tool` |
+| 2 | `detectAgentCandidates` > 1 (không tool) | `multi_intent`, `source: rule_multi` |
 | 3 | Scoring 1 agent | `sql` / `dashboard` / `rag`, `source: rule_fallback` |
 | 4 | `classifyIntentWithLlm` → `classifyUserIntent` | `rag` / `free_chat` / `sql` / `dashboard`, `source: llm` hoặc `rule_fallback` |
 
@@ -189,9 +443,9 @@ Thứ tự ưu tiên:
 | `dashboard_insight` | `dashboard` |
 | `multi_intent` | Nhiều agent song song |
 
-### 3.4 Phát hiện tool (ưu tiên cao nhất)
+### 3.4 Phát hiện tool
 
-`resolveActionTool` (`tools/detectTool.ts`) chạy **trước** mọi classifier:
+`resolveActionTool` (`tools/detectTool.ts`) được gọi **cùng lúc** với `detectAgentCandidates` trong `resolveRoute`. Tool không luôn thắng: nếu câu hỏi cũng match Knowledge QA (scoring ≥ `RAG_THRESHOLD`), router chọn **rag** thay vì actions.
 
 | Tool | Trigger ví dụ |
 |------|----------------|
@@ -213,8 +467,13 @@ Thứ tự ưu tiên:
 const direct = detectTool(text);
 if (direct) return direct;
 if (hasIncomingAttachments) return "upload_sftp_demo";
-if (isBuildDemoSessionActive(...)) return "compress_demo_assets";
+if (isBuildDemoSessionActive(...)) {
+  if (scoreKnowledgeQaIntent(text) >= RAG_THRESHOLD) return null; // QA ưu tiên
+  return "compress_demo_assets";
+}
 ```
+
+Trong `resolveRoute`, nếu `resolveActionTool` **và** `detectAgentCandidates` có `rag` → chỉ chạy **rag** (bước 1a). Đây là lớp bảo vệ thứ hai khi user hỏi kiến thức giữa phiên Build Demo.
 
 ### 3.5 Chạy agents
 
@@ -262,7 +521,9 @@ flowchart TD
   Q --> G{Guardrail OK?}
   G -->|No| E[Trả lỗi — không gọi AI]
   G -->|Yes| T{resolveActionTool?}
-  T -->|Yes| ACT[actions agent]
+  T -->|Yes + RAG candidate| RAG[rag agent — ưu tiên QA]
+  T -->|Yes + other candidates| MULTI2[actions + candidates]
+  T -->|Yes only| ACT[actions agent]
   T -->|No| MC{detectAgentCandidates > 1?}
   MC -->|Yes| MULTI[multi_intent — chạy song song]
   MC -->|No| SC{Scoring 1 agent?}
@@ -293,10 +554,12 @@ File: `apps/server/src/lib/ai/agents/actions/runActionAgent.ts`
 | Tool | Xử lý |
 |------|-------|
 | `help`, `time_now` | `executeTool()` — trả text tĩnh |
-| `upload_sftp_demo` | `runBuildDemoTool` → upload SFTP trực tiếp |
-| `compress_demo_assets` | `runBuildDemoTool` → nén ảnh/video rồi upload |
+| `upload_sftp_demo` | `controllers/ai/buildDemoTool` → `services/buildDemo.service` (upload) |
+| `compress_demo_assets` | `controllers/ai/buildDemoTool` → `services/buildDemo.service` (compress) |
 
 Quyền brand: `admin` → `allowedBrands: null`; user → `resolveAllowedBuildDemoBrands(account)`.
+
+Build Demo yêu cầu `ctx.req` trên `AgentContext` (truyền từ `ragRouter`). Thiếu `req` → trả *"Không thể chạy Build Demo: thiếu request context."*
 
 ### 5.2 RAG Agent
 
@@ -343,42 +606,51 @@ Tools: `tools/analytics/activitySummary.ts`
 | `upload_sftp_demo` | Upload file user lên SFTP **không** nén/inlined base64 |
 | `compress_demo_assets` | Nén ảnh (base64 trong JS/HTML) hoặc video (~4MB) rồi upload |
 
-### 6.2 Luồng server
+### 6.2 Luồng server (4 lớp)
 
 ```mermaid
-flowchart LR
-  T[runBuildDemoTool]
-  T --> M[mergeBuildDemoAttachments]
-  M --> A[invokeBuildDemoAgent]
-  A -->|message| H[Hỏi thêm brand/format/file]
-  A -->|tool_call| F[resolveBuildDemoToolInput fallback]
-  F --> E[executeBuildDemo]
-  E --> SFTP[Upload SFTP]
-  E --> VAST[VAST XML nếu Video]
+sequenceDiagram
+  participant Act as runActionAgent
+  participant Ctrl as controllers/ai/buildDemoTool
+  participant Pol as authPolicy.service
+  participant LLM as buildDemoAgent
+  participant Svc as buildDemo.service
+  participant SFTP as services/buildDemo/upload|compress
+
+  Act->>Ctrl: runBuildDemoTool(req, tool, allowedBrands…)
+  Ctrl->>Pol: assertBuildDemoSftpAllowed(req)
+  Ctrl->>Ctrl: mergeBuildDemoAttachments
+  Ctrl->>LLM: invokeBuildDemoAgent
+  alt kind: message / thiếu args
+    LLM-->>Ctrl: hỏi thêm hoặc resolveBuildDemoToolInput
+    Ctrl-->>Act: executed: false
+  else đủ brand + format + file
+    Ctrl->>Pol: assertBuildDemoBrandPolicy (Zod parsed)
+    Ctrl->>Svc: executeBuildDemo
+    Svc->>SFTP: upload hoặc compress + upload
+    Svc-->>Ctrl: BuildDemoResult + preview URLs
+    Ctrl->>Ctrl: formatBuildDemoChatAnswer → markdown
+    Ctrl-->>Act: executed: true
+  end
 ```
 
 ```
-runBuildDemoTool (buildDemoTool.ts)
-  │
-  ├─ mergeBuildDemoAttachments(memoryKey, attachments)
-  │
-  ├─ invokeBuildDemoAgent (function calling: build_demo)
-  │     ├─ kind: message → trả text hỏi thêm
-  │     └─ kind: tool_call → { brandId, demoFormat, folderName? }
-  │
-  ├─ Nếu chưa đủ → resolveBuildDemoToolInput (rule fallback từ history)
-  │
-  └─ executeBuildDemo (buildDemoExecutor.ts)
-        ├─ upload_sftp_demo → buildDemoUploadSftpExecutor.ts
-        ├─ compress_demo_assets → buildDemoCompressExecutor.ts
-        ├─ Validate brand (admin = null → mọi brand)
-        ├─ Upload SFTP: /script/demo/{year}/{month}/...
-        ├─ Video: makeVastXml.ts
-        └─ HTML: inline images (buildDemoInlineImages.ts) nếu cần
+controllers/ai/buildDemoTool.ts          # LAYER 1 — validate + policy + format markdown
+  ├─ assertBuildDemoSftpAllowed(req)
+  ├─ mergeBuildDemoAttachments
+  ├─ lib/ai/tools/buildDemo/buildDemoAgent.ts  # LLM function calling (không SFTP)
+  ├─ buildDemoInputSchema.parse (shared/schemas)
+  ├─ assertBuildDemoBrandPolicy
+  └─ services/buildDemo.service.ts       # LAYER 2 — orchestrator
+        ├─ intent upload_sftp → services/buildDemo/upload.ts
+        ├─ intent compress → services/buildDemo/compress.ts (+ inlineImages, assets)
+        ├─ path: services/buildDemo/common.ts
+        ├─ video: services/buildDemo/vastXml.ts
+        └─ preview: services/preview.service.ts
 ```
 
 **Thành công:** answer bắt đầu bằng `Build Demo thành công` → `clearBuildDemoAttachments`.  
-**Response:** `buildDemoProcessing: true` khi `executeBuildDemo` thực sự chạy.
+**Response:** `buildDemoProcessing: true` khi controller gọi `executeBuildDemo` (kể cả khi upload fail — `executed: true` nghĩa là đã chạy pipeline SFTP).
 
 ### 6.3 Build Demo nhiều lượt
 
@@ -402,8 +674,12 @@ runBuildDemoTool (buildDemoTool.ts)
 
 ### 7.2 BuildDemoProgress (chỉ UI)
 
-Thanh tiến độ **giả lập** khi `shouldShowBuildDemoProgress` = true.  
-Khi server trả `buildDemoProcessing: true` → đẩy 100%, ẩn sau ~600ms.
+Thanh tiến độ **giả lập** khi `shouldShowBuildDemoProgress` = true — heuristic client: **file trong session** + **brand** + **format** (HTML/Video) trong corpus hội thoại (`lib/buildDemoChatProgress.ts`).
+
+- Bắt đầu khi gửi tin (heuristic): 8% → tăng dần tới 92% (mỗi 450ms)
+- Khi server trả `buildDemoProcessing: true` → đẩy 100%, giữ ~600ms rồi ẩn
+- Heuristic true nhưng `buildDemoProcessing: false` → ẩn ngay (agent chưa chạy SFTP — thiếu metadata)
+- Heuristic false nhưng `buildDemoProcessing: true` → hiện progress ngắn 90% → 100% rồi ẩn
 
 ### 7.3 Bộ nhớ & quản lý hội thoại
 
@@ -434,11 +710,13 @@ File: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`
 
 ## 9. API tRPC
 
-**Router:** `apps/server/src/trpc/routers/rag.ts`
+**Router:** `apps/server/src/controllers/trpc/ragRouter.ts`  
+**Mount:** `trpc/appRouter.ts` → `rag: ragRouter`  
+**Schemas:** `shared/schemas/rag.schema.ts`, `chatAttachment.schema.ts`
 
 | Procedure | Mô tả |
 |-----------|--------|
-| `rag.query` | mutation — xử lý chat (protected) |
+| `rag.query` | mutation — Zod input + `assertChatAccess` + `answerWithRag` |
 | `rag.clearSession` | xóa short memory một session hoặc `allSessions` theo user prefix |
 
 ### Output (`RagAnswerResult`)
@@ -470,13 +748,15 @@ File: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`
 | `lib/chatAttachments.ts` | Merge upload folder/file |
 | `lib/trpc/api.ts` | tRPC client (`api.rag.query`, `api.rag.clearSession`) |
 
-### 10.2 API & Entry (apps/server)
+### 10.2 Controllers & Entry (apps/server)
 
 | File | Vai trò |
 |------|---------|
-| `src/trpc/routers/rag.ts` | tRPC router: `query`, `clearSession` |
-| `src/lib/ai/orchestration/answerWithRag.ts` | Entry point — wrapper gọi supervisor |
-| `src/lib/ai/agents/supervisor/runSupervisor.ts` | Orchestrator chính: guardrails → route → agents → compose → log |
+| `src/controllers/trpc/ragRouter.ts` | tRPC: `query`, `clearSession` + auth policy |
+| `src/controllers/ai/buildDemoTool.ts` | Build Demo controller: Zod + ACL + service |
+| `src/lib/ai/orchestration/answerWithRag.ts` | Wrapper gọi `runSupervisor` (+ `req`) |
+| `src/lib/ai/agents/supervisor/runSupervisor.ts` | Supervisor: guardrails → route → agents → compose → log |
+| `src/trpc/appRouter.ts` | Gắn `ragRouter` vào app router |
 
 ### 10.3 Routing & Intent
 
@@ -507,21 +787,33 @@ File: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`
 | `agents/sql/runSqlAgent.ts` | SQL generation + MySQL query |
 | `agents/dashboard/runDashboardAgent.ts` | Activity log summary + LLM |
 
-### 10.6 Tools
+### 10.6 Build Demo services & LLM agent
 
 | File | Vai trò |
 |------|---------|
-| `tools/index.ts` | Export tools, `executeTool()` |
-| `tools/types.ts` | `ActionTool`, `BuildDemoToolInput` |
-| `tools/buildDemo/buildDemoTool.ts` | Orchestration Build Demo |
-| `tools/buildDemo/buildDemoAgent.ts` | Function calling, extraction metadata |
-| `tools/buildDemo/buildDemoExecutor.ts` | Router tới upload hoặc compress |
-| `tools/buildDemo/buildDemoUploadSftpExecutor.ts` | Upload SFTP trực tiếp |
-| `tools/buildDemo/buildDemoCompressExecutor.ts` | Nén assets + upload |
-| `tools/buildDemo/buildDemoCommon.ts` | Shared helpers |
-| `tools/buildDemo/buildDemoConfig.ts` | Brand/format config |
-| `tools/buildDemo/buildDemoInlineImages.ts` | Embed ảnh vào HTML demo |
-| `tools/buildDemo/makeVastXml.ts` | Tạo VAST XML cho video demo |
+| `services/buildDemo.service.ts` | Orchestrator + `formatBuildDemoChatAnswer` |
+| `services/authPolicy.service.ts` | `/chat` route, SFTP ACL, brand policy |
+| `services/preview.service.ts` | Preview URL `demo.yomedia.vn` |
+| `services/sftp.service.ts` | Wrapper `lib/sftp` |
+| `services/buildDemo/upload.ts` | Upload SFTP trực tiếp |
+| `services/buildDemo/compress.ts` | Nén assets + upload |
+| `services/buildDemo/common.ts` | Path, brand normalize, attachments |
+| `services/buildDemo/config.ts` | Brand label, filter allowed |
+| `services/buildDemo/assets.ts` | Manifest URLs, base64 inline |
+| `services/buildDemo/inlineImages.ts` | Embed ảnh vào HTML |
+| `services/buildDemo/vastXml.ts` | `make-vast.xml` cho video |
+| `repositories/brand.repository.ts` | `demoConfig.json` brands |
+| `repositories/creativeDemo.repository.ts` | `creative-demos.json` |
+| `shared/schemas/buildDemo.schema.ts` | Zod input Build Demo |
+| `lib/ai/tools/buildDemo/buildDemoAgent.ts` | LLM function calling — extract metadata |
+
+### 10.7 Tools (actions khác)
+
+| File | Vai trò |
+|------|---------|
+| `tools/index.ts` | Export tools, `executeTool()`, re-export `runBuildDemoTool` |
+| `tools/types.ts` | `ActionTool`; `BuildDemoToolInput` từ shared schema |
+| `tools/detectTool.ts` | Phát hiện tool + phiên Build Demo active |
 | `tools/mysql/index.ts` | MySQL tool exports |
 | `tools/mysql/queryExecutor.ts` | Thực thi query |
 | `tools/mysql/validateQuery.ts` | Validate SELECT-only |
@@ -529,7 +821,7 @@ File: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`
 | `tools/analytics/index.ts` | Analytics exports |
 | `tools/analytics/activitySummary.ts` | Đọc + tóm tắt activity log |
 
-### 10.7 Core & Hạ tầng
+### 10.8 Core & Hạ tầng
 
 | File | Vai trò |
 |------|---------|
@@ -541,44 +833,50 @@ File: `apps/server/src/lib/ai/retrieval/knowledgeBase.ts`
 | `services/llm/callProvider.ts` | Gọi OpenAI / Gemini |
 | `logging/aiLogger.ts` | `logChatEvent` → activity log |
 
-### 10.8 Cây thư mục AI (tóm tắt)
+### 10.9 Cây thư mục server (Chat + Build Demo)
 
 ```
-apps/server/src/lib/ai/
-├── agents/
-│   ├── actions/runActionAgent.ts
-│   ├── dashboard/runDashboardAgent.ts
-│   ├── freeChat/runFreeChatAgent.ts
-│   ├── rag/runRagAgent.ts
-│   ├── router/routeIntent.ts
-│   ├── sql/runSqlAgent.ts
-│   └── supervisor/runSupervisor.ts
-├── core/
-│   ├── config.ts
-│   └── types.ts
-├── guardrails/index.ts
-├── intent/
-│   ├── classifyUserIntent.ts
-│   ├── scoring.ts
-│   └── types.ts
-├── logging/aiLogger.ts
-├── memory/shortMemory.ts
-├── orchestration/
-│   ├── aggregator.ts
-│   ├── answerWithRag.ts
-│   ├── responseComposer.ts
-│   └── runAgents.ts
-├── retrieval/knowledgeBase.ts
-├── services/llm/
-│   ├── callProvider.ts
-│   └── classifyIntent.ts
-└── tools/
-    ├── analytics/
-    ├── buildDemo/
-    ├── mysql/
-    ├── detectTool.ts
-    ├── index.ts
-    └── types.ts
+apps/server/src/
+├── controllers/                     # LAYER 1 — toàn bộ API entry
+│   ├── ai/buildDemoTool.ts          # Build Demo (Chat)
+│   ├── trpc/                        # tRPC: health, auth, rag, admin, …
+│   └── rest/                        # REST: sftp, upload, smtp, …
+├── services/
+│   ├── buildDemo.service.ts
+│   ├── authPolicy.service.ts
+│   ├── preview.service.ts
+│   ├── sftp.service.ts
+│   └── buildDemo/                   # upload, compress, common, …
+├── repositories/
+│   ├── brand.repository.ts
+│   └── creativeDemo.repository.ts
+├── shared/schemas/
+│   ├── rag.schema.ts
+│   ├── buildDemo.schema.ts
+│   └── chatAttachment.schema.ts
+└── lib/ai/
+    ├── agents/
+    │   ├── actions/runActionAgent.ts
+    │   ├── dashboard/runDashboardAgent.ts
+    │   ├── freeChat/runFreeChatAgent.ts
+    │   ├── rag/runRagAgent.ts
+    │   ├── router/routeIntent.ts
+    │   ├── sql/runSqlAgent.ts
+    │   └── supervisor/runSupervisor.ts
+    ├── orchestration/
+    │   ├── answerWithRag.ts
+    │   ├── runAgents.ts
+    │   ├── responseComposer.ts
+    │   └── aggregator.ts
+    ├── tools/
+    │   ├── buildDemo/buildDemoAgent.ts   # chỉ LLM agent
+    │   ├── detectTool.ts
+    │   ├── index.ts
+    │   ├── mysql/
+    │   └── analytics/
+    ├── memory/shortMemory.ts
+    ├── guardrails/index.ts
+    └── retrieval/knowledgeBase.ts
 ```
 
 ---
@@ -604,7 +902,8 @@ apps/server/src/lib/ai/
 |-------------|-------------------|
 | AI "quên" ngữ cảnh sau refresh | Client mất UI history; server memory còn — hoặc ngược lại nếu đổi sessionId |
 | Mọi câu đều Build Demo | `isBuildDemoSessionActive` — cần **Xóa phiên** hoặc hoàn tất/hủy flow |
-| Progress bar nhưng không upload | UI heuristic true nhưng agent chưa gọi `executeBuildDemo` (thiếu metadata) |
+| Progress bar nhưng không upload | UI heuristic true nhưng `buildDemoProcessing: false` (thiếu brand/format/file) |
+| 403 khi build demo | Role thiếu `/chat`, `canSftpUploadBinary`, hoặc brand không được phép |
 | RAG không trả doc PDF | Retrieval chỉ index md/txt/json |
 | Provider lỗi | Thiếu API key hoặc cả hai provider fail — xem `chat_provider_failed` log |
 | SQL Agent từ chối | Role không trong `sqlAllowedRoles` hoặc MySQL chưa cấu hình |
@@ -612,4 +911,4 @@ apps/server/src/lib/ai/
 
 ---
 
-*Tài liệu đồng bộ với codebase YoMedia Dashboard · `docs/chat-agent-flow.md`*
+*Tài liệu đồng bộ với codebase YoMedia Dashboard · Cập nhật 2026-06-08 · PDF: [`chat-agent-flow.pdf`](./chat-agent-flow.pdf)*

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/react";
 import { api } from "../lib/trpc/api";
 import { setAdminOfflineMode } from "../lib/adminOfflineMode";
-import { clearBuildDemoUploadResultsOnLogout } from "../lib/buildDemoUploadResultStorage";
 import { serverApiOrigin } from "../lib/serverApiOrigin";
 
 interface User {
@@ -203,7 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = () => {
-    clearBuildDemoUploadResultsOnLogout(user?.email);
     setUser(null);
     setAuthReady(true);
     try {

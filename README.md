@@ -156,9 +156,9 @@ NewDashboardYomedia/
 │   ├── web/                    # Dashboard UI (port 3000)
 │   │   └── lib/trpc/           # tRPC client, React Query provider, api helpers
 │   ├── server/                 # Express + tRPC (port 3001+, .dev-api-port)
-│   │   ├── src/trpc/           # Router, context, procedures (auth, admin, …)
+│   │   ├── src/controllers/    # API entry: trpc/* + rest/* + ai/*
+│   │   ├── src/trpc/           # tRPC infra: appRouter, context, procedures
 │   │   ├── src/services/       # Business logic (permissions, auth, activity log, …)
-│   │   ├── src/routes/       # REST còn lại: SFTP binary/ZIP, upload, SMTP
 │   │   └── src/lib/          # SFTP, Clerk, RAG, media
 │   └── mobile/                 # Expo app
 ├── packages/
@@ -330,7 +330,7 @@ sequenceDiagram
 | **Identity** | Clerk JWT | `clerkVerify.ts`, `ClerkApiAuthBridge` |
 | **Authorization** | Role + routes từ account, merge `role-permissions.json` | `services/permissions.ts`, `services/auth.ts` |
 | **UI guard** | `PrivateRoute` + `RoleRoute` + `lib/access.ts` | `App.tsx` |
-| **API guard** | `protectedProcedure` / `adminProcedure` / `requireClerkAuth` | `trpc/trpc.ts`, `routes/*` |
+| **API guard** | `protectedProcedure` / `adminProcedure` / `requireClerkAuth` | `trpc/trpc.ts`, `controllers/*` |
 
 Role chính: `admin`, `guest`, `manager` (alias `adsopmanager`), và role tùy chỉnh trong `role-permissions.json`.
 

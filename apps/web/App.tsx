@@ -17,7 +17,6 @@ import History from "./pages/History";
 import CreativeShowcase from "./pages/CreativeShowcase";
 import ImageGenerator from "./pages/ImageGenerator";
 import LoginPage from "./pages/LoginPage";
-import BuildDemo from "./pages/BuildDemo";
 import ManageDemo from "./pages/ManageDemo";
 import ManageSftp from "./pages/ManageSftp";
 import Upload from "./pages/Upload";
@@ -77,13 +76,16 @@ const App: React.FC = () => {
                             <Route
                               path="/manage-sftp"
                               element={
-                                <RoleRoute allow={["admin"]}>
+                                <RoleRoute allow={["admin", "manager", "media", "design"]}>
                                   <ManageSftp />
                                 </RoleRoute>
                               }
                             />
-                            {/* build-demo & upload: no RoleRoute allow-list; PrivateRoute uses user.allowedRoutes (see role-permissions.json). */}
-                            <Route path="/build-demo" element={<BuildDemo />} />
+                            <Route
+                              path="/build-demo"
+                              element={<Navigate to="/chat" replace />}
+                            />
+                            {/* upload: no RoleRoute allow-list; PrivateRoute uses user.allowedRoutes (see role-permissions.json). */}
                             <Route
                               path="/tool/test"
                               element={

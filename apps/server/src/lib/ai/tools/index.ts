@@ -4,7 +4,10 @@ export {
   isBuildDemoSessionActive,
   resolveActionTool,
 } from "./detectTool.js";
-export { runBuildDemoTool, type BuildDemoToolRunResult } from "./buildDemo/buildDemoTool.js";
+export {
+  runBuildDemoTool,
+  type BuildDemoToolRunResult,
+} from "../../../controllers/ai/buildDemoTool.js";
 
 import type { ActionTool } from "./types.js";
 

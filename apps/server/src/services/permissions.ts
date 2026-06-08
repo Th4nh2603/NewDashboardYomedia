@@ -9,7 +9,7 @@ import {
 import {
   getBuildDemoBrandOptions,
   normalizeBuildDemoBrandIds,
-} from "../lib/buildDemoBrands.js";
+} from "../repositories/brand.repository.js";
 import { rolePermissionsPath } from "./paths.js";
 
 export type RolePermissionConfig = Record<
@@ -64,7 +64,7 @@ const ADMIN_EXTRA_ROUTES = [
   "/history",
   "/tool/test",
 ];
-const DESIGN_EXTRA_ROUTES = ["/build-demo", "/upload"];
+const DESIGN_EXTRA_ROUTES = ["/upload"];
 const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
 export const ALL_ALLOWED_ROUTES = Array.from(
   new Set([
@@ -104,13 +104,12 @@ export function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): stri
     role === "media" ||
     role === "manager"
   ) {
-    routes.add("/build-demo");
+    routes.add("/manage-sftp");
   }
   if (role === "admin" || role === "design") {
     routes.add("/upload");
   }
   if (role === "admin") {
-    routes.add("/manage-sftp");
     routes.add("/admin/users");
     routes.add("/creative-demos-edit");
     routes.add("/history");

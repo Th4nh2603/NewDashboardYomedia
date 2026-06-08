@@ -4,12 +4,7 @@ export type ActionTool =
   | "upload_sftp_demo"
   | "compress_demo_assets";
 
-export type BuildDemoFormat = "HTML" | "Video";
-
-export type BuildDemoToolInput = {
-  brandId: string;
-  demoFormat: BuildDemoFormat;
-  folderName?: string;
-  /** creative-demos.json `value` for demo.yomedia `f=` (e.g. mobile-interstitial-firstview). */
-  formatValue?: string;
-};
+export type {
+  BuildDemoFormat,
+  BuildDemoInput as BuildDemoToolInput,
+} from "../../../shared/schemas/buildDemo.schema.js";

@@ -50,11 +50,18 @@ type BuildProgressState = {
   percent: number;
 };
 
+const BUILD_DEMO_PROGRESS_COMPLETE_MS = 600;
+
 function progressLabelForPercent(percent: number): string {
   if (percent < 30) return "Đang phân tích brand, format và file…";
   if (percent < 65) return "Đang chuẩn bị upload lên SFTP…";
   if (percent < 90) return "Đang ghi demo và VAST XML…";
-  return "Đang hoàn tất…";
+  if (percent < 100) return "Đang hoàn tất…";
+  return "Hoàn tất upload SFTP…";
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function messageBubbleClass(role: Message["role"]): string {
@@ -260,8 +267,6 @@ const Chat = () => {
     } else {
       setBuildProgress(null);
     }
-
-    let ranBuildUpload = false;
     try {
       let attachments: ChatAttachmentMeta[] | undefined;
       if (selectedUploads.length > 0) {
@@ -285,12 +290,23 @@ const Chat = () => {
         attachments,
         activeConversation.id,
       );
-      ranBuildUpload =
-        !!res &&
-        "buildDemoProcessing" in res &&
-        res.buildDemoProcessing === true;
-      if (ranBuildUpload) {
-        setBuildProgress({ label: "Hoàn tất", percent: 100 });
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+      if (res?.buildDemoProcessing) {
+        if (!showBuildProgress) {
+          setBuildProgress({
+            label: progressLabelForPercent(90),
+            percent: 90,
+          });
+        }
+        setBuildProgress({
+          label: progressLabelForPercent(100),
+          percent: 100,
+        });
+        await delay(BUILD_DEMO_PROGRESS_COMPLETE_MS);
+        setBuildProgress(null);
       } else if (showBuildProgress) {
         setBuildProgress(null);
       }
@@ -321,11 +337,7 @@ const Chat = () => {
     } finally {
       if (progressTimer) clearInterval(progressTimer);
       setIsSending(false);
-      if (showBuildProgress && ranBuildUpload) {
-        setTimeout(() => setBuildProgress(null), 600);
-      } else if (showBuildProgress) {
-        setBuildProgress(null);
-      }
+      setBuildProgress(null);
     }
   };
 

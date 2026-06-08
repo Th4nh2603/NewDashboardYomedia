@@ -10,7 +10,6 @@ import {
   RectangleStackIcon,
   ChartBarIcon,
   CpuChipIcon,
-  WrenchScrewdriverIcon,
   RocketLaunchIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "../contexts/ThemeContext";
@@ -58,15 +57,6 @@ const Dashboard: React.FC = () => {
         accent: "from-amber-500/90 to-orange-600/85",
         iconBg: isDark ? "bg-amber-500/15" : "bg-amber-500/12",
         iconClr: "text-amber-400",
-      },
-      {
-        name: tDashboard("quickBuildDemoName"),
-        desc: tDashboard("quickBuildDemoDesc"),
-        path: "/build-demo",
-        icon: WrenchScrewdriverIcon,
-        accent: "from-sky-500/90 to-blue-700/85",
-        iconBg: isDark ? "bg-sky-500/15" : "bg-sky-500/12",
-        iconClr: "text-sky-400",
       },
       {
         name: tDashboard("quickShowcaseName"),
