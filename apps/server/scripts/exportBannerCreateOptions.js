@@ -24,7 +24,7 @@ config({ path: join(__dirname, "../.env") });
 const outPath = join(__dirname, "../src/data/banner-create-options.json");
 
 const { fetchBannerCreateFormOptions } = await import(
-  "../src/services/yomediaPlatform.ts"
+  "../src/services/platform/yomediaPlatform.ts"
 );
 
 try {

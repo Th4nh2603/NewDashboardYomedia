@@ -11,7 +11,7 @@ import {
 } from "./accounts.js";
 import { getVerifiedEmail } from "./clerkAuth.js";
 import { getUserRole } from "./role.js";
-import { resolveAllowedBuildDemoBrands } from "../../services/permissions.js";
+import { resolveAllowedBuildDemoBrands } from "../../services/auth/permissions.js";
 
 const DEMO_UPLOAD_PATH_RE = /^\/script\/demo\/\d{4}\/\d{1,2}\/([^/]+)(?:\/|$)/i;
 

@@ -1,4 +1,4 @@
-import { appendActivityLog } from "../../../services/activityLog.js";
+import { appendActivityLog } from "../../../services/activity/activityLog.js";
 import { logBestEffort } from "../../logBestEffort.js";
 
 export async function logChatEvent(input: {

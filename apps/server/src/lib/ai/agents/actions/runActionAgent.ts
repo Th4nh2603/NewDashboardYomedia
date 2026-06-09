@@ -1,9 +1,10 @@
 import type { AgentContext, AgentResult } from "../../core/types.js";
-import { runBuildDemoTool } from "../../../../controllers/ai/buildDemoTool.js";
+import { runBuildDemoTool } from "../../../../controllers/buildDemo/buildDemoTool.js";
+import { runPlacementCodeDownloadTool } from "../../../../controllers/platform/placementCodeDownloadTool.js";
 import { executeTool, resolveActionTool } from "../../tools/index.js";
 import { hasBuildDemoAttachments } from "../../memory/shortMemory.js";
 import { findAccountByEmail } from "../../../auth/accounts.js";
-import { resolveAllowedBuildDemoBrands } from "../../../../services/permissions.js";
+import { resolveAllowedBuildDemoBrands } from "../../../../services/auth/permissions.js";
 
 export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
   const startedAt = Date.now();
@@ -60,7 +61,22 @@ export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
             executed: false,
           }
       : null;
-  const answer = buildDemoRun?.answer ?? executeTool(tool);
+
+  const placementDownloadRun =
+    tool === "download_placement_codes"
+      ? ctx.req
+        ? await runPlacementCodeDownloadTool({
+            question: ctx.question,
+            req: ctx.req,
+          })
+        : {
+            answer: "Không thể tải placement code: thiếu request context.",
+            executed: false,
+          }
+      : null;
+
+  const answer =
+    placementDownloadRun?.answer ?? buildDemoRun?.answer ?? executeTool(tool);
 
   return {
     ok: true,
@@ -70,6 +86,7 @@ export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
     sources: [],
     toolCalled: tool,
     buildDemoProcessing: buildDemoRun?.executed ?? false,
+    placementCodesDownload: placementDownloadRun?.placementCodesDownload,
     fallbackUsed: false,
     spans: [
       {

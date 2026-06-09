@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "../.env") });
 
 const { fetchBannerSettingsForTemplate } = await import(
-  "../src/services/yomediaPlatform.ts"
+  "../src/services/platform/yomediaPlatform.ts"
 );
 
 const data = await fetchBannerSettingsForTemplate(

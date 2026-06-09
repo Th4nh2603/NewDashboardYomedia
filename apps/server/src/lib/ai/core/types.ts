@@ -30,6 +30,20 @@ export type ChatAttachmentMeta = {
   encoding?: "base64";
 };
 
+export type PlacementCodesDownloadHint = {
+  websiteName: string;
+  variant: "standard" | "rtb";
+  matchedCount: number;
+  zipName: string;
+};
+
+export type ActionToolName =
+  | "time_now"
+  | "help"
+  | "upload_sftp_demo"
+  | "compress_demo_assets"
+  | "download_placement_codes";
+
 export type RagAnswerResult = {
   ok: true;
   answer: string;
@@ -37,9 +51,11 @@ export type RagAnswerResult = {
   intent: Intent;
   sources: string[];
   fallbackUsed: boolean;
-  toolCalled?: "time_now" | "help" | "upload_sftp_demo" | "compress_demo_assets";
+  toolCalled?: ActionToolName;
   /** True while server executed Build Demo (upload) on this request. */
   buildDemoProcessing?: boolean;
+  /** Client should fetch ZIP via REST when present. */
+  placementCodesDownload?: PlacementCodesDownloadHint;
 };
 
 export type RouteDecision = {
@@ -83,8 +99,9 @@ export type AgentResult = {
   answer: string;
   confidence: number;
   sources: string[];
-  toolCalled?: "time_now" | "help" | "upload_sftp_demo" | "compress_demo_assets";
+  toolCalled?: ActionToolName;
   buildDemoProcessing?: boolean;
+  placementCodesDownload?: PlacementCodesDownloadHint;
   fallbackUsed?: boolean;
   spans: AgentTraceSpan[];
   metadata?: Record<string, unknown>;
@@ -98,8 +115,9 @@ export type SupervisorResult = {
   agent: AgentName;
   sources: string[];
   fallbackUsed: boolean;
-  toolCalled?: "time_now" | "help" | "upload_sftp_demo" | "compress_demo_assets";
+  toolCalled?: ActionToolName;
   buildDemoProcessing?: boolean;
+  placementCodesDownload?: PlacementCodesDownloadHint;
   trace: {
     requestId: string;
     route: RouteDecision;

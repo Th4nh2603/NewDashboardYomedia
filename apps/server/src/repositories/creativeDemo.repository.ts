@@ -2,7 +2,7 @@ import {
   listActiveCreativeDemos,
   listCreativeDemoTitles,
   loadCreativeDemos,
-} from "../services/creative.js";
+} from "../services/creative/creative.js";
 
 export { loadCreativeDemos, listActiveCreativeDemos, listCreativeDemoTitles };
 

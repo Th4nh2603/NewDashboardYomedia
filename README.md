@@ -156,9 +156,9 @@ NewDashboardYomedia/
 │   ├── web/                    # Dashboard UI (port 3000)
 │   │   └── lib/trpc/           # tRPC client, React Query provider, api helpers
 │   ├── server/                 # Express + tRPC (port 3001+, .dev-api-port)
-│   │   ├── src/controllers/    # API entry: trpc/* + rest/* + ai/*
+│   │   ├── src/controllers/    # API entry theo domain — xem docs/server-controllers-architecture.md
 │   │   ├── src/trpc/           # tRPC infra: appRouter, context, procedures
-│   │   ├── src/services/       # Business logic (permissions, auth, activity log, …)
+│   │   ├── src/services/       # Business logic theo domain — xem docs/server-services-architecture.md
 │   │   └── src/lib/          # SFTP, Clerk, RAG, media
 │   └── mobile/                 # Expo app
 ├── packages/
@@ -194,6 +194,14 @@ Web gọi tRPC qua `lib/trpc/api.ts` (Clerk Bearer tự gắn). Vite dev proxy m
 ## Sơ đồ chức năng mô hình
 
 Tài liệu kiến trúc chức năng của monorepo: luồng xác thực, dữ liệu JSON, tRPC/REST, và map route → API. Sơ đồ dùng [Mermaid](https://mermaid.js.org/) (GitHub / VS Code preview).
+
+| Tài liệu | Nội dung |
+|----------|----------|
+| [`docs/server-controllers-architecture.md`](docs/server-controllers-architecture.md) | Cấu trúc `controllers/` theo domain (auth, platform, chat, media, …) |
+| [`docs/server-services-architecture.md`](docs/server-services-architecture.md) | Cấu trúc `services/` theo domain (auth, platform, buildDemo, …) |
+| [`docs/server-build-demo-architecture.md`](docs/server-build-demo-architecture.md) | Luồng Build Demo qua Chat |
+| [`docs/chat-flow.md`](docs/chat-flow.md) | Sơ đồ luồng Chat (Mermaid) |
+| [`docs/chat-agent-flow.md`](docs/chat-agent-flow.md) | Supervisor, routing, AI agents (chi tiết) |
 
 ### Kiến trúc tổng thể (3 lớp)
 
@@ -328,7 +336,7 @@ sequenceDiagram
 | Tầng | Cơ chế | Code chính |
 |------|--------|------------|
 | **Identity** | Clerk JWT | `clerkVerify.ts`, `ClerkApiAuthBridge` |
-| **Authorization** | Role + routes từ account, merge `role-permissions.json` | `services/permissions.ts`, `services/auth.ts` |
+| **Authorization** | Role + routes từ account, merge `role-permissions.json` | `services/auth/permissions.ts`, `services/auth/auth.ts` |
 | **UI guard** | `PrivateRoute` + `RoleRoute` + `lib/access.ts` | `App.tsx` |
 | **API guard** | `protectedProcedure` / `adminProcedure` / `requireClerkAuth` | `trpc/trpc.ts`, `controllers/*` |
 

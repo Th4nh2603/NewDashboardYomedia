@@ -2,7 +2,8 @@ export type ActionTool =
   | "time_now"
   | "help"
   | "upload_sftp_demo"
-  | "compress_demo_assets";
+  | "compress_demo_assets"
+  | "download_placement_codes";
 
 export type {
   BuildDemoFormat,

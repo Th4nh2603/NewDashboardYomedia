@@ -28,5 +28,6 @@ export async function answerWithRag(input: {
     fallbackUsed: result.fallbackUsed,
     toolCalled: result.toolCalled,
     buildDemoProcessing: result.buildDemoProcessing,
+    placementCodesDownload: result.placementCodesDownload,
   };
 }

@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat — Sơ đồ luồng · YoMedia Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #0ea5e9;
+      --accent: #f59e0b;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #263044;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ===== COVER PAGE ===== */
+    .cover {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+      top: -100px;
+      right: -100px;
+    }
+
+    .cover::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%);
+      bottom: -50px;
+      left: -50px;
+    }
+
+    .cover-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 60px 40px;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.4);
+      border-radius: 100px;
+      padding: 8px 20px;
+      font-size: 13px;
+      color: var(--primary-light);
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+
+    .cover-badge::before {
+      content: '●';
+      color: var(--success);
+      font-size: 10px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .cover h1 {
+      font-size: 56px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e2e8f0 0%, #818cf8 50%, #0ea5e9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-bottom: 8px;
+    }
+
+    .cover-project {
+      font-size: 16px;
+      color: var(--primary-light);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+    }
+
+    .cover-meta-item {
+      text-align: center;
+    }
+
+    .cover-meta-item .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .cover-meta-item .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .cover-divider {
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      margin: 32px auto;
+      border-radius: 2px;
+    }
+
+    .cover-toc {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .cover-toc-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .cover-toc-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-light);
+      background: rgba(99,102,241,0.15);
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ===== CONTENT PAGES ===== */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 60px 50px;
+      page-break-before: always;
+    }
+
+    .page:first-of-type {
+      page-break-before: avoid;
+    }
+
+    /* ===== SECTION HEADER ===== */
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .section-title-group h2 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .section-title-group p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ===== DIAGRAM CARD ===== */
+    .diagram-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .diagram-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+
+    .diagram-card .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-card .card-label::before {
+      content: '';
+      display: inline-block;
+      width: 18px;
+      height: 2px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* ===== MERMAID OVERRIDE ===== */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* ===== TABLE ===== */
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .data-table thead {
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(14,165,233,0.1));
+    }
+
+    .data-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 600;
+      color: var(--primary-light);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 14px 18px;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+      vertical-align: top;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    code {
+      font-family: 'Fira Code', monospace;
+      background: rgba(99,102,241,0.12);
+      color: var(--primary-light);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 13px;
+    }
+
+    /* ===== KEY POINTS ===== */
+    .key-points {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .key-point {
+      display: flex;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      align-items: flex-start;
+    }
+
+    .key-point-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-light);
+      background: rgba(99,102,241,0.15);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .key-point-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .key-point-text strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ===== NOTE BOX ===== */
+    .note-box {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13.5px;
+      color: #fbbf24;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* ===== MEMORY TABLE ===== */
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .memory-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .memory-card .mem-icon {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .memory-card .mem-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .memory-card .mem-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .memory-card .mem-detail {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--primary-light);
+      font-weight: 500;
+    }
+
+    /* ===== FOOTER ===== */
+    .doc-footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cover { min-height: 100vh; page-break-after: always; }
+      .page { page-break-before: always; }
+      @page { margin: 0; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== COVER PAGE ===== -->
+<div class="cover">
+  <div class="cover-content">
+    <div class="cover-badge">NovaAI Assistant · YoMedia Dashboard</div>
+    <h1>Chat Flow<br/>Architecture</h1>
+    <div class="cover-subtitle">Sơ đồ luồng hệ thống Chat</div>
+    <div class="cover-project">YoMedia Dashboard · Tài liệu kỹ thuật</div>
+    <div class="cover-divider"></div>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="label">Cập nhật</div>
+        <div class="value">2026-06-09</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="label">Phiên bản</div>
+        <div class="value">v1.0</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="label">Tổng mục</div>
+        <div class="value">7 sơ đồ</div>
+      </div>
+    </div>
+    <div class="cover-divider"></div>
+    <div class="cover-toc">
+      <div class="cover-toc-item"><span class="cover-toc-num">1</span>Tổng quan End-to-End — Luồng từ Frontend → tRPC → Orchestration</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">2</span>Phân luồng Intent — resolveRoute & detectAgentCandidates</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">3</span>Các Agent Backend — actions, rag, free_chat, sql, dashboard</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">4</span>Luồng gửi tin Frontend — Sequence diagram</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">5</span>Session & Memory — Short memory vs localStorage</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">6</span>Sequence Server — ragRouter → runSupervisor</div>
+      <div class="cover-toc-item"><span class="cover-toc-num">7</span>Điểm cần nhớ — Các nguyên tắc thiết kế quan trọng</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 1 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <div class="section-title-group">
+      <h2>Tổng quan End-to-End</h2>
+      <p>Mọi tin chat đi qua một endpoint <code>rag.query</code> (tRPC). Frontend không gọi LLM trực tiếp.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Flowchart — End-to-End</div>
+    <div class="mermaid">
+flowchart TB
+  subgraph FE["Frontend — Chat.tsx"]
+    U["User gõ tin / đính kèm file"]
+  end
+
+  subgraph FE2["Frontend — xử lý gửi"]
+    SEND[handleSend]
+    LS[(localStorage<br/>conversations)]
+    PROG["BuildDemoProgress<br/>nếu cần"]
+    B64["Đọc file → base64"]
+    TRPC_CALL["api.rag.query()"]
+    ZIP["Tải ZIP placement codes<br/>nếu server trả về"]
+    REPLY[Hiển thị tin assistant]
+    ERR[Tin system lỗi]
+  end
+
+  subgraph API["tRPC — controllers/chat/rag.ts"]
+    AUTH["protectedProcedure<br/>assertChatAccess"]
+    MUT[rag.query mutation]
+  end
+
+  subgraph ORCH["Orchestration — runSupervisor"]
+    GR[Input guardrails]
+    MEM["Short memory<br/>history + attachments"]
+    ROUTE["resolveRoute<br/>phân loại intent"]
+    AGENTS["runAgents<br/>song song"]
+    COMPOSE[composeMultiResponse]
+    SAVE[appendShortMemoryTurn]
+    LOG[logChatEvent]
+  end
+
+  U --> SEND
+  SEND --> LS
+  SEND --> PROG
+  SEND --> B64 --> TRPC_CALL
+  TRPC_CALL --> AUTH --> MUT --> GR
+  GR -->|chặn| ERR
+  GR --> MEM --> ROUTE --> AGENTS --> COMPOSE --> SAVE --> LOG
+  LOG --> TRPC_CALL
+  TRPC_CALL -->|ok + placementCodesDownload| ZIP --> REPLY
+  TRPC_CALL -->|ok| REPLY
+  TRPC_CALL -->|lỗi| ERR
+  REPLY --> LS
+    </div>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Lớp</th>
+        <th>File</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>UI</td><td><code>apps/web/components/Chat.tsx</code></td></tr>
+      <tr><td>API client</td><td><code>apps/web/lib/trpc/api.ts</code></td></tr>
+      <tr><td>tRPC router</td><td><code>apps/server/src/controllers/chat/rag.ts</code></td></tr>
+      <tr><td>Entry orchestration</td><td><code>apps/server/src/lib/ai/orchestration/answerWithRag.ts</code></td></tr>
+      <tr><td>Supervisor</td><td><code>apps/server/src/lib/ai/agents/supervisor/runSupervisor.ts</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 2 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <div class="section-title-group">
+      <h2>Phân luồng Intent</h2>
+      <p><code>resolveRoute</code> kết hợp <code>detectAgentCandidates</code> và <code>resolveActionTool</code> để xác định agent phù hợp.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Flowchart — resolveRoute</div>
+    <div class="mermaid">
+flowchart TD
+  Q["Câu hỏi + history + attachments"]
+  CAND["detectAgentCandidates<br/>rag / sql / dashboard"]
+  TOOL["resolveActionTool<br/>help, time, download codes,<br/>build demo, upload SFTP"]
+
+  Q --> CAND
+  Q --> TOOL
+
+  TOOL -->|"tool + knowledge QA"| RAG_ONLY["→ rag"]
+  TOOL -->|"tool + agent khác"| MULTI_TOOL["→ actions + candidates"]
+  TOOL -->|"chỉ tool"| ACTIONS_ONLY["→ actions"]
+  TOOL -->|"không tool"| CAND
+
+  CAND -->|"nhiều agent"| MULTI["→ multi-intent<br/>chạy song song"]
+  CAND -->|"1 agent"| SINGLE["→ rag / sql / dashboard"]
+  CAND -->|"không khớp"| LLM["LLM classify hoặc rule"]
+
+  LLM --> SQL[sql]
+  LLM --> DASH[dashboard]
+  LLM --> RAG[rag]
+  LLM --> ACT[actions]
+  LLM --> FREE[free_chat]
+    </div>
+  </div>
+
+  <div class="note-box">
+    ⚠️ <strong>Lưu ý:</strong> Nếu user đang trong phiên Build Demo nhưng câu hỏi là Knowledge QA (scoring ≥ ngưỡng RAG) → router ưu tiên <strong>rag</strong> thay vì actions.
+  </div>
+</div>
+
+<!-- ===== SECTION 3 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <div class="section-title-group">
+      <h2>Các Agent Backend</h2>
+      <p>5 agent chạy song song, mỗi agent xử lý một loại intent. Kết quả được gộp qua <code>composeMultiResponse</code>.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Flowchart — Agent Architecture</div>
+    <div class="mermaid">
+flowchart LR
+  subgraph Agents
+    A1[actions]
+    A2[rag]
+    A3[free_chat]
+    A4[sql]
+    A5[dashboard]
+  end
+
+  A1 --> T1["Build Demo<br/>compress / upload SFTP"]
+  A1 --> T2[Download placement codes]
+  A1 --> T3["help, time_now…"]
+
+  A2 --> R1[retrieveKnowledgeContext]
+  R1 --> R2["callProvider Gemini/OpenAI<br/>fallback nếu lỗi"]
+
+  A3 --> F1[callProvider trực tiếp]
+
+  A4 --> S1[SQL query agent]
+  A5 --> D1[Dashboard insight agent]
+
+  T1 & T2 & T3 & R2 & F1 & S1 & D1 --> OUT["composeMultiResponse<br/>gộp câu trả lời"]
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 4 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <div class="section-title-group">
+      <h2>Luồng gửi tin — Frontend</h2>
+      <p>Sequence diagram từ User → Chat.tsx → api.rag.query → runSupervisor.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Sequence Diagram — Frontend Send Flow</div>
+    <div class="mermaid">
+sequenceDiagram
+  participant U as User
+  participant C as Chat.tsx
+  participant API as api.rag.query
+  participant S as runSupervisor
+
+  U->>C: Gửi tin (+ file optional)
+  C->>C: Lưu bubble user (localStorage)
+  C->>C: base64 attachments
+  C->>API: question, provider, sessionId, attachments
+  API->>S: answerWithRag
+  S-->>API: answer, intent, buildDemoProcessing, placementCodesDownload
+  alt placementCodesDownload
+    C->>C: downloadPlacementCodesZip
+  end
+  C->>C: Lưu bubble assistant
+    </div>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Bước</th><th>Hành động</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>User submit → tạo bubble <code>user</code>, cập nhật state</td></tr>
+      <tr><td><strong>2</strong></td><td>Nếu heuristic Build Demo → hiện <code>BuildDemoProgress</code> (progress giả lập)</td></tr>
+      <tr><td><strong>3</strong></td><td>File đính kèm → <code>readFileAsDataUrl</code> → <code>contentBase64</code></td></tr>
+      <tr><td><strong>4</strong></td><td>Gọi <code>api.rag.query(question, provider, attachments, sessionId)</code> — <code>sessionId</code> = <code>conversation.id</code></td></tr>
+      <tr><td><strong>5</strong></td><td>Nếu response có <code>placementCodesDownload</code> → <code>downloadPlacementCodesZip</code> trên client</td></tr>
+      <tr><td><strong>6</strong></td><td>Thêm bubble <code>assistant</code>; lưu vào <code>localStorage</code> (<code>yomedia.chat.conversations.v1</code>)</td></tr>
+      <tr><td><strong>7</strong></td><td>Lỗi → bubble <code>system</code> qua <code>handleApiError</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 5 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <div class="section-title-group">
+      <h2>Session &amp; Memory</h2>
+      <p>UI và ngữ cảnh LLM trên server tách biệt. Refresh trang hoặc xóa bubble không tự xóa short memory server.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Flowchart — Session & Memory</div>
+    <div class="mermaid">
+flowchart LR
+  FE_ID["conversation.id<br/>frontend"]
+  MEM_KEY["buildShortMemoryKey<br/>email + role + sessionId"]
+  SHORT[("Short memory<br/>server — lịch sử hội thoại")]
+  LOCAL[("localStorage<br/>UI conversations")]
+  BD_ATT[("buildDemoAttachments<br/>file chờ upload")]
+
+  FE_ID --> MEM_KEY --> SHORT
+  MEM_KEY --> BD_ATT
+  LOCAL -.->|"chỉ hiển thị UI"| FE_ID
+  CLEAR[rag.clearSession] --> SHORT
+  CLEAR --> BD_ATT
+    </div>
+  </div>
+
+  <div class="memory-grid">
+    <div class="memory-card">
+      <div class="mem-icon">💾</div>
+      <div class="mem-title">Conversations</div>
+      <div class="mem-desc">Lưu lịch sử hội thoại trên trình duyệt, tối đa 30 hội thoại.</div>
+      <div class="mem-detail">Nơi: localStorage · Key: yomedia.chat.conversations.v1</div>
+    </div>
+    <div class="memory-card">
+      <div class="mem-icon">🧠</div>
+      <div class="mem-title">Short Memory</div>
+      <div class="mem-desc">Context LLM dạng lịch sử hội thoại, lưu trong RAM server.</div>
+      <div class="mem-detail">8 turns · TTL 2 giờ · Server RAM</div>
+    </div>
+    <div class="memory-card">
+      <div class="mem-icon">📁</div>
+      <div class="mem-title">Build Demo Files</div>
+      <div class="mem-desc">File đính kèm nhiều lượt trong phiên Build Demo trước khi upload SFTP.</div>
+      <div class="mem-detail">Server buildDemoAttachments</div>
+    </div>
+  </div>
+
+  <div class="note-box">
+    🗑️ <strong>Xóa phiên:</strong> reset messages trên UI + <code>api.rag.clearSession({ sessionId })</code>
+  </div>
+</div>
+
+<!-- ===== SECTION 6 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <div class="section-title-group">
+      <h2>Sequence Server</h2>
+      <p>Luồng xử lý nội bộ từ <code>ragRouter</code> đến <code>runSupervisor</code>.</p>
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <div class="card-label">Sequence Diagram — Server Internal</div>
+    <div class="mermaid">
+sequenceDiagram
+  participant R as ragRouter
+  participant A as answerWithRag
+  participant S as runSupervisor
+  participant RT as resolveRoute
+  participant AG as runAgents
+  participant M as shortMemory
+
+  R->>A: question, provider, attachments, sessionId, req
+  A->>S: runSupervisor
+  S->>S: runInputGuardrails
+  S->>M: getShortMemory + mergeBuildDemoAttachments
+  S->>RT: resolveRoute
+  RT-->>S: agents[], intent
+  S->>AG: Promise.all(agents)
+  AG-->>S: AgentResult[]
+  S->>S: composeMultiResponse
+  S->>M: appendShortMemoryTurn
+  S-->>R: SupervisorResult
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 7 ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <div class="section-title-group">
+      <h2>Điểm cần nhớ</h2>
+      <p>Các nguyên tắc thiết kế và điểm quan trọng khi làm việc với hệ thống chat.</p>
+    </div>
+  </div>
+
+  <div class="key-points">
+    <div class="key-point">
+      <div class="key-point-num">1</div>
+      <div class="key-point-text">
+        <strong>Supervisor pattern:</strong> guardrails → route intent → chạy agent(s) song song → gộp response → log.
+      </div>
+    </div>
+    <div class="key-point">
+      <div class="key-point-num">2</div>
+      <div class="key-point-text">
+        <strong>Ưu tiên action vs RAG:</strong> câu hỏi kiến thức trong phiên Build Demo vẫn có thể route vào <code>rag</code>.
+      </div>
+    </div>
+    <div class="key-point">
+      <div class="key-point-num">3</div>
+      <div class="key-point-text">
+        <strong>Provider:</strong> user chọn Gemini/OpenAI; agent fallback sang provider còn lại nếu lỗi.
+      </div>
+    </div>
+    <div class="key-point">
+      <div class="key-point-num">4</div>
+      <div class="key-point-text">
+        <strong>Side effects:</strong> Build Demo (SFTP) và download placement codes xử lý ở agent <code>actions</code>; frontend chỉ hiển thị progress / tải ZIP.
+      </div>
+    </div>
+    <div class="key-point">
+      <div class="key-point-num">5</div>
+      <div class="key-point-text">
+        <strong>Progress bar:</strong> heuristic client (<code>buildDemoChatProgress.ts</code>) — không phản ánh chính xác tiến độ SFTP; tin cậy field <code>buildDemoProcessing</code> từ server.
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>YoMedia Dashboard · NovaAI Assistant</span>
+    <span>Tài liệu đồng bộ với codebase · Cập nhật 2026-06-09</span>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#6366f1',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#818cf8',
+      lineColor: '#64748b',
+      secondaryColor: '#1e293b',
+      tertiaryColor: '#263044',
+      background: '#1e293b',
+      mainBkg: '#1e293b',
+      nodeBorder: '#475569',
+      clusterBkg: '#1e293b',
+      titleColor: '#e2e8f0',
+      edgeLabelBackground: '#263044',
+      sequenceNumberColor: '#e2e8f0',
+      actorBkg: '#1e293b',
+      actorBorder: '#6366f1',
+      actorTextColor: '#e2e8f0',
+      actorLineColor: '#475569',
+      signalColor: '#94a3b8',
+      signalTextColor: '#e2e8f0',
+      labelBoxBkgColor: '#263044',
+      labelBoxBorderColor: '#475569',
+      labelTextColor: '#e2e8f0',
+      loopTextColor: '#e2e8f0',
+      noteBorderColor: '#f59e0b',
+      noteBkgColor: 'rgba(245,158,11,0.1)',
+      noteTextColor: '#fbbf24',
+      activationBorderColor: '#6366f1',
+      activationBkgColor: 'rgba(99,102,241,0.15)',
+      fontSize: '14px'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    },
+    sequence: {
+      useMaxWidth: true,
+      diagramMarginX: 30,
+      diagramMarginY: 20,
+      actorMargin: 60,
+      width: 150,
+      height: 50,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 35,
+      mirrorActors: false,
+      bottomMarginAdj: 1,
+      rightAngles: false,
+      showSequenceNumbers: false
+    }
+  });
+
+  // Auto print after rendering
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wait for mermaid to render
+    setTimeout(() => {
+      console.log('Diagrams rendered. Use Ctrl+P to print as PDF.');
+    }, 2000);
+  });
+</script>
+</body>
+</html>

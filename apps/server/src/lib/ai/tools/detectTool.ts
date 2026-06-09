@@ -4,6 +4,7 @@ import {
   scoreKnowledgeQaIntent,
   toSearchableText,
 } from "../intent/scoring.js";
+import { isDownloadPlacementCodeIntent } from "./placementCodeDownload.js";
 import type { ActionTool } from "./types.js";
 
 /** Actions are matched before knowledge/free-chat routing (subject-first intent). */
@@ -23,6 +24,9 @@ export function detectTool(text: string): ActionTool | null {
     )
   ) {
     return "time_now";
+  }
+  if (isDownloadPlacementCodeIntent(normalized)) {
+    return "download_placement_codes";
   }
   if (isCompressDemoIntent(normalized)) {
     return "compress_demo_assets";

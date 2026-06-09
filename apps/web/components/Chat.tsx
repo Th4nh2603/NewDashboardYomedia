@@ -17,6 +17,7 @@ import {
   readFileAsDataUrl,
   type ChatSelectedUpload,
 } from "../lib/chatAttachments";
+import { downloadPlacementCodesZip } from "../lib/placementCodesDownload";
 import BuildDemoProgress from "./BuildDemoProgress";
 import ChatMessageContent from "./ChatMessageContent";
 
@@ -79,7 +80,7 @@ function buildWelcomeMessage(): Message {
   return {
     id: "welcome",
     role: "system",
-    content: "Chat mới đã sẵn sàng. Chọn Gemini/OpenAI ở góc phải để chat AI.",
+    content: "Chat mới đã sẵn sàng",
   };
 }
 
@@ -310,10 +311,25 @@ const Chat = () => {
       } else if (showBuildProgress) {
         setBuildProgress(null);
       }
+      let replyContent = res?.answer || "Không có phản hồi.";
+      if (res?.placementCodesDownload) {
+        try {
+          const downloaded = await downloadPlacementCodesZip({
+            websiteName: res.placementCodesDownload.websiteName,
+            variant: res.placementCodesDownload.variant,
+          });
+          const count =
+            downloaded.matchedCount ?? res.placementCodesDownload.matchedCount;
+          replyContent = `${replyContent}\n\nĐã tải về máy: **${downloaded.downloadName}** (${count} placement).`;
+        } catch (downloadErr) {
+          const downloadMessage = getApiErrorMessage(downloadErr, "Download");
+          replyContent = `${replyContent}\n\nKhông tải được ZIP: ${downloadMessage}`;
+        }
+      }
       const reply: Message = {
         id: `a-${Date.now()}`,
         role: "assistant",
-        content: res?.answer || "Không có phản hồi.",
+        content: replyContent,
       };
       updateConversationMessages(activeConversation.id, (prev) => [
         ...prev,

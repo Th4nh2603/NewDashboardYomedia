@@ -6,7 +6,7 @@ import {
 } from "./config.js";
 import { resolveCanonicalBuildDemoBrand } from "../../repositories/brand.repository.js";
 import type { BuildDemoFormat, BuildDemoInput } from "../../shared/schemas/buildDemo.schema.js";
-import { sftpPathExists } from "../sftp.service.js";
+import { sftpPathExists } from "../infra/sftp.service.js";
 import { badRequest } from "../../lib/http/errors.js";
 
 export type BuildDemoToolInput = BuildDemoInput;

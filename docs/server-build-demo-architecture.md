@@ -2,7 +2,8 @@
 
 Tài liệu mô tả cấu trúc thư mục và luồng xử lý **Build Demo qua Chat** trên `apps/server`, sau refactor 4 lớp (Controller → Service → Repository → Shared).
 
-> Luồng Supervisor / routing / agents: [`chat-agent-flow.md`](./chat-agent-flow.md)
+> Luồng Supervisor / routing / agents: [`chat-agent-flow.md`](./chat-agent-flow.md)  
+> Controllers: [`server-controllers-architecture.md`](./server-controllers-architecture.md) · Services: [`server-services-architecture.md`](./server-services-architecture.md)
 
 ---
 
@@ -11,15 +12,15 @@ Tài liệu mô tả cấu trúc thư mục và luồng xử lý **Build Demo qu
 ```mermaid
 flowchart TB
   subgraph L1["LAYER 1 — Controllers (Entry)"]
-    Chat["controllers/ai/buildDemoTool.ts"]
-    Rag["controllers/trpc/ragRouter.ts"]
+    Chat["controllers/buildDemo/buildDemoTool.ts"]
+    Rag["controllers/chat/rag.ts"]
   end
 
   subgraph L2["LAYER 2 — Services"]
-    BDS["services/buildDemo.service.ts"]
-    SFTP["services/sftp.service.ts"]
-    Preview["services/preview.service.ts"]
-    Auth["services/authPolicy.service.ts"]
+    BDS["services/buildDemo/buildDemo.service.ts"]
+    SFTP["services/infra/sftp.service.ts"]
+    Preview["services/creative/preview.service.ts"]
+    Auth["services/auth/authPolicy.service.ts"]
   end
 
   subgraph L3["LAYER 3 — Repositories"]
@@ -56,27 +57,23 @@ flowchart TB
 ```
 apps/server/src/
 │
-├── controllers/                    # LAYER 1 — cổng vào (toàn bộ API)
-│   ├── ai/
-│   │   └── buildDemoTool.ts        # Chat: agent args → validate → service → markdown
-│   ├── trpc/                       # tRPC procedures
-│   │   ├── health.ts, auth.ts, user.ts, permissions.ts, admin.ts
-│   │   ├── creative.ts, activityLog.ts, testData.ts, toolTest.ts
-│   │   └── ragRouter.ts            # rag.query, rag.clearSession
-│   └── rest/                       # Express REST (binary/streaming)
-│       ├── sftp.ts, upload.ts, fileUpload.ts, smtp.ts
+├── controllers/                    # LAYER 1 — cổng vào theo domain (xem server-controllers-architecture.md)
+│   ├── buildDemo/buildDemoTool.ts  # Chat: agent args → validate → service → markdown
+│   ├── chat/rag.ts                 # rag.query, rag.clearSession
+│   ├── auth/, admin/, activity/, creative/, platform/, infra/
+│   └── media/                      # REST: sftp, upload, fileUpload, smtp
 │
 ├── trpc/                           # tRPC infra (không phải entry)
-│   ├── appRouter.ts                # Gộp controllers/trpc/*
+│   ├── appRouter.ts                # Gộp controllers/* tRPC routers
 │   ├── trpc.ts                     # procedures, middleware
 │   └── context.ts
 │
-├── services/                       # LAYER 2 — business logic
-│   ├── buildDemo.service.ts        # Orchestrator chính + formatBuildDemoChatAnswer
-│   ├── authPolicy.service.ts       # /chat route, brand ACL, SFTP ACL
-│   ├── preview.service.ts          # URL preview demo.yomedia.vn
-│   ├── sftp.service.ts             # Wrapper lib/sftp
+├── services/                       # LAYER 2 — business logic (xem server-services-architecture.md)
+│   ├── infra/                      # paths.ts, sftp.service.ts
+│   ├── auth/                       # auth.ts, authPolicy.service.ts, permissions.ts
+│   ├── creative/                   # creative.ts, preview.service.ts
 │   └── buildDemo/
+│       ├── buildDemo.service.ts    # Orchestrator chính + formatBuildDemoChatAnswer
 │       ├── assets.ts               # Inline ảnh base64, manifest URLs
 │       ├── common.ts               # Path, normalize brand, decode attachment
 │       ├── compress.ts             # Nén HTML/assets + upload
@@ -107,11 +104,11 @@ apps/server/src/
 ```mermaid
 sequenceDiagram
   participant Web as apps/web Chat
-  participant Rag as controllers/trpc/ragRouter
+  participant Rag as controllers/chat/rag
   participant Auth as authPolicy.service
   participant Sup as runSupervisor
   participant Act as runActionAgent
-  participant Tool as controllers/ai/buildDemoTool
+  participant Tool as controllers/buildDemo/buildDemoTool
   participant Agent as buildDemoAgent (LLM)
   participant Svc as buildDemo.service
   participant SFTP as sftp.service
@@ -239,12 +236,13 @@ Video demo trả **2 link**: In-read (`outstream`) + Pre-roll (`instream`).
 
 | File | Vai trò |
 |------|---------|
-| `controllers/ai/buildDemoTool.ts` | Cổng Chat build demo |
-| `controllers/trpc/ragRouter.ts` | Cổng Chat RAG |
-| `services/buildDemo.service.ts` | Orchestrator |
+| `controllers/buildDemo/buildDemoTool.ts` | Cổng Chat build demo |
+| `controllers/chat/rag.ts` | Cổng Chat RAG |
+| `services/buildDemo/buildDemo.service.ts` | Orchestrator |
 | `services/buildDemo/*` | Upload, compress, assets, VAST |
-| `services/preview.service.ts` | Preview URL |
-| `services/authPolicy.service.ts` | Policy layer |
+| `services/creative/preview.service.ts` | Preview URL |
+| `services/auth/authPolicy.service.ts` | Policy layer |
+| `services/infra/sftp.service.ts` | Wrapper SFTP cho Build Demo |
 | `repositories/brand.repository.ts` | Brands từ demoConfig |
 | `repositories/creativeDemo.repository.ts` | Catalog creative-demos |
 | `shared/schemas/*` | Zod schemas |
@@ -254,7 +252,7 @@ Video demo trả **2 link**: In-read (`outstream`) + Pre-roll (`instream`).
 
 - Shim re-export: `lib/buildDemoBrands.ts`, `buildDemoShared.ts`, `buildDemoPreviewUrl.ts`, `buildDemoAssets.ts`, `lib/ai/tools/buildDemo/*` (trừ `buildDemoAgent.ts`).
 - Không dùng: `lib/chatDemoCommands.ts`, `lib/testGeneratePreviewUrl.ts`.
-- Thư mục cũ: `trpc/routers/`, `routes/` (đã gộp vào `controllers/trpc/`, `controllers/rest/`).
+- Thư mục cũ: `trpc/routers/`, `routes/`, `controllers/trpc|rest|ai/` (đã gộp theo domain).
 - Page web Build Demo đã gỡ; build demo **chỉ qua Chat**.
 
 ---
@@ -267,11 +265,11 @@ Video demo trả **2 link**: In-read (`outstream`) + Pre-roll (`instream`).
 | `POST /api/trpc/rag.clearSession` | Controller | Xóa short-memory session |
 | `POST /api/sftp/*` | REST (Manage Demo UI) | SFTP có ACL riêng; **không** dùng cho Chat build demo |
 
-Chat build demo gọi **trực tiếp** `sftp.service` từ server process, không qua REST `/api/sftp`.
+Chat build demo gọi **trực tiếp** `services/infra/sftp.service` từ server process, không qua REST `/api/sftp`.
 
 ---
 
 ## 9. Phase tiếp theo (chưa làm)
 
-- `controllers/trpc/buildDemoRouter.ts` — API manual khi có consumer (page/script).
+- `controllers/buildDemo/buildDemoRouter.ts` — API manual khi có consumer (page/script).
 - Chuyển `creative-demos` / `accounts` sang DB khi có Prisma — chỉ đổi repository, service giữ nguyên.

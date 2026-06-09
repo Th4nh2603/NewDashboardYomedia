@@ -3,6 +3,7 @@
 **YoMedia Dashboard · NovaAI Assistant**  
 *Tài liệu nội bộ · Cập nhật: 2026-06-08*
 
+> Sơ đồ luồng (tóm tắt): [`chat-flow.md`](./chat-flow.md)  
 > Bản HTML/PDF in: [`chat-agent-flow.html`](./chat-agent-flow.html) · Mind map: [`chat-agent-mindmap.pdf`](./chat-agent-mindmap.pdf)  
 > Kiến trúc Build Demo 4 lớp: [`server-build-demo-architecture.md`](./server-build-demo-architecture.md)
 

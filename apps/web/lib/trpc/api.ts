@@ -129,6 +129,12 @@ export const api = {
     get: () => call(() => trpcClient.testData.get.query()),
     update: (content: string | Record<string, unknown>) =>
       call(() => trpcClient.testData.update.mutate({ content })),
+    platform: () => call(() => trpcClient.testData.platform.query()),
+    platformFile: () => call(() => trpcClient.testData.platformFile.query()),
+    placementCode: (placementId: string, variant?: "standard" | "rtb") =>
+      call(() =>
+        trpcClient.testData.placementCode.query({ placementId, variant }),
+      ),
   },
   toolTest: {
     platformBanner: () => call(() => trpcClient.toolTest.platformBanner.query()),

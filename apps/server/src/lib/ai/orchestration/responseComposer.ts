@@ -50,6 +50,9 @@ export function composeMultiResponse(input: {
   const fallbackUsed = ranked.some((r) => r.fallbackUsed);
   const toolCalled = ranked.find((r) => r.toolCalled)?.toolCalled;
   const buildDemoProcessing = ranked.some((r) => r.buildDemoProcessing);
+  const placementCodesDownload = ranked.find(
+    (r) => r.placementCodesDownload,
+  )?.placementCodesDownload;
 
   return {
     ok: true,
@@ -61,6 +64,7 @@ export function composeMultiResponse(input: {
     fallbackUsed,
     toolCalled,
     buildDemoProcessing,
+    placementCodesDownload,
     trace: {
       requestId: input.requestId,
       route: input.route,

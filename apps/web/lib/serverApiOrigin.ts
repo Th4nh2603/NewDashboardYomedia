@@ -12,3 +12,10 @@ export function serverApiOrigin(): string {
   if (raw) return raw.replace(/\/+$/, "");
   return "http://localhost:3001";
 }
+
+/** Build `/api/...` URL; in dev uses same-origin relative path for Vite proxy. */
+export function serverApiUrl(pathAndQuery: string): string {
+  const path = pathAndQuery.startsWith("/") ? pathAndQuery : `/${pathAndQuery}`;
+  const base = serverApiOrigin();
+  return base ? `${base}${path}` : path;
+}

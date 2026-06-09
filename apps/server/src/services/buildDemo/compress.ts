@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { ChatAttachmentMeta } from "../../lib/ai/core/types.js";
 import type { BuildDemoInput } from "../../shared/schemas/buildDemo.schema.js";
-import { uploadSftpBuffer, writeSftpFile } from "../sftp.service.js";
+import { uploadSftpBuffer, writeSftpFile } from "../infra/sftp.service.js";
 import {
   DEMO_REMOTE_PREFIX,
   decodeAttachmentBuffer,

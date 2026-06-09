@@ -7,7 +7,7 @@ export {
 export {
   runBuildDemoTool,
   type BuildDemoToolRunResult,
-} from "../../../controllers/ai/buildDemoTool.js";
+} from "../../../controllers/buildDemo/buildDemoTool.js";
 
 import type { ActionTool } from "./types.js";
 
@@ -26,10 +26,18 @@ export function executeTool(tool: ActionTool): string {
       "- TVC/Video: tự động nén xuống ngưỡng ~4MB trước khi upload.",
     ].join("\n");
   }
+  if (tool === "download_placement_codes") {
+    return [
+      "Intent **Tải placement code Yomedia (ZIP)**.",
+      "Ví dụ: `download code : 1900.edu.vn` hoặc `tải code rtb : example.com`",
+      "Cần quyền Test Data và platform snapshot đã được tải.",
+    ].join("\n");
+  }
   return [
     "Bạn có thể:",
     "- Hỏi tài liệu nội bộ (RAG)",
     "- Chat tự do",
     "- Tool: `bây giờ mấy giờ?`, `upload sftp demo`, `compress demo assets` (+ file + brand/format)",
+    "- Tool: `download code : <website_name>` — tải ZIP placement embed code YO",
   ].join("\n");
 }

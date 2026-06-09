@@ -5,6 +5,683 @@
   ],
   "records": [
     {
+      "id": "act_1780999466542_l40qr9",
+      "createdAt": "2026-06-09T10:04:26.539Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780999399016",
+        "memoryTurns": 6,
+        "requestId": "f8262912-d68d-4168-a3b8-6a7755545ce6",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "f8262912-d68d-4168-a3b8-6a7755545ce6",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780999466521,
+              "endedAt": 1780999466539,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 18
+        }
+      }
+    },
+    {
+      "id": "act_1780999454757_2h4bks",
+      "createdAt": "2026-06-09T10:04:14.752Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780999399016",
+        "memoryTurns": 4,
+        "requestId": "e64ee25b-bd80-4cd1-86ea-ca48c9f9d741",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "e64ee25b-bd80-4cd1-86ea-ca48c9f9d741",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780999454723,
+              "endedAt": 1780999454752,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 30
+        }
+      }
+    },
+    {
+      "id": "act_1780999439688_l7m7dv",
+      "createdAt": "2026-06-09T10:03:59.681Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780999399016",
+        "memoryTurns": 2,
+        "requestId": "6fc61379-e604-4624-8c3c-61d4dbe80e16",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "6fc61379-e604-4624-8c3c-61d4dbe80e16",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780999439642,
+              "endedAt": 1780999439681,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 39
+        }
+      }
+    },
+    {
+      "id": "act_1780999417461_1ykgjl",
+      "createdAt": "2026-06-09T10:03:37.456Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780999399016",
+        "memoryTurns": 0,
+        "requestId": "166a2423-c1a0-4ccd-8a78-3247a3af0a58",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "166a2423-c1a0-4ccd-8a78-3247a3af0a58",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780999417374,
+              "endedAt": 1780999417455,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 82
+        }
+      }
+    },
+    {
+      "id": "act_1780999255102_gnc2rf",
+      "createdAt": "2026-06-09T10:00:55.098Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation about code download"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780998885731",
+        "memoryTurns": 2,
+        "requestId": "6678345e-1f88-4204-a3f3-d9bcd968cbb8",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "6678345e-1f88-4204-a3f3-d9bcd968cbb8",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.8,
+            "reason": "general conversation about code download",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1780999253879,
+              "endedAt": 1780999255098,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 2792
+        }
+      }
+    },
+    {
+      "id": "act_1780998899544_9bpqpc",
+      "createdAt": "2026-06-09T09:54:59.533Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780998885731",
+        "memoryTurns": 0,
+        "requestId": "abb64f6c-fcdf-4bc4-b607-4167e1c50d21",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "abb64f6c-fcdf-4bc4-b607-4167e1c50d21",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780998899500,
+              "endedAt": 1780998899533,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 34
+        }
+      }
+    },
+    {
+      "id": "act_1780998851565_svvejy",
+      "createdAt": "2026-06-09T09:54:11.561Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general conversation about a website"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780998825547",
+        "memoryTurns": 2,
+        "requestId": "bec38ba7-a5a5-43c6-9caa-de9cea7fdc94",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "bec38ba7-a5a5-43c6-9caa-de9cea7fdc94",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.7,
+            "reason": "general conversation about a website",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1780998849836,
+              "endedAt": 1780998851561,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 3829
+        }
+      }
+    },
+    {
+      "id": "act_1780998835253_oek8p7",
+      "createdAt": "2026-06-09T09:53:55.250Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780998825547",
+        "memoryTurns": 0,
+        "requestId": "352ba2a2-62c0-4500-a7af-4059efe44c7b",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "352ba2a2-62c0-4500-a7af-4059efe44c7b",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780998835215,
+              "endedAt": 1780998835250,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 37
+        }
+      }
+    },
+    {
+      "id": "act_1780998799097_yldhj7",
+      "createdAt": "2026-06-09T09:53:19.091Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1780998681709",
+        "memoryTurns": 0,
+        "requestId": "07455405-9bbb-4f61-89d0-8e04bb0c8b3f",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "07455405-9bbb-4f61-89d0-8e04bb0c8b3f",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1780998799020,
+              "endedAt": 1780998799090,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 74
+        }
+      }
+    },
+    {
+      "id": "act_1780988506483_mb528r",
+      "createdAt": "2026-06-09T07:01:46.477Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780988448321",
+        "memoryTurns": 4,
+        "requestId": "23914a08-a94d-41dd-9584-a1507673f08f",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "23914a08-a94d-41dd-9584-a1507673f08f",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general conversation",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1780988505524,
+              "endedAt": 1780988506477,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 2884
+        }
+      }
+    },
+    {
+      "id": "act_1780988483921_ifq4kf",
+      "createdAt": "2026-06-09T07:01:23.912Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation about the date"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780988448321",
+        "memoryTurns": 2,
+        "requestId": "9beccda8-937c-4771-9a3c-b5f0698c0b6d",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "9beccda8-937c-4771-9a3c-b5f0698c0b6d",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general conversation about the date",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1780988482902,
+              "endedAt": 1780988483912,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 2914
+        }
+      }
+    },
+    {
+      "id": "act_1780988465416_nthr7q",
+      "createdAt": "2026-06-09T07:01:05.412Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1780988448321",
+        "memoryTurns": 0,
+        "requestId": "90e14e32-b2c7-40e5-9e1b-3524c47da1b7",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "90e14e32-b2c7-40e5-9e1b-3524c47da1b7",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general conversation",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1780988463995,
+              "endedAt": 1780988465411,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 7711
+        }
+      }
+    },
+    {
+      "id": "act_1780988450461_iyxyf3",
+      "createdAt": "2026-06-09T07:00:50.453Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780891607711",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
       "id": "act_1780893246917_c8h0cd",
       "createdAt": "2026-06-08T04:34:06.912Z",
       "userName": "Thanh Minh",
