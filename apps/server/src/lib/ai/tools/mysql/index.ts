@@ -9,4 +9,8 @@ export {
   sqlAllowedRoles,
   type MysqlWhitelist,
 } from "./whitelist.js";
+export {
+  dashboardAllowedRoles,
+  isRoleAllowed,
+} from "../../core/agentAccess.js";
 export { validateSelectQuery } from "./validateQuery.js";

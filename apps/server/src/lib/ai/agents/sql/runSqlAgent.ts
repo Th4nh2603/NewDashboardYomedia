@@ -24,6 +24,22 @@ function parseSqlFromLlm(raw: string): string | null {
   return null;
 }
 
+function formatColumnRules(whitelist: ReturnType<typeof getMysqlWhitelist>): string {
+  const entries = Object.entries(whitelist.columnsByTable).filter(
+    ([, cols]) => cols.length > 0,
+  );
+  if (!entries.length) {
+    return "- Column whitelist: not configured (avoid SELECT * when possible)";
+  }
+  const lines = entries.map(
+    ([table, cols]) => `  - ${table}: ${cols.join(", ")}`,
+  );
+  return [
+    "- Only use whitelisted columns per table (SELECT * is rejected):",
+    ...lines,
+  ].join("\n");
+}
+
 async function generateSql(ctx: AgentContext): Promise<string | null> {
   const whitelist = getMysqlWhitelist();
   const prompt = [
@@ -32,6 +48,7 @@ async function generateSql(ctx: AgentContext): Promise<string | null> {
     "Rules:",
     "- SELECT only, no DDL/DML",
     `- Only use whitelisted tables: ${whitelist.tables.join(", ") || "(none)"}`,
+    formatColumnRules(whitelist),
     `- Always include LIMIT <= ${whitelist.maxRows}`,
     "- Do not use subqueries that reference non-whitelisted tables",
     "",

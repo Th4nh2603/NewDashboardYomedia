@@ -125,6 +125,11 @@ export const api = {
       ),
     clear: () => call(() => trpcClient.activityLog.clear.mutate()),
   },
+  platformPages: {
+    module: (
+      module: "banner" | "flight" | "placement" | "campaign" | "report",
+    ) => call(() => trpcClient.platformPages.module.query({ module })),
+  },
   testData: {
     get: () => call(() => trpcClient.testData.get.query()),
     update: (content: string | Record<string, unknown>) =>

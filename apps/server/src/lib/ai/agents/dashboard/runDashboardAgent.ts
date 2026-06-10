@@ -1,4 +1,8 @@
 import type { AgentContext, AgentResult } from "../../core/types.js";
+import {
+  dashboardAllowedRoles,
+  isRoleAllowed,
+} from "../../core/agentAccess.js";
 import { callProvider } from "../../services/llm/callProvider.js";
 import {
   formatDashboardSummary,
@@ -8,6 +12,26 @@ import { logBestEffort } from "../../../logBestEffort.js";
 
 export async function runDashboardAgent(ctx: AgentContext): Promise<AgentResult> {
   const startedAt = Date.now();
+
+  if (!isRoleAllowed(ctx.role, dashboardAllowedRoles())) {
+    return {
+      ok: false,
+      agent: "dashboard",
+      answer: "Bạn không có quyền xem thống kê dashboard. Liên hệ admin.",
+      confidence: 0,
+      sources: ["activity-log"],
+      spans: [
+        {
+          agent: "dashboard",
+          startedAt,
+          endedAt: Date.now(),
+          ok: false,
+          error: "Forbidden role for dashboard agent",
+        },
+      ],
+    };
+  }
+
   let summaryText = "";
   try {
     const summary = await summarizeActivityDashboard({

@@ -28,6 +28,11 @@ import TestData from "./pages/TestData";
 import CreativeDemosEditor from "./pages/CreativeDemosEditor";
 import AdminUsers from "./pages/AdminUsers";
 import ToolTest from "./pages/ToolTest";
+import PlatformBanner from "./pages/platform/PlatformBanner";
+import PlatformFlight from "./pages/platform/PlatformFlight";
+import PlatformPlacement from "./pages/platform/PlatformPlacement";
+import PlatformReport from "./pages/platform/PlatformReport";
+import PlatformCampaign from "./pages/platform/PlatformCampaign";
 import { ClerkApiAuthBridge } from "./components/ClerkApiAuthBridge";
 import { TrpcProvider } from "./lib/trpc/react";
 
@@ -100,6 +105,46 @@ const App: React.FC = () => {
                               element={
                                 <RoleRoute deny={["guest"]}>
                                   <TestData />
+                                </RoleRoute>
+                              }
+                            />
+                            <Route
+                              path="/platform/banner"
+                              element={
+                                <RoleRoute deny={["guest"]}>
+                                  <PlatformBanner />
+                                </RoleRoute>
+                              }
+                            />
+                            <Route
+                              path="/platform/flight"
+                              element={
+                                <RoleRoute deny={["guest"]}>
+                                  <PlatformFlight />
+                                </RoleRoute>
+                              }
+                            />
+                            <Route
+                              path="/platform/placement"
+                              element={
+                                <RoleRoute deny={["guest"]}>
+                                  <PlatformPlacement />
+                                </RoleRoute>
+                              }
+                            />
+                            <Route
+                              path="/platform/report"
+                              element={
+                                <RoleRoute deny={["guest"]}>
+                                  <PlatformReport />
+                                </RoleRoute>
+                              }
+                            />
+                            <Route
+                              path="/platform/campaign"
+                              element={
+                                <RoleRoute deny={["guest"]}>
+                                  <PlatformCampaign />
                                 </RoleRoute>
                               }
                             />

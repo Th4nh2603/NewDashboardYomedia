@@ -68,12 +68,18 @@ const NAV_MESSAGES: Record<
   {
     sectionAiIntelligence: string;
     sectionTools: string;
+    sectionPlatformYomedia: string;
     sectionDataManagement: string;
     sectionAdministration: string;
     navDashboard: string;
     navAiChat: string;
     navBuildDemo: string;
     navToolTest: string;
+    navPlatformBanner: string;
+    navPlatformFlight: string;
+    navPlatformPlacement: string;
+    navPlatformReport: string;
+    navPlatformCampaign: string;
     navCreativeShowcase: string;
     navManageDemo: string;
     navUpload: string;
@@ -91,12 +97,18 @@ const NAV_MESSAGES: Record<
   en: {
     sectionAiIntelligence: "AI Intelligence",
     sectionTools: "Tools",
+    sectionPlatformYomedia: "Platform YoMedia",
     sectionDataManagement: "Data Management",
     sectionAdministration: "Administration",
     navDashboard: "Dashboard",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
     navToolTest: "Test",
+    navPlatformBanner: "Banner",
+    navPlatformFlight: "Flight",
+    navPlatformPlacement: "Placement",
+    navPlatformReport: "Report",
+    navPlatformCampaign: "Campaign",
     navCreativeShowcase: "Creative",
     navManageDemo: "Manage Demo",
     navUpload: "Upload",
@@ -113,12 +125,18 @@ const NAV_MESSAGES: Record<
   vi: {
     sectionAiIntelligence: "Trí tuệ AI",
     sectionTools: "Công cụ",
+    sectionPlatformYomedia: "Platform YoMedia",
     sectionDataManagement: "Quản lý dữ liệu",
     sectionAdministration: "Quản trị",
     navDashboard: "Tổng quan",
     navAiChat: "AI Chat",
     navBuildDemo: "Build Demo",
     navToolTest: "Test",
+    navPlatformBanner: "Banner",
+    navPlatformFlight: "Flight",
+    navPlatformPlacement: "Placement",
+    navPlatformReport: "Report",
+    navPlatformCampaign: "Campaign",
     navCreativeShowcase: "Creative",
     navManageDemo: "Quản lý Demo",
     navUpload: "Tải lên",

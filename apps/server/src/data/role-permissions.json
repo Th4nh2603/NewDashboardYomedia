@@ -57,6 +57,11 @@
         "/history",
         "/ai-gmail",
         "/test-data",
+        "/platform/banner",
+        "/platform/flight",
+        "/platform/placement",
+        "/platform/report",
+        "/platform/campaign",
         "/creative-demos-edit",
         "/upload",
         "/manage-sftp",
@@ -89,7 +94,12 @@
         "/manage-demo",
         "/chat",
         "/history",
-        "/manage-sftp"
+        "/manage-sftp",
+        "/platform/banner",
+        "/platform/flight",
+        "/platform/placement",
+        "/platform/report",
+        "/platform/campaign"
       ]
     },
     "creativeShowcase": {
@@ -121,7 +131,12 @@
         "/cinema",
         "/live",
         "/ai-gmail",
-        "/manage-sftp"
+        "/manage-sftp",
+        "/platform/banner",
+        "/platform/flight",
+        "/platform/placement",
+        "/platform/report",
+        "/platform/campaign"
       ]
     },
     "creativeShowcase": {
@@ -154,7 +169,12 @@
         "/live",
         "/ai-gmail",
         "/upload",
-        "/manage-sftp"
+        "/manage-sftp",
+        "/platform/banner",
+        "/platform/flight",
+        "/platform/placement",
+        "/platform/report",
+        "/platform/campaign"
       ]
     },
     "creativeShowcase": {

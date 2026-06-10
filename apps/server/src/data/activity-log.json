@@ -5,6 +5,443 @@
   ],
   "records": [
     {
+      "id": "act_1781086116555_sfs4f0",
+      "createdAt": "2026-06-10T10:08:36.545Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: compress_demo_assets",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781086098269",
+        "memoryTurns": 0,
+        "requestId": "d6e1b7a8-8d3b-4b55-a11c-1266f05c8543",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "compress_demo_assets",
+        "trace": {
+          "requestId": "d6e1b7a8-8d3b-4b55-a11c-1266f05c8543",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781086113313,
+              "endedAt": 1781086116543,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "compress_demo_assets"
+            }
+          ],
+          "totalMs": 3233
+        }
+      }
+    },
+    {
+      "id": "act_1781079531361_od77ml",
+      "createdAt": "2026-06-10T08:18:51.338Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781066226676",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781072442159_1i9n7o",
+      "createdAt": "2026-06-10T06:20:42.155Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: download_placement_codes",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781072436915",
+        "memoryTurns": 0,
+        "requestId": "948e5149-67bc-4d6b-a681-e2038a41d814",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "download_placement_codes",
+        "trace": {
+          "requestId": "948e5149-67bc-4d6b-a681-e2038a41d814",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781072442130,
+              "endedAt": 1781072442155,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "download_placement_codes"
+            }
+          ],
+          "totalMs": 26
+        }
+      }
+    },
+    {
+      "id": "act_1781066546710_c9o1le",
+      "createdAt": "2026-06-10T04:42:26.703Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781066530654",
+        "memoryTurns": 0,
+        "requestId": "7f97eab1-81ec-4f7a-b282-d2292be7dca7",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "7f97eab1-81ec-4f7a-b282-d2292be7dca7",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.8,
+            "reason": "general conversation",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781066544278,
+              "endedAt": 1781066546703,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 3540
+        }
+      }
+    },
+    {
+      "id": "act_1781066521597_wbhkeq",
+      "createdAt": "2026-06-10T04:42:01.591Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation about support functions"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781066504163",
+        "memoryTurns": 0,
+        "requestId": "dec94038-72c2-4d24-945d-1fbc660eb96d",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "dec94038-72c2-4d24-945d-1fbc660eb96d",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.8,
+            "reason": "general conversation about support functions",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781066517421,
+              "endedAt": 1781066521591,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 5468
+        }
+      }
+    },
+    {
+      "id": "act_1781066299338_23us5r",
+      "createdAt": "2026-06-10T04:38:19.331Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "related to internal process for banner setup"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781066290685",
+        "memoryTurns": 0,
+        "requestId": "d53dd7d9-0880-4486-b776-4d93e9a41e58",
+        "agents": [
+          "rag"
+        ],
+        "agent": "rag",
+        "trace": {
+          "requestId": "d53dd7d9-0880-4486-b776-4d93e9a41e58",
+          "route": {
+            "intent": "knowledge_qa",
+            "agent": "rag",
+            "agents": [
+              "rag"
+            ],
+            "confidence": 0.8,
+            "reason": "related to internal process for banner setup",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "rag",
+              "startedAt": 1781066297789,
+              "endedAt": 1781066299328,
+              "ok": true,
+              "confidence": 0.8,
+              "sources": [
+                "yomedia-demo-guide.md"
+              ]
+            }
+          ],
+          "totalMs": 3756
+        }
+      }
+    },
+    {
+      "id": "act_1781061182089_dfc8iy",
+      "createdAt": "2026-06-10T03:13:02.081Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "dashboard_insight",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "activity-log"
+        ],
+        "classifier": {
+          "intent": "dashboard_insight",
+          "confidence": 0.9,
+          "reason": "user asks for data from yesterday"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781061092606",
+        "memoryTurns": 2,
+        "requestId": "d680a2c6-6ab7-4381-b21d-afa00dd89b38",
+        "agents": [
+          "dashboard"
+        ],
+        "agent": "dashboard",
+        "trace": {
+          "requestId": "d680a2c6-6ab7-4381-b21d-afa00dd89b38",
+          "route": {
+            "intent": "dashboard_insight",
+            "agent": "dashboard",
+            "agents": [
+              "dashboard"
+            ],
+            "confidence": 0.9,
+            "reason": "user asks for data from yesterday",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "dashboard",
+              "startedAt": 1781061178823,
+              "endedAt": 1781061182081,
+              "ok": true,
+              "confidence": 0.82,
+              "sources": [
+                "activity-log"
+              ]
+            }
+          ],
+          "totalMs": 4850
+        }
+      }
+    },
+    {
+      "id": "act_1781061151419_e4zxyx",
+      "createdAt": "2026-06-10T03:12:31.411Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.7,
+          "reason": "general inquiry about capabilities"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781061092606",
+        "memoryTurns": 0,
+        "requestId": "e0233dfc-7e1b-4782-bb02-0198df1aede8",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "e0233dfc-7e1b-4782-bb02-0198df1aede8",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.7,
+            "reason": "general inquiry about capabilities",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781061149479,
+              "endedAt": 1781061151410,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 4125
+        }
+      }
+    },
+    {
+      "id": "act_1781061099876_iyobhq",
+      "createdAt": "2026-06-10T03:11:39.873Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781060763208",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781060766361_1k2d26",
+      "createdAt": "2026-06-10T03:06:06.333Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1780992165124",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
       "id": "act_1780999466542_l40qr9",
       "createdAt": "2026-06-09T10:04:26.539Z",
       "userName": "thanh26031994@gmail.com",

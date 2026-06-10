@@ -88,7 +88,9 @@ const SQL_HINTS = [
   "database",
   "db ",
   "bang du lieu",
+  "trong bang",
   "truy van",
+  "tra cuu",
   "query table",
   "select ",
   "from table",
@@ -96,6 +98,9 @@ const SQL_HINTS = [
   "du lieu campaign",
   "campaign id",
   "banner id",
+  "dem so",
+  "so luong",
+  "bao nhieu",
 ];
 
 const DASHBOARD_HINTS = [
@@ -106,6 +111,7 @@ const DASHBOARD_HINTS = [
   "bao cao",
   "upload gan day",
   "hoat dong gan day",
+  "hoat dong upload",
   "su dung he thong",
   "summary",
   "tong hop",
@@ -171,6 +177,9 @@ export function scoreSqlQueryIntent(text: string): number {
   if (hasAnyPhrase(normalized, SQL_HINTS)) score += 0.55;
   if (/\b(select|count|sum|avg|group by|where)\b/.test(normalized)) score += 0.35;
   if (/\bmysql\b|\bsql\b/.test(normalized)) score += 0.2;
+  if (/\bdem\s+so\b|\bso\s+luong\b/.test(normalized)) score += 0.35;
+  if (/\bbang\s+[a-z0-9_]+/.test(normalized)) score += 0.35;
+  if (/\btrong\s+bang\b/.test(normalized)) score += 0.25;
   return Math.min(1, score);
 }
 

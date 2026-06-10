@@ -8,6 +8,11 @@ export const ROUTE_ROLE_GUARDS: Record<
 > = {
   "/manage-sftp": { allow: ["admin", "manager", "media", "design"] },
   "/test-data": { deny: ["guest"] },
+  "/platform/banner": { deny: ["guest"] },
+  "/platform/flight": { deny: ["guest"] },
+  "/platform/placement": { deny: ["guest"] },
+  "/platform/report": { deny: ["guest"] },
+  "/platform/campaign": { deny: ["guest"] },
   "/creative-demos-edit": { allow: ["admin"] },
   "/smtp-mail": { deny: ["guest"] },
   "/admin/users": { allow: ["admin"] },
@@ -16,6 +21,15 @@ export const ROUTE_ROLE_GUARDS: Record<
 
 /** Tools section — visible in sidebar only for admin. */
 export const TOOLS_ADMIN_ROUTES = ["/tool/test"] as const;
+
+/** Platform YoMedia section routes. */
+export const PLATFORM_YOMEDIA_ROUTES = [
+  "/platform/banner",
+  "/platform/flight",
+  "/platform/placement",
+  "/platform/report",
+  "/platform/campaign",
+] as const;
 
 /** Sidebar admin section — shown only when role is admin. */
 export const ADMIN_SECTION_ROUTES = [

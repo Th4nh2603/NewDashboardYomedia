@@ -8,6 +8,7 @@ import { creativeRouter } from "../controllers/creative/creative.js";
 import { activityLogRouter } from "../controllers/activity/activityLog.js";
 import { testDataRouter } from "../controllers/platform/testData.js";
 import { toolTestRouter } from "../controllers/platform/toolTest.js";
+import { platformPagesRouter } from "../controllers/platform/platformPages.js";
 import { ragRouter } from "../controllers/chat/rag.js";
 
 export const appRouter = router({
@@ -20,6 +21,7 @@ export const appRouter = router({
   activityLog: activityLogRouter,
   testData: testDataRouter,
   toolTest: toolTestRouter,
+  platformPages: platformPagesRouter,
   rag: ragRouter,
 });
 

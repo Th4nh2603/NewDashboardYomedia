@@ -24,8 +24,7 @@ const routes: RouteInfo[] = [
     path: "/",
     name: "Dashboard",
     group: "Core",
-    description:
-      "Main overview with intros and shortcuts to core AI features.",
+    description: "Main overview with intros and shortcuts to core AI features.",
     usage:
       "Use to jump into primary modules during demos or to get a high-level overview before drilling down.",
   },
@@ -71,8 +70,7 @@ const routes: RouteInfo[] = [
     group: "AI Intelligence",
     description:
       "Real-time voice conversation with AI, similar to live consultation.",
-    usage:
-      "Use the mic for live Q&A demos, workshops, or internal events.",
+    usage: "Use the mic for live Q&A demos, workshops, or internal events.",
   },
   {
     path: "/ai-gmail",
@@ -80,8 +78,7 @@ const routes: RouteInfo[] = [
     group: "AI Intelligence",
     description:
       "Email helper: read/summarize, triage, and suggest quick replies.",
-    usage:
-      "High-volume inbox work or fast replies with campaign context.",
+    usage: "High-volume inbox work or fast replies with campaign context.",
   },
   {
     path: "/smtp-mail",
@@ -105,8 +102,7 @@ const routes: RouteInfo[] = [
     path: "/manage-demo",
     name: "Manage Demo",
     group: "Data Management",
-    description:
-      "CRUD for demos: brands, status, categories.",
+    description: "CRUD for demos: brands, status, categories.",
     usage:
       "Internal housekeeping — naming, tags, hide outdated demos, keep the library tidy.",
   },
@@ -114,17 +110,14 @@ const routes: RouteInfo[] = [
     path: "/documentation",
     name: "Documentation",
     group: "Data Management",
-    description:
-      "Module user guide for onboarding and internal training.",
-    usage:
-      "Quick reference when you need each module explained at a glance.",
+    description: "Module user guide for onboarding and internal training.",
+    usage: "Quick reference when you need each module explained at a glance.",
   },
   {
     path: "/bar",
     name: "Performance (Bar)",
     group: "Analytics",
-    description:
-      "Bar charts for metrics like views and CTR across dimensions.",
+    description: "Bar charts for metrics like views and CTR across dimensions.",
     usage:
       "Tell a data story — time range, campaign type, audiences — then explain media performance for clients or leadership.",
   },
@@ -132,10 +125,8 @@ const routes: RouteInfo[] = [
     path: "/history",
     name: "History",
     group: "Core",
-    description:
-      "Recent interactions — prompts, requests, jobs.",
-    usage:
-      "Audit what ran earlier or trace issues mid-demo.",
+    description: "Recent interactions — prompts, requests, jobs.",
+    usage: "Audit what ran earlier or trace issues mid-demo.",
   },
 ];
 
@@ -272,7 +263,7 @@ const DocumentPage: React.FC = () => {
             </code>{" "}
             and add{" "}
             <code className="px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-slate-100/5 text-xs">
-              {"<Route path=\"/new-feature\" element={<NewFeature />} />"}
+              {'<Route path="/new-feature" element={<NewFeature />} />'}
             </code>{" "}
             inside the <code className="text-xs">{"<Routes>"}</code> block of{" "}
             <code className="text-xs">DashboardLayout</code>.
@@ -303,8 +294,7 @@ const DocumentPage: React.FC = () => {
             <span className="font-semibold">Creative Demos</span>{" "}
             <code className="text-xs">GET /api/creative-demos</code>: demo list
             from the server (active status filter); used by{" "}
-            <code className="text-xs">/creative</code> and format
-            matching.
+            <code className="text-xs">/creative</code> and format matching.
           </li>
           <li>
             <span className="font-semibold">SFTP Connect</span>{" "}
@@ -324,8 +314,8 @@ const DocumentPage: React.FC = () => {
           </li>
           <li>
             <span className="font-semibold">SFTP Exists</span>{" "}
-            <code className="text-xs">GET /api/sftp/exists?path=...</code>: check
-            whether a path exists (used by Chat for quick path checks).
+            <code className="text-xs">GET /api/sftp/exists?path=...</code>:
+            check whether a path exists (used by Chat for quick path checks).
           </li>
           <li>
             <span className="font-semibold">SFTP Download Directory</span>{" "}

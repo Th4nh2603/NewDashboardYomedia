@@ -65,7 +65,18 @@ const ADMIN_EXTRA_ROUTES = [
   "/tool/test",
 ];
 const DESIGN_EXTRA_ROUTES = ["/upload"];
-const NON_GUEST_EXTRA_ROUTES = ["/test-data", "/smtp-mail"];
+const PLATFORM_YOMEDIA_ROUTES = [
+  "/platform/banner",
+  "/platform/flight",
+  "/platform/placement",
+  "/platform/report",
+  "/platform/campaign",
+] as const;
+const NON_GUEST_EXTRA_ROUTES = [
+  "/test-data",
+  "/smtp-mail",
+  ...PLATFORM_YOMEDIA_ROUTES,
+];
 export const ALL_ALLOWED_ROUTES = Array.from(
   new Set([
     ...BASE_ALLOWED_ROUTES,
@@ -97,6 +108,9 @@ export function getDefaultAllowedRoutesByRole(roleRaw: string | undefined): stri
   if (role !== "guest") {
     routes.add("/test-data");
     routes.add("/smtp-mail");
+    for (const route of PLATFORM_YOMEDIA_ROUTES) {
+      routes.add(route);
+    }
   }
   if (
     role === "admin" ||

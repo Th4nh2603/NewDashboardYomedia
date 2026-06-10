@@ -1613,3 +1613,363 @@ export async function submitBannerCreate(
 
   return { message: body.message ?? "Banner created" };
 }
+
+export type PlatformModuleKey =
+  | "banner"
+  | "flight"
+  | "placement"
+  | "campaign"
+  | "report";
+
+const DEFAULT_FLIGHT_COLUMNS: PlatformBannerColumn[] = [
+  { name: "num_id", label: "ID" },
+  { name: "flight_name", label: "Flight name" },
+  { name: "account_name", label: "Advertiser" },
+  { name: "bookings_count", label: "Bookings" },
+  { name: "active", label: "Active" },
+  { name: "updated_at", label: "Last Updated" },
+];
+
+const DEFAULT_CAMPAIGN_COLUMNS: PlatformBannerColumn[] = [
+  { name: "num_id", label: "ID" },
+  { name: "campaign_name", label: "Campaign name" },
+  { name: "account_name", label: "Advertiser" },
+  { name: "action_status", label: "Status" },
+  { name: "active", label: "Active" },
+  { name: "updated_at", label: "Last Updated" },
+];
+
+const MODULE_NAME_COLUMNS: Record<
+  Exclude<PlatformModuleKey, "report">,
+  string
+> = {
+  banner: "banner_name",
+  flight: "flight_name",
+  placement: "placement_name",
+  campaign: "campaign_name",
+};
+
+const MODULE_DEFAULT_COLUMNS: Partial<
+  Record<Exclude<PlatformModuleKey, "report">, PlatformBannerColumn[]>
+> = {
+  banner: DEFAULT_BANNER_COLUMNS,
+  placement: DEFAULT_PLACEMENT_COLUMNS,
+  flight: DEFAULT_FLIGHT_COLUMNS,
+  campaign: DEFAULT_CAMPAIGN_COLUMNS,
+};
+
+function parseGenericCreateForm(
+  html: string,
+  module: Exclude<PlatformModuleKey, "report">,
+  options?: { maxSelectOptions?: number; includeHidden?: boolean },
+): PlatformBannerCreateForm {
+  const maxSelectOptions = options?.maxSelectOptions ?? MAX_SELECT_OPTIONS;
+  const base = platformBaseUrl();
+  const title = stripTags(
+    html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] ||
+      `Create ${module}`,
+  );
+  const formAction =
+    html.match(/<form[^>]*action="([^"]+)"/i)?.[1] ||
+    `${base}/${module}/store`;
+
+  const fields: PlatformFormField[] = [];
+  for (const { id, block } of extractFormGroups(html, {
+    includeHidden: options?.includeHidden,
+  })) {
+    if (module === "placement") {
+      const groupFields = allFieldsFromFormGroup(block, id, maxSelectOptions);
+      for (const field of groupFields) {
+        if (id === "type" && field.name === "type") field.id = "placement_type";
+        if (field.name === "active") field.id = "active";
+        fields.push(field);
+      }
+      continue;
+    }
+    const field = fieldFromFormGroup(block, id, maxSelectOptions);
+    if (!field) continue;
+    field.id = resolveFormGroupId(id, field);
+    if (field.name === "active") field.id = "active";
+    fields.push(field);
+  }
+
+  return {
+    url: `${base}/${module}/create`,
+    title,
+    formAction,
+    fields,
+  };
+}
+
+function parseReportsFilterForm(shellHtml: string): PlatformBannerCreateForm {
+  const base = platformBaseUrl();
+  const formMatch = shellHtml.match(
+    /<form[^>]*id="frmFilter"[^>]*>([\s\S]*?)<\/form>/i,
+  );
+  const formHtml = formMatch?.[1] ?? shellHtml;
+  const title = stripTags(
+    shellHtml.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "Report",
+  );
+  const formAction =
+    shellHtml.match(/<form[^>]*id="frmFilter"[^>]*action="([^"]+)"/i)?.[1] ||
+    `${base}/reports/list`;
+
+  const fields: PlatformFormField[] = [];
+  for (const { id, block } of extractFormGroups(formHtml, {
+    includeHidden: true,
+  })) {
+    const groupFields = allFieldsFromFormGroup(
+      block,
+      id,
+      MAX_SELECT_OPTIONS,
+    );
+    for (const field of groupFields) {
+      fields.push(field);
+    }
+  }
+
+  return {
+    url: `${base}/reports`,
+    title: `${title} filters`,
+    formAction,
+    fields,
+  };
+}
+
+async function fetchModuleCreateFragment(
+  jar: CookieJar,
+  base: string,
+  module: Exclude<PlatformModuleKey, "report">,
+): Promise<string> {
+  if (module === "banner") {
+    const csrf = extractCsrfToken(
+      await platformFetch(`${base}/banner`, jar).then((r) => r.text()),
+    );
+    return fetchBannerCreateFragment(jar, base, csrf);
+  }
+
+  const res = await platformFetch(`${base}/${module}/create`, jar, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "application/json",
+      referer: `${base}/${module}`,
+    },
+  });
+  const text = await res.text();
+  let parsed: { html?: string };
+  try {
+    parsed = JSON.parse(text) as { html?: string };
+  } catch {
+    throw new HttpError(502, `Platform /${module}/create did not return JSON`, {
+      code: "PLATFORM_FRAGMENT_INVALID",
+    });
+  }
+  if (!parsed.html) {
+    throw new HttpError(502, `Platform /${module}/create missing html fragment`, {
+      code: "PLATFORM_FRAGMENT_INVALID",
+    });
+  }
+  return parsed.html;
+}
+
+async function fetchModuleListFragment(
+  jar: CookieJar,
+  base: string,
+  csrf: string,
+  module: Exclude<PlatformModuleKey, "report">,
+): Promise<string> {
+  if (module === "banner") {
+    return fetchBannerListFragment(jar, base, csrf);
+  }
+  return fetchPlatformJsonHtml(jar, base, `/${module}/list`, csrf, {
+    method: "POST",
+    refererPath: `/${module}`,
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ _token: csrf }).toString(),
+  });
+}
+
+async function fetchModuleGrid(
+  jar: CookieJar,
+  base: string,
+  csrf: string,
+  module: Exclude<PlatformModuleKey, "report">,
+  options?: { page?: number; rows?: number },
+): Promise<PlatformBannerGrid> {
+  if (module === "banner") {
+    return fetchBannerGrid(jar, base, csrf, options);
+  }
+  if (module === "placement") {
+    return fetchPlacementGrid(jar, base, csrf, options);
+  }
+
+  const page = options?.page ?? 1;
+  const rows = options?.rows ?? 50;
+  const body = new URLSearchParams({
+    _token: csrf,
+    page: String(page),
+    rows: String(rows),
+    sidx: "created_at",
+    sord: "desc",
+    filter: "all",
+    keyword: "",
+    field: "",
+    opsel: "",
+  });
+
+  const res = await platformFetch(`${base}/${module}/list`, jar, {
+    method: "POST",
+    headers: {
+      "x-csrf-token": csrf,
+      "x-requested-with": "XMLHttpRequest",
+      "content-type": "application/x-www-form-urlencoded",
+      accept: "application/json, text/javascript, */*; q=0.01",
+      referer: `${base}/${module}`,
+    },
+    body: body.toString(),
+  });
+
+  const text = await res.text();
+  let json: {
+    rows?: Record<string, unknown>[];
+    page?: number;
+    total?: number;
+    records?: number;
+  };
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new HttpError(502, `Platform ${module} grid returned invalid JSON`, {
+      code: "PLATFORM_GRID_INVALID",
+    });
+  }
+
+  if (!Array.isArray(json.rows)) {
+    throw new HttpError(502, `Platform ${module} grid missing rows array`, {
+      code: "PLATFORM_GRID_INVALID",
+    });
+  }
+
+  return {
+    page: Number(json.page ?? page),
+    total: Number(json.total ?? 0),
+    records: Number(json.records ?? json.rows.length),
+    rows: json.rows.map((row) => normalizeGridRow(row)),
+    columns: [],
+  };
+}
+
+async function fetchModuleGridAll(
+  jar: CookieJar,
+  base: string,
+  csrf: string,
+  module: Exclude<PlatformModuleKey, "report">,
+): Promise<PlatformBannerGrid> {
+  if (module === "placement") {
+    return fetchPlacementGridAll(jar, base, csrf);
+  }
+
+  const first = await fetchModuleGrid(jar, base, csrf, module, {
+    page: 1,
+    rows: PLATFORM_GRID_PAGE_SIZE,
+  });
+  const allRows = [...first.rows];
+  const totalPages = first.total;
+
+  for (let page = 2; page <= totalPages; page++) {
+    const next = await fetchModuleGrid(jar, base, csrf, module, {
+      page,
+      rows: PLATFORM_GRID_PAGE_SIZE,
+    });
+    allRows.push(...next.rows);
+  }
+
+  return {
+    page: 1,
+    total: 1,
+    records: first.records,
+    rows: allRows,
+    columns: [],
+  };
+}
+
+export function platformModuleNameColumn(
+  module: Exclude<PlatformModuleKey, "report">,
+): string {
+  return MODULE_NAME_COLUMNS[module];
+}
+
+/** Fetch a single YoMedia platform module (banner, flight, placement, campaign, report). */
+export async function fetchPlatformModulePage(
+  module: PlatformModuleKey,
+  options?: { page?: number; rows?: number; loadAllRows?: boolean },
+): Promise<PlatformBannerPage | PlatformPlacementPage> {
+  const base = platformBaseUrl();
+  const jar = new CookieJar();
+  const csrf = await loginPlatform(jar, base);
+  const fetchedAt = new Date().toISOString();
+
+  if (module === "report") {
+    const shellRes = await platformFetch(`${base}/reports`, jar);
+    const shellHtml = await shellRes.text();
+    const title = stripTags(
+      shellHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "",
+    );
+    const { profileName, profileRole } = parseProfile(shellHtml);
+    const createForm = parseReportsFilterForm(shellHtml);
+
+    return {
+      url: `${base}/reports`,
+      fetchedAt,
+      title,
+      profileName,
+      profileRole,
+      grid: {
+        page: 1,
+        total: 0,
+        records: 0,
+        rows: [],
+        columns: [],
+      },
+      createForm,
+    };
+  }
+
+  const shellRes = await platformFetch(`${base}/${module}`, jar);
+  const shellHtml = await shellRes.text();
+  const title = stripTags(
+    shellHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "",
+  );
+  const { profileName, profileRole } = parseProfile(shellHtml);
+
+  const [listHtml, createHtml, grid] = await Promise.all([
+    fetchModuleListFragment(jar, base, csrf, module),
+    fetchModuleCreateFragment(jar, base, module),
+    options?.loadAllRows
+      ? fetchModuleGridAll(jar, base, csrf, module)
+      : fetchModuleGrid(jar, base, csrf, module, options),
+  ]);
+
+  const createForm = parseGenericCreateForm(createHtml, module, {
+    includeHidden: module === "placement",
+    maxSelectOptions:
+      module === "placement" ? Number.MAX_SAFE_INTEGER : MAX_SELECT_OPTIONS,
+  });
+  const columns = parseJqGridColModel(listHtml);
+  grid.columns =
+    columns.length > 0
+      ? columns
+      : MODULE_DEFAULT_COLUMNS[module] ?? DEFAULT_BANNER_COLUMNS;
+
+  return {
+    url: `${base}/${module}`,
+    fetchedAt,
+    title,
+    profileName,
+    profileRole,
+    grid,
+    createForm,
+  };
+}

@@ -8,6 +8,7 @@ import { useAccessContext, useCanAccess } from "../hooks/useCanAccess";
 import { useServerReachable } from "../hooks/useServerReachable";
 import {
   ADMIN_SECTION_ROUTES,
+  PLATFORM_YOMEDIA_ROUTES,
   TOOLS_ADMIN_ROUTES,
   canShowNavRoute,
 } from "../lib/access";
@@ -28,6 +29,11 @@ import {
   SparklesIcon as SparklesIconFilled,
   TableCellsIcon,
   BeakerIcon,
+  PhotoIcon,
+  PaperAirplaneIcon,
+  MapPinIcon,
+  ChartBarIcon,
+  MegaphoneIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   SignalSlashIcon,
@@ -188,6 +194,41 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     ? TOOLS_ADMIN_ROUTES.map((path) => toolsAdminNavByPath[path])
     : [];
 
+  const platformNavByPath: Record<
+    (typeof PLATFORM_YOMEDIA_ROUTES)[number],
+    SectionSpec["items"][number]
+  > = {
+    "/platform/banner": {
+      nameKey: "navPlatformBanner",
+      path: "/platform/banner",
+      icon: PhotoIcon,
+    },
+    "/platform/flight": {
+      nameKey: "navPlatformFlight",
+      path: "/platform/flight",
+      icon: PaperAirplaneIcon,
+    },
+    "/platform/placement": {
+      nameKey: "navPlatformPlacement",
+      path: "/platform/placement",
+      icon: MapPinIcon,
+    },
+    "/platform/report": {
+      nameKey: "navPlatformReport",
+      path: "/platform/report",
+      icon: ChartBarIcon,
+    },
+    "/platform/campaign": {
+      nameKey: "navPlatformCampaign",
+      path: "/platform/campaign",
+      icon: MegaphoneIcon,
+    },
+  };
+
+  const platformSectionItems: SectionSpec["items"] = PLATFORM_YOMEDIA_ROUTES.filter(
+    (path) => canShowNavRoute(access, path),
+  ).map((path) => platformNavByPath[path]);
+
   const sections: SectionSpec[] = [
     {
       titleKey: null,
@@ -202,6 +243,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     {
       titleKey: "sectionTools",
       items: [...toolsAdminItems],
+    },
+    {
+      titleKey: "sectionPlatformYomedia",
+      items: platformSectionItems,
     },
     {
       titleKey: "sectionDataManagement",
