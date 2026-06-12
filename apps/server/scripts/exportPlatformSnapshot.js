@@ -21,10 +21,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "../.env") });
 
 const { fetchPlatformTestSnapshot } = await import(
-  "../src/services/platform/yomediaPlatform.ts"
+  "../src/modules/platform/services/yomediaPlatform.js"
 );
 const { writePlatformSnapshot, platformSnapshotPath } = await import(
-  "../src/services/platform/platformSnapshot.ts"
+  "../src/modules/platform/services/platformSnapshot.js"
 );
 
 const snapshot = await fetchPlatformTestSnapshot();

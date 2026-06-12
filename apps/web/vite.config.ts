@@ -2,11 +2,14 @@ import path from 'path';
 import fs from 'fs';
 import http from 'http';
 import net from 'node:net';
+import { createRequire } from 'node:module';
 import type { Plugin } from 'vite';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const API_DEV_PORT = 3001;
+const require = createRequire(import.meta.url);
+const schedulerEntry = require.resolve('scheduler');
 
 function isPortFree(port: number, host = '0.0.0.0'): Promise<boolean> {
   return new Promise((resolve) => {
@@ -114,7 +117,6 @@ function devApiProxyPlugin(): Plugin {
 }
 
 export default defineConfig(async ({ mode }) => {
-    const env = loadEnv(mode, __dirname, '');
     const webPort = await resolveWebDevPort();
     return {
       envDir: __dirname,
@@ -124,13 +126,10 @@ export default defineConfig(async ({ mode }) => {
         strictPort: false,
       },
       plugins: [react(), devApiProxyPlugin()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
+          scheduler: schedulerEntry,
         },
         dedupe: ['react', 'react-dom'],
       }

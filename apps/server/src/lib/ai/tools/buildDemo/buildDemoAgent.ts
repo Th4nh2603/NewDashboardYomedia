@@ -9,7 +9,7 @@ import {
 import {
   extractUploadDemoBrandFromText,
   resolveCanonicalBuildDemoBrand,
-} from "../../../../repositories/brand.repository.js";
+} from "../../../../modules/creative/repositories/brand.repository.js";
 
 import { getModel } from "../../core/config.js";
 import { serviceUnavailable } from "../../../http/errors.js";
@@ -24,7 +24,7 @@ import type {
 import {
   filterAllowedBrandIds,
   listAllowedBrandOptions,
-} from "../../../../services/buildDemo/config.js";
+} from "../../../../modules/buildDemo/services/config.js";
 
 import type {
   BuildDemoFormat,

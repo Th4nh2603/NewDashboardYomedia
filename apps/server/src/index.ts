@@ -11,13 +11,14 @@ import net from "node:net";
 import { createServer as createHttpServer } from "node:http";
 import { fileURLToPath } from "url";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import { sftpRouter } from "./controllers/media/sftp.js";
-import { uploadRouter } from "./controllers/media/upload.js";
-import { fileUploadRouter } from "./controllers/media/fileUpload.js";
-import { smtpRouter, legacySendEmailHandler } from "./controllers/media/smtp.js";
-import { testDataRestRouter } from "./controllers/platform/testDataRest.js";
+import { sftpRouter } from "./modules/media/controllers/sftp.js";
+import { uploadRouter } from "./modules/media/controllers/upload.js";
+import { fileUploadRouter } from "./modules/media/controllers/fileUpload.js";
+import { smtpRouter, legacySendEmailHandler } from "./modules/media/controllers/smtp.js";
+import { geminiRouter } from "./modules/media/controllers/gemini.js";
+import { testDataRestRouter } from "./modules/platform/controllers/testDataRest.js";
 import { errorHandler, notFoundHandler } from "./lib/http/errors.js";
-import { requireClerkAuth } from "./lib/auth/clerkAuth.js";
+import { requireClerkAuth } from "./modules/auth/lib/clerkAuth.js";
 import { appRouter } from "./trpc/appRouter.js";
 import { createContext } from "./trpc/context.js";
 
@@ -25,6 +26,32 @@ const app = express();
 const BASE_PORT = Number(process.env.PORT) || 3001;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function parseCsvEnv(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getAllowedCorsOrigins(): string[] {
+  const configured = [
+    ...parseCsvEnv(process.env.CORS_ORIGINS),
+    ...parseCsvEnv(process.env.CLERK_AUTHORIZED_PARTIES),
+  ];
+  if (configured.length) return [...new Set(configured)];
+  if (process.env.NODE_ENV === "production") return [];
+  return [
+    "http://localhost:3000",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+  ];
+}
+
+const allowedCorsOrigins = getAllowedCorsOrigins();
 
 function findAvailablePort(
   startPort: number,
@@ -82,7 +109,13 @@ app.use(
     origin: (
       origin: string | undefined,
       cb: (err: null, allow: boolean | string) => void,
-    ) => cb(null, origin || true),
+    ) => {
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      cb(null, allowedCorsOrigins.includes(origin) ? origin : false);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-user-role"],
   }),
@@ -97,14 +130,14 @@ app.use(
   }),
 );
 
-/** Large enough for bulky JSON; video uploads prefer sftp writeBinary (octet-stream, 500mb). */
-app.use(express.json({ limit: "500mb" }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "25mb" }));
 
 /** REST-only: binary SFTP upload & ZIP download (streaming / raw body). */
 app.use("/api/sftp", sftpRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/file-upload", fileUploadRouter);
 app.use("/api/smtp", smtpRouter);
+app.use("/api/gemini", geminiRouter);
 app.use("/api/test-data", testDataRestRouter);
 app.post("/api/send-email", requireClerkAuth, legacySendEmailHandler);
 

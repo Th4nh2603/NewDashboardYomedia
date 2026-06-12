@@ -1,4 +1,4 @@
-import type { VerifiedAuth } from "../lib/auth/clerkAuth.js";
+import type { VerifiedAuth } from "../modules/auth/lib/clerkAuth.js";
 
 declare global {
   namespace Express {

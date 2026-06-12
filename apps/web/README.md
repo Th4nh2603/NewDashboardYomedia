@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Web App
 
-# Run and deploy your AI Studio app
+Vite React dashboard for the Yomedia workspace.
 
-This contains everything you need to run your app locally.
+## Source Layout
 
-View your app in AI Studio: https://ai.studio/apps/22d41b4e-a377-4ef8-ad1c-0043b8648866
+- `src/App.tsx` - route tree and top-level app providers.
+- `src/main.tsx` - browser entry point.
+- `src/components/` - reusable UI and layout components.
+- `src/contexts/` - React context providers.
+- `src/hooks/` - shared React hooks.
+- `src/pages/` - route-level screens.
+- `src/lib/` - API clients, utilities, form helpers, and feature support code.
+- `src/data/` - static app data loaded by the web client.
+- `src/config/` - app configuration used by the client.
+- `public/` - files served directly by Vite.
 
-## Run Locally
+Keep application source inside `src/`. Keep build, Docker, env, and Vite/TypeScript config files at the app root.
 
-**Prerequisites:**  Node.js
+## Commands
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+pnpm --filter ./apps/web run dev
+pnpm --filter ./apps/web run lint
+pnpm --filter ./apps/web run build
+```

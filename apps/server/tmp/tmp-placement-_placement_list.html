@@ -1,0 +1,305 @@
+<div class="row wrapper-content animated fadeInRight" id="PlacementList">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <button type="button" id="btnCreateNew" class="btn btn-primary btn-xs">
+                    <span class="fa fa-plus" aria-hidden="true"></span>
+                    Create New
+                </button>
+                <button type="button" id="btnDelete" class="btn btn-primary btn-xs">
+                    <span class="fa fa-minus" aria-hidden="true"></span>
+                    Delete
+                </button>
+                <div class="btn-group">
+                    <button type="button" id="btnActive" class="btn btn-primary btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                        <span class="fa fa-eye" aria-hidden="true"></span>
+                        Active
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu" name="active">
+                        <li><a href="javascript:void(0);" data-value="true">Active</a></li>
+                        <li><a href="javascript:void(0);" data-value="false">Inactive</a></li>
+                    </ul>
+                </div>
+                <div class="btn-group">
+                    <button type="button" id="btnExport" class="btn btn-primary btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                        <span class="fa fa-external-link" aria-hidden="true"></span>
+                        Export
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu" name="export">
+                        <li><a href="javascript:void(0);" data-format="xlsx">Excel</a></li>
+                        <li><a href="javascript:void(0);" data-format="csv">CSV</a></li>
+                        <li><a href="javascript:void(0);" data-format="pdf">PDF</a></li>
+                    </ul>
+                </div>
+                                <div class="ibox-tools">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                        <i class="fa fa-wrench"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-user">
+                        <li><a href="#">Help</a></li>
+                        <li><a href="javascript:void(0);" onclick="getShowHideColumn();">Show/hide columns</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="ibox-content">
+                <form id="frmFilter" class="form-inline" name="filter_placement" role="form" method="post" action="https://platform.yomedia.vn/placement/list">
+                    <input type="hidden" name="_token" value="yzPxn2Xf4tThFH4Tht0OpCcyPFQKoYetCsGOozxr">
+                    <input type="hidden" name="datatype" value="">
+                    <div class="form-group">
+                        <label>Filter</label>
+                        <input type="text" name="keyword" class="form-control input-sm" value="" placeholder="Placement name ...">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm m-t-xs">
+                        <span class="fa fa-search" aria-hidden="true"></span>
+                        Find
+                    </button>
+                    <button type="button" id="btnSearch" class="btn btn-primary btn-sm m-t-xs">
+                        <span class="fa fa-search" aria-hidden="true"></span>
+                        Search
+                    </button>
+                </form>
+                <br>
+                <div id="ListCount"></div>
+                <div class="jqGrid">
+                    <input type="hidden" name="_token" value="yzPxn2Xf4tThFH4Tht0OpCcyPFQKoYetCsGOozxr">
+                    <input type="hidden" name="listCol" id="listCol" value="">
+                    <table id="ListGrid"></table>
+                    <div id="ListPager"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(function () {
+        $('#frmFilter').find('input[name="keyword"]').val($('#keyword').val());
+        getPlacementCount();
+        setTimeout(function () {
+            $('input[name="keyword"]').focus();
+        }, 1000);
+
+        $('#btnCreateNew').on('click', function () {
+            getPlacementCreateNew();
+        });
+        $('#btnDelete').on('click', function () {
+            getPlacementDelete(null);
+        });
+        $('#btnRestore').on('click', function () {
+            getPlacementRestore(null);
+        });
+        $('#btnSearch').on('click', function() {
+            $('#frmFilter').find('input[name="keyword"]').val('');
+            getPlacementSearch();
+        });
+        $("#ListGrid").jqGrid({
+            url: $('#frmFilter').attr('action'),
+            datatype: 'json',
+            mtype: 'post',
+            postData: {
+                filter: $('#filter').val(), keyword: $('#keyword').val(), field: $('#listSearch').val(), opsel: $("#optSel").val()
+            },
+            colModel: [
+                {label: 'Id', name: 'id', hidden: true, key: true, frozen: true},
+                {label: 'permission', name: 'permission', hidden: true, frozen: true},
+                {label: 'Action', name: 'action', width: 70, editable: true, cellEdit:true, edittype: 'select', sortable: false, formatter: ActionFmatter, frozen: true},
+                {label: 'Active', name: 'active', width: 70, formatter: formatActive, align:'center', sortable: true, frozen: true},
+                {label: 'Placement Name', name: 'placement_name', width: 200, frozen: !isMobile()},
+                {label: 'Account Name', name: 'account_name', width: 200},
+                {label: 'Website Name', name: 'website_name', width: 200},
+                {label: 'Zone Name', name: 'zone_name', width: 200},
+                {label: 'Type', name: 'type', width: 200},
+                {label: 'Size', name: 'size', width: 200},
+                {label: 'Created Date', name: 'created_at', width: 150, align: 'right',formatter:'datetime', formatoptions: {newformat: "Y/m/d H:i:s"}, sorttype: 'date'},
+                {label: 'Last Updated', name: 'updated_at', width: 150, align: 'right', formatter:'datetime', formatoptions: {newformat: "Y/m/d H:i:s"}, sorttype: 'date'},
+                {label: 'Last Deleted', name: 'deleted_at', width: 150, align: 'right', formatter:'datetime', formatoptions: {newformat: "Y/m/d H:i:s"}, sorttype: 'date',hidden: true},
+                {label: 'Created by', name: 'created_user', width: 100, sortable: true},
+                {label: 'Modified by', name: 'modified_user', width: 100, sortable: true},
+            ],
+            height: 450,
+            autowidth: true,
+            shrinkToFit: false,
+            multiselect: true,
+            viewrecords: true,
+            sortname: $('#sortname').val() || 'placement_name',
+            sortorder: $('#sortorder').val() || 'asc',
+            search: ($('#keyword').val().length == 0 && $('#listSearch').val().length > 0),
+            rowNum: $('#rows').val() || 20,
+            rowList: [10, 20, 50, 100, 500],
+            pager: '#ListPager',
+            page: $('#page').val() || 1,
+            loadComplete: function (data) {
+                var params = $('#ListGrid').jqGrid('getGridParam');
+                $('#sortname').val(params.sortname || '');
+                $('#sortorder').val(params.sortorder || '');
+                $('#page').val(params.page || '');
+                $('#rows').val(params.rowNum || '');
+            },
+                        rowattr: function (row) {
+                var perms = ['is_owner','manager','edit'];
+                if (perms.indexOf(row.permission) < 0) {
+                    return {
+                        "class": "ui-state-disabled ui-jqgrid-disablePointerEvents",
+                        "style": " opacity: 0.7 !important;"
+                    };
+                }
+            },
+                    });
+        function ActionFmatter(cellvalue, options, rowObject){ 
+            return '<button data-toggle="dropdown" class="btn btn-primary btn-xs dropdown-toggle actionContext mnu_placement">Go To <span class="caret"></span></button>';
+        }
+        /*hide list column jqgrid*/
+        listArrColHide = ['deleted_at'];
+        $("#ListGrid").jqGrid("hideCol", listArrColHide);
+        $("#listCol").val(listArrColHide.join(","));
+
+        $("#ListGrid").jqGrid("setFrozenColumns");
+        $('#frmFilter').on('submit', function (e) {
+            e.preventDefault();
+            var keyword = $('#frmFilter').find('input[name="keyword"]').val();
+            $('#keyword').val(keyword);
+            $('#listSearch').val('');
+            $("#optSel").val('');
+            var data_filter = {filter: $('#filter').val(),  keyword: keyword, field: '', opsel: ''};
+            $('#ListGrid').jqGrid('setGridParam', {search:false, page: 1, rows: 20, sidx: $('#sortname').val() || 'placement_name', sord: $('#sortorder').val() || 'asc', url: $('#frmFilter').attr('action'), postData: data_filter}).trigger('reloadGrid');
+
+        });
+        $('ul[name="active"]').find('a').on('click', function () {
+            var value = $(this).data('value');
+            getPlacementActive(null, null, value);
+        });
+        $('ul[name="export"]').find('a').on('click', function () {
+            var format = $(this).data('format'); 
+            var filter = $('#filter').val();
+            var keyword = $('#frmFilter').find('input[name="keyword"]').val();
+            window.location.target = '_blank';
+            window.location.href = 'https://platform.yomedia.vn/placement/export?filter=' + filter + (keyword !== '' ? '&keyword=' + keyword : '') + '&format=' + format;
+            return false;
+        });
+        $.contextMenu('destroy', '.mnu_placement');
+        $.contextMenu({
+            selector: '.mnu_placement',
+            trigger: 'left',
+            callback: function (key) {
+                var selId = $(this).parent().parent("tr").attr("id");
+                var rowsel = $(this).parent().parent("tr").attr('aria-selected');
+                /*if (typeof rowsel === 'undefined' || rowsel === 'false') {
+                    $("#ListGrid").jqGrid('setSelection', selId);
+                    $(this).prop('checked', true);
+                }*/
+                switch (key) {
+                    case 'edit':
+                        getPlacementEdit(selId);
+                        break;
+                    case 'code':
+                        getPlacementCode(selId);
+                        break;
+                    case 'codeBDSP':
+                        getPlacementCodeBDSP(selId);
+                        break;
+                    case 'delete':
+                        getPlacementDelete(selId);
+                        break;
+                    case 'restore':
+                        getPlacementRestore(selId);
+                        break;
+                    case 'clone':
+                        putPlacementClone(selId);
+                        break;
+                }
+            },
+            events: {
+                show: function(opt) {
+                    var selId = $(this).parent().parent("tr").attr("id");
+                    $("#ListGrid").jqGrid('resetSelection');
+                    $("#ListGrid").jqGrid('setSelection', selId, false);
+                }
+            },
+            items: {
+                "edit": {
+                    name: "Edit",
+                    icon: "edit",
+                    disabled: function (k, opt) {
+                        if ($('#filter').val() === 'trash') {
+                            return true;
+                        }
+                                                var perms = ['manager','edit'];
+                        var rowId = $(this).parent().parent("tr").attr("id");
+                        var perm = $("#ListGrid").jqGrid ('getCell', rowId, 'permission');
+                        if (perms.indexOf(perm) < 0) {
+                            return true;
+                        }
+                                            }
+                },
+                "clone": {
+                    name: "Make a copy",
+                    icon: "copy",
+                    disabled: function (k, opt) {
+                        if ($('#filter').val() === 'trash') {
+                            return true;
+                        }
+                                                var perms = ['manager','edit'];
+                        var rowId = $(this).parent().parent("tr").attr("id");
+                        var perm = $("#ListGrid").jqGrid ('getCell', rowId, 'permission');
+                        if ($('#filter').val() === 'trash' || perms.indexOf(perm) < 0) {
+                            return true;
+                        }
+                                            }
+                },
+                "sep1": "---------",
+                "code": {
+                    name: "Get Code",
+                    icon: "fa-file-code-o",
+                    disabled: function (k, opt) {
+                        if ($('#filter').val() === 'trash') {
+                            return true;
+                        }
+                    }
+                },
+                "codeBDSP": {
+                    name: "Get Code RTB",
+                    icon: "fa-file-code-o",
+                    disabled: function (k, opt) {
+                        if ($('#filter').val() === 'trash') {
+                            return true;
+                        }
+                    }
+                },
+                "sep2": "---------",
+                "delete": {
+                    name: "Delete",
+                    icon: "delete",
+                                        disabled: function (k, opt) {
+                        var perms = ['manager'];
+                        var rowId = $(this).parent().parent("tr").attr("id");
+                        var perm = $("#ListGrid").jqGrid ('getCell', rowId, 'permission');
+                        if (perms.indexOf(perm) < 0) {
+                            return true;
+                        }
+                    }
+                                    },
+                            }
+        });
+    });
+
+    function formatActive(v, o, r) {
+        var filter = $('#filter').val();
+                var perms = ['manager','edit'];
+        if (filter === 'trash'|| (perms.indexOf(r.permission) < 0)) {
+            html = '<i class="fa ' + (v === true ? 'fa-eye' : 'fa-eye-slash') + ' fa-lg"></i>';
+        } else {
+            html = '<a href="javascript:void(0);" onclick="putPlacementActive(\'' + o.rowId + '\',this);"><i class="fa ' + (v === true ? 'fa-eye' : 'fa-eye-slash') + ' fa-lg" data-value="' + v + '"></i></a>';
+        }
+                return html;
+    }
+
+    function formatNotes(v, o, r) {
+        var notes = ' -- ';
+        if (v) {
+            notes = (v.length > 30) ? v.substr(0, v.indexOf(' ', 30)) + '...' : v;
+        }
+        return notes;
+    }
+    
+</script>

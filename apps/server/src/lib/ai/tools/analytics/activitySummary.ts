@@ -1,4 +1,4 @@
-import { listActivityLogs, type ActivityLogEntry } from "../../../../services/activity/activityLog.js";
+import { listActivityLogs, type ActivityLogEntry } from "../../../../modules/activity/services/activityLog.js";
 
 export type DashboardSummary = {
   totalRecords: number;

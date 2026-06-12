@@ -1,0 +1,57 @@
+[
+  {
+    "method": "GET",
+    "path": "/placement/beb3014381734113af1cf47cd7cce9ba/code",
+    "status": 200,
+    "len": 1137,
+    "isJson": false,
+    "keys": null,
+    "hasTextarea": false,
+    "hasPre": false,
+    "sample": "<script type=\"text/javascript\"> /* load placement: 1900.edu.vn_display_preroll, for account: Zmedia C, site: 1900.edu.vn, size: 1x1 - video */ var _avlVar = _avlVar || []; _avlVar.push([\"beb3014381734113af1cf47cd7cce9ba\",\"[yo_page_url]\",\"[width]\",\"[height]\"]); </script> <script type=\"text/javascript\" src=\"//ss.yomedia.vn/js/yomedia-sdk.js?v=3\" id=\"s-beb3014381734113af1cf47cd7cce9ba\" async></scr"
+  },
+  {
+    "method": "GET",
+    "path": "/placement/beb3014381734113af1cf47cd7cce9ba/code-binding",
+    "status": 200,
+    "len": 757,
+    "isJson": false,
+    "keys": null,
+    "hasTextarea": false,
+    "hasPre": false,
+    "sample": "<ins class='yomedia' id=\"beb3014381734113af1cf47cd7cce9ba\"> <script type=\"text/javascript\"> var _avlVar = _avlVar || []; _avlVar.push([\"beb3014381734113af1cf47cd7cce9ba\",\"[content_page_url]\",\"[width]\",\"[height]\"]); </script> <script type=\"text/javascript\" src=\"//ss.yomedia.vn/js/yomedia-rtb.js?v=1\" id=\"s-beb3014381734113af1cf47cd7cce9ba\"></script> </ins> /* Vast 2.0 */ //delivery.yomedia"
+  },
+  {
+    "method": "GET",
+    "path": "/placement/code/beb3014381734113af1cf47cd7cce9ba",
+    "status": 404,
+    "len": 4534,
+    "isJson": false,
+    "keys": null,
+    "hasTextarea": false,
+    "hasPre": false,
+    "sample": "<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\" /> <meta name=\"robots\" content=\"noindex,nofollow\" /> <style> /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */ html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fie"
+  },
+  {
+    "method": "POST",
+    "path": "/placement/beb3014381734113af1cf47cd7cce9ba/code",
+    "status": 405,
+    "len": 4519,
+    "isJson": false,
+    "keys": null,
+    "hasTextarea": false,
+    "hasPre": false,
+    "sample": "<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\" /> <meta name=\"robots\" content=\"noindex,nofollow\" /> <style> /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */ html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fie"
+  },
+  {
+    "method": "GET",
+    "path": "/placement/getCode/beb3014381734113af1cf47cd7cce9ba",
+    "status": 404,
+    "len": 4534,
+    "isJson": false,
+    "keys": null,
+    "hasTextarea": false,
+    "hasPre": false,
+    "sample": "<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\" /> <meta name=\"robots\" content=\"noindex,nofollow\" /> <style> /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */ html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fie"
+  }
+]

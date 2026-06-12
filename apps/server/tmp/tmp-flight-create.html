@@ -1,0 +1,468 @@
+<div class="row wrapper-content animated fadeInDown" id="CreateFlight">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h2>Create a Flight</h2>
+            </div>
+            <div class="ibox-content">            
+                <form class="form-horizontal" id="frmCreateFlight" name="create_flight" method="post" role="form" action="https://platform.yomedia.vn/flight/store">
+                    <input type="hidden" name="_token" value="dX5mFJ8GbvRCxCUxHrsbLpqHyxek6mC3lvETDoy2">
+                    <div class="form-group" id="flight_name">
+                        <label for="txtFlightName" class="col-sm-3 control-label">Flight name</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtFlightName" name="flight_name" class="form-control" value="" placeholder="" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="form-group" id="advertiser">
+                        <label for="optAdvertisers" class="col-sm-3 control-label">Advertiser</label>
+                        <div class="col-sm-6">
+                            <select id="optAdvertisers" name="advertiser" data-placeholder="Choose an account..." class="chosen-select form-control">
+                                                                    <option value="604e5ef5e6744a3ba12e30cf9e102e1f" data-currency="">Advertiser A</option>
+                                                                    <option value="c73714db1cae46a289c485408214cde3" data-currency="">Advertiser TVCommerce</option>
+                                                                    <option value="91c8a568cd1e46d0a11209c06eac335a" data-currency="">advertiser yeah1</option>
+                                                                    <option value="2b0766dd452c45f7b7ae2a1fe2c3e664" data-currency="">Adview</option>
+                                                                    <option value="d12ea4d334b34a4dacd195ab914ccd74" data-currency="">Aiken</option>
+                                                                    <option value="3a8a87c6a03f4477b7b5d88646bad5ac" data-currency="">Aiken - CPD</option>
+                                                                    <option value="4d9d50aa0b8b4f77b65f8ac77575f038" data-currency="">Bio Essence</option>
+                                                                    <option value="de294a0e434242bb951efe72e26c748c" data-currency="">Bio Essence - CPD</option>
+                                                                    <option value="95cdf006a1c44e93b77621f0674b1a9d" data-currency="">Carrie Junior</option>
+                                                                    <option value="629eaf5f0a5a4dffa0a488239315958b" data-currency="">Carrie Junior - CPD</option>
+                                                                    <option value="c23b9c109f7a4f89a3cb23f694f1d7cb" data-currency="">Do Not Use</option>
+                                                                    <option value="cdc813a4f4ec4a06beacefb5974bc792" data-currency="">Enchanteur</option>
+                                                                    <option value="20f3acc8bfa342bba72e8a3b97c62d85" data-currency="">Enchanteur - CPD</option>
+                                                                    <option value="7393484b37ed401cb30e7a9c55e76a5e" data-currency="">Fico</option>
+                                                                    <option value="fa0e4d8ffe414982b89c9b6e90d29f3a" data-currency="">freshsaigon</option>
+                                                                    <option value="20bd1dc67c8a4326ba42868ca4b007d6" data-currency="">GCD</option>
+                                                                    <option value="ebeb720913e24a36a0394afbba61078c" data-currency="">Geniee</option>
+                                                                    <option value="da05952f02e0494cb9c0bfa45846bd75" data-currency="">GroupM</option>
+                                                                    <option value="ae3f03ad3a7d4598ab2783281369a73a" data-currency="">Hakuhodo</option>
+                                                                    <option value="7eaa90fd42f34352a75fb9c5506cb323" data-currency="">Heineken</option>
+                                                                    <option value="4a7efc05b0c04cb6af82b96c94531546" data-currency="">Karofi</option>
+                                                                    <option value="db63dda8316d4da7a547c20e77e40c4b" data-currency="">Maxkleen</option>
+                                                                    <option value="930df068d39f485c8fff5040735bf017" data-currency="">Maxkleen - CPD</option>
+                                                                    <option value="c54118f152da4cf48f626687e3ded5c7" data-currency="">pepsi</option>
+                                                                    <option value="0be5419abb3b41e89ed22357e33fa6ba" data-currency="">Romano</option>
+                                                                    <option value="6f2d91abcbe24933af4d75ddbc3723d7" data-currency="">Romano - CPD</option>
+                                                                    <option value="a5365dda21d041358973f9c034c61ed1" data-currency="">Sacombank</option>
+                                                                    <option value="d9e3a6ccbd8c4181babd28a670fafb05" data-currency="">Servier</option>
+                                                                    <option value="5814c24020f6496d86d486d9ba2323bd" data-currency="">SSP</option>
+                                                                    <option value="24ac7a21b9ce4919a46033e7ae246898" data-currency="">Techcombank</option>
+                                                                    <option value="8b5b90b23eff4813b5b06358c84892d9" data-currency="">test</option>
+                                                                    <option value="76962409d85a4cb592e3d67afb68f210" data-currency="">Test DSP</option>
+                                                                    <option value="f170ed01d179467e8020fcc3bd39b89e" data-currency="">VITA_DAIRY</option>
+                                                                    <option value="956193bdb8c3442f96f7dafd3c4d94da" data-currency="">VNG</option>
+                                                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="campaign">
+                        <label for="optCampaigns" class="col-sm-3 control-label">Campaign</label>
+                        <div class="col-sm-6" id="campaignList">
+                            <select id="optCampaigns" name="campaign" data-placeholder="Choose a campaign..." class="chosen-select form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="banner">
+                        <label for="optBanners" class="col-sm-3 control-label">Banner</label>
+                        <div class="col-sm-6" id="bannerList">
+                            <select id="optBanners" name="banner" data-placeholder="Choose a banner..." class="chosen-select form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="product">
+                        <label for="optProducts" class="col-sm-3 control-label">Product</label>
+                        <div class="col-sm-6" id="productList">
+                            <select id="optProducts" name="product" data-placeholder="Choose a product..." class="chosen-select form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="delivery">
+                        <label for="optDeliveries" class="col-sm-3 control-label">Delivery</label>
+                        <div class="col-sm-6" id="deliveryList">
+                            <select id="optDeliveries" name="delivery" data-placeholder="Choose a delivery..." class="chosen-select form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="category">              
+                        <label for="optCategories" class="col-sm-3 control-label">Category</label>
+                        <div class="col-sm-6" id="categoryList">
+                            <select id="optCategories" name="category" data-placeholder="Choose a category..." class="chosen-select form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="third_trackings">
+                        <label for="optThirdTrackings" class="col-sm-3 control-label">Third Trackings</label>
+                        <div class="col-sm-6" id="thirdTrackingList">
+                            <select id="optThirdTrackings" name="third_trackings" data-placeholder="Not selected" class="chosen-select form-control" multiple>
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="audience_id">
+                        <label for="optAudiences" class="col-sm-3 control-label">Audience</label>
+                        <div class="col-sm-6">
+                            <select id="optAudiences" name="audience_id" data-placeholder="Not selected" class="chosen-select-deselect form-control">
+                               <option value=""></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="buy_type">
+                        <label for="optBuyTypes" class="col-sm-3 control-label">Buying Model</label>
+                        <div class="col-sm-6">
+                            <select id="optBuyTypes" name="buy_type" data-placeholder="Choose a buy type..." class="chosen-select form-control">
+                               
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="bookings">
+                        <label for="txtBookings" class="col-sm-3 control-label">Bookings</label>
+                        <div class="col-sm-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control input-number" id="txtBookings" name="bookings" value="0" placeholder="">
+                                <div class="input-group-addon input-group-addon-4">
+                                    <select id="optBookingsType" name="bookings_type" class="form-control" style="width: 120px;">
+                                                                                                                        <option value="impression">Impresison</option>
+                                                                                <option value="click">Click</option>
+                                                                                <option value="complete">Complete</option>
+                                                                                                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="form-group ">
+                        <label for="txtAddedValue" class="col-sm-3 control-label">Allow Discrepancy</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtAddedValue" name="added_value" class="form-control input-number" value="0" placeholder="">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="chkBookingsDaily" class="col-sm-3 control-label">Booking Daily</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkBookingsDaily" name="active">
+                                <label class="onoffswitch-label" for="chkBookingsDaily">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="notes">
+                        <label for="txtNotes" class="col-sm-3 control-label">Notes</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="txtNotes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group" id="active">
+                        <label for="chkActive" class="col-sm-3 control-label">Active</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkActive" name="active">
+                                <label class="onoffswitch-label" for="chkActive">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="premium">
+                        <label for="chkActive" class="col-sm-3 control-label">Premium</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkPremium" name="premium">
+                                <label class="onoffswitch-label" for="chkPremium">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="Hidden">
+                        <label for="chkHiddenWA" class="col-sm-3 control-label">Show With Advertiser</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkHiddenWA" name="active" checked>
+                                <label class="onoffswitch-label" for="chkHiddenWA">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="chkDCO" class="col-sm-3 control-label">DCO</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkDCO" name="active">
+                                <label class="onoffswitch-label" for="chkDCO">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group"">
+                        <label for="txtDLCampaignId" class="col-sm-3 control-label">Decision Lab Campaign ID</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtDLCampaignId" name="dl_campaign_id" class="form-control" value="" placeholder="" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="hidden"><input type="submit"></div>
+                </form>
+            </div>
+            <div class="ibox-content">
+                <div class="text-right">
+                    <button type="button" id="btnSave" onclick="$('#frmCreateFlight').submit();" class="btn btn-primary">Save changes</button>
+                    <button type="button" id="btnCancelCreate" class="btn btn-default">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(function () {
+        $('.price').priceFormat({
+            prefix: '',
+            suffix: ' ' + $('#optAdvertisers').find(':selected').data('currency'),
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit: 2,
+            limit:16
+        });
+        $('.input-number').priceFormat({
+            prefix: '',
+            suffix: '',
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit: 0,
+            limit:16
+        });
+        $('.percent').priceFormat({
+            prefix: '',
+            suffix: ' %',
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit: 1,
+            limit:3
+        });
+        
+        setTimeout(function () {
+            $('input[name="flight_name"]').focus();
+        }, 1000);
+
+        $('#btnCancelCreate').on('click', function () {
+            setTimeout(function () {
+                getFlightList();
+            }, 200);
+        });
+
+        getCampaignList($("#optAdvertisers").val());
+
+        $("#optAdvertisers").change(function() {
+            getCampaignList($(this).val());
+        });
+
+        $("#optCampaigns").change(function() {
+            var advertiser = $("#optAdvertisers").val();
+            var market = $(this).find(':selected').data('market');
+            var dl_campaign_id = $(this).find(':selected').data('dlcampaign');
+            $('#txtDLCampaignId').val(dl_campaign_id);
+            var campaign = $(this).val();
+            $('.price').priceFormat({
+                prefix: '',
+                suffix: ' ' + $('#optAdvertisers').find(':selected').data('currency'),
+                centsSeparator: '.',
+                thousandsSeparator: ',',
+                centsLimit: 2,
+                limit:16
+            });
+            changeCampaign(advertiser, market, campaign);
+        });
+        $("#optBanners").change(function() {
+            getBuyinngModel($('#optCampaigns').val(), $('#optBanners').val());
+        });
+
+        $('#optCreativeOptimization').change(function() {
+            if ($(this).val() !== '') {
+                $('#target_optimization').removeClass('hidden');
+                $('#txtTargetOptimization').attr('readonly', false);
+                $('#margin_allows').removeClass('hidden');
+                $('#txtMarginAllows').attr('readonly', false);
+            } else {
+                $('#target_optimization').addClass('hidden');
+                $('#txtTargetOptimization').attr('readonly', true);
+                $('#margin_allows').addClass('hidden');
+                $('#txtMarginAllows').attr('readonly', true);
+            }
+        });
+
+        /*=========================================================*/
+        /* ACCOUNT, CAMPAIGN, BANNER, PRODUCT, DELIVERY, CATEGORY  */
+        /*=========================================================*/
+
+        var config = {
+            '.chosen-select'           : {search_contains: true},
+            '.chosen-select-deselect'  : {allow_single_deselect:true, search_contains: true},
+            '.chosen-select-no-single' : {disable_search_threshold:10, search_contains: true},
+            '.chosen-select-no-results': {no_results_text:'Oops, nothing found!', search_contains: true},
+            '.chosen-select-width'     : {width:"95%", search_contains: true}
+        }
+        for (var selector in config) {
+            $(selector).chosen(config[selector]);
+        }
+        /*==== END ACCOUNT, CAMPAIGN, BANNER, PRODUCT, DELIVERY, CATEGORY CHOSEN ====*/
+    });
+
+    function returnList(e) {
+        e.preventDefault();
+        if (e.keyCode === 27) {
+            setTimeout(function () {
+                getFlightList();
+            }, 200);
+            $('#CreateFlight').unbind('keyup');
+        }
+    }
+
+    function resetForm(){
+        $(".form-group").removeClass('has-error');
+        var advertiser = $('#optAdvertisers').val();
+        $("#frmCreateFlight").trigger("reset");
+        $("#optCampaigns, #optBanners, #optProducts, #optDeliveries, #optCategories, #optThirdTrackings, #optAudiences, #optBuyTypes").empty().append('<option value=""></option>').trigger('chosen:updated');
+        $('#optBookingsType').empty().append('<option value="budget">Budget</option>').trigger('chosen:updated');
+        getCampaignList(advertiser);
+        $('#txtBookings, #txtAddedValue').priceFormat({
+            prefix: '',
+            suffix: '',
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit:0,
+            limit:16
+        });
+        $('#optCreativeOptimization').val('').trigger('chosen:updated');
+        $('#target_optimization').addClass('hidden');
+        $('#margin_allows').addClass('hidden');
+        $('.percent').priceFormat({
+            prefix: '',
+            suffix: ' %',
+            centsSeparator: '.',
+            thousandsSeparator: ',',
+            centsLimit: 1,
+            limit:3
+        });
+        unlockForm();
+    }
+
+    $('#CreateFlight').bind('keyup', returnList);
+
+    function lockedForm() {
+        $('#txtFlightName, #txtBookings, #txtAddedValue, #txtTargetOptimization, #txtMarginAllows, #txtNotes').attr('readonly','true');
+        $('#optAdvertisers, #optCampaigns, #optBanners, #optProducts, #optDeliveries, #optCategories, #optThirdTrackings, #optAudiences, #optBuyTypes, #optBookingsType, #chkBookingsDaily, #optCreativeOptimization, #chkActive, #chkHiddenWA').attr('disabled','disabled');
+        $('#btnSave').attr('disabled','disabled').append('<i class="fa fa-spinner fa-spin"></i>');
+        $('#btnCancelCreate').attr('disabled','disabled');
+    }
+
+    function unlockForm() {
+        $('#txtFlightName, #txtBookings, #txtAddedValue, #txtTargetOptimization, #txtMarginAllows, #txtNotes').removeAttr('readonly');
+        $('#optAdvertisers, #optCampaigns, #optBanners, #optProducts, #optDeliveries, #optCategories, #optThirdTrackings, #optAudiences, #optBuyTypes, #optBookingsType, #chkBookingsDaily, #optCreativeOptimization, #chkActive, #chkHiddenWA').removeAttr('disabled');
+        $('#btnSave').removeAttr('disabled').find('i').remove();
+        $('#btnCancelCreate').removeAttr('disabled');
+    }
+
+    /*=============================================*/
+    /*               SUBMIT FORM CREATE            */
+    /*=============================================*/
+    $('form[name="create_flight"]').submit(function(e){
+        e.preventDefault();
+        const token = $('input[name="_token"]').val();
+        const flight_name = $("#txtFlightName").val();
+        const advertiser = $("#optAdvertisers").val();
+        const campaign = $("#optCampaigns").val();
+        const banner = $("#optBanners").val();
+        const product = $("#optProducts").val();
+        const delivery = $("#optDeliveries").val();
+        const total_day = $('#optDeliveries').find(':selected').data('total');
+        const category = $("#optCategories").val();
+        const third_trackings = $("#optThirdTrackings").val();
+        const audience = $("#optAudiences").val();
+        const buy_type = $("#optBuyTypes").val();
+        const cost_type = $('#optBuyTypes').find(':selected').data('type');
+        const cost_number = $('#optBuyTypes').find(':selected').data('number');
+        const bookings_type = $("#optBookingsType").val();
+        const bookings = accounting.unformat($('#txtBookings').val());
+        const added_value = accounting.unformat($("#txtAddedValue").val());
+        const booking_daily = ($('#chkBookingsDaily').prop("checked")) ? 1 : 0;
+        const creative_optimization = $('#optCreativeOptimization').val();
+        const target_optimization = accounting.unformat($('#txtTargetOptimization').val());
+        const margin_allows = accounting.unformat($('#txtMarginAllows').val());
+        const active = ($('#chkActive').prop("checked")) ? 1 : 0;
+        const premium = ($('#chkPremium').prop("checked")) ? 1 : 0;
+        const hiddenWA = ($('#chkHiddenWA').prop("checked")) ? 1 : 0;
+        const notes = $('#txtNotes').val();
+        const dl_campaign_id = $('#txtDLCampaignId').val();
+        const dco = ($('#chkDCO').prop("checked")) ? 1 : 0;
+        // Check the field is valid
+        var errorsHtml = "<strong>Whoops!</strong> There were some problems with your input.";
+        var errorFirst = '';
+
+        if (errorFirst.length > 0) {
+            $('input[name="'+ errorFirst +'"]').focus();
+            showNotification(errorsHtml, "error");
+        } else {
+            lockedForm();
+            const data = {_token: token, flight_name: flight_name, advertiser: advertiser, campaign: campaign, banner: banner, product: product, delivery: delivery, category: category, third_trackings: third_trackings, audience: audience, buy_type: buy_type, cost_type: cost_type, bookings_type: bookings_type, bookings: bookings, added_value: added_value, booking_daily: booking_daily, creative_optimization: creative_optimization, target_optimization: target_optimization, margin_allows: margin_allows, active:active, notes:notes, hiddenWA:hiddenWA, dco, dl_campaign_id, premium};
+            $.post($(this).attr('action'), data, function(data){
+                showNotification(data.message, "success");
+                resetForm();
+            }).fail(function(jqXhr){
+                if (jqXhr.status === 401) {
+                    $(location).prop('pathname', 'auth/login');
+                }
+                if (jqXhr.status === 422) {
+                    var errors = jqXhr.responseJSON;
+                    if (errors.message) {
+                        var errorsHtml = errors.message;
+                    }else{
+                        var errorsHtml = "<strong>Whoops!</strong> There were some problems with your input.";
+                        var error_first = '';
+                        $(".form-group").removeClass('has-error');
+                        if ($.isPlainObject(errors)){
+                            $.each(errors, function(k,v){
+                                $('div').each(function(){
+                                    if (error_first.length === 0){
+                                        error_first = k;
+                                    }
+                                    $(this).find('#' + k).addClass('has-error');
+                                });
+                                if (v.length > 1){
+                                    for (var i=0;i<v.length;i++){
+                                        errorsHtml += '<li>' + v[i] + '</li>';
+                                    }
+                                }else{
+                                    errorsHtml += '<li>' + v + '</li>';
+                                }
+                            });
+                        }else{
+                            errorsHtml += '<li>' + errors + '</li>';
+                        }
+                        errorsHtml += '';
+                        $('input[name="'+ error_first +'"]').focus();
+                    }
+                }
+                showNotification(errorsHtml, 'error');
+                unlockForm();
+            });
+        }
+    });
+    /*==== END SUBMIT FORM CREATE  ====*/
+</script>

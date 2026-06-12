@@ -7,8 +7,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "../.env") });
 
 const { fetchBannerCreateFormOptions } = await import(
-  "../src/services/platform/yomediaPlatform.ts"
+  "../src/modules/platform/services/yomediaPlatform.js"
 );
 
 // Re-use login + fragment via internal - add temp export
-const mod = await import("../src/services/platform/yomediaPlatform.ts");
+const mod = await import("../src/modules/platform/services/yomediaPlatform.js");

@@ -14,7 +14,26 @@
   "pnpm": {
     "overrides": {
       "react": "^19.2.0",
-      "react-dom": "^19.2.0"
+      "react-dom": "^19.2.0",
+      "handlebars": "^4.7.9",
+      "protobufjs": "^7.5.5",
+      "shell-quote": "^1.8.4",
+      "tar": "^7.5.8",
+      "minimatch": "^10.2.1",
+      "uuid": "^13.0.1",
+      "qs": "^6.15.2",
+      "axios": "^1.16.0",
+      "undici": "^6.24.0",
+      "path-to-regexp": "^0.1.13",
+      "node-forge": "^1.4.0",
+      "picomatch": "^4.0.4",
+      "yaml": "^2.8.3",
+      "langsmith": "^0.6.0",
+      "postcss": "^8.5.10",
+      "ws": "^8.20.1",
+      "@xmldom/xmldom": "^0.8.13",
+      "js-cookie": "^3.0.7",
+      "@clerk/shared": "^4.8.3"
     },
     "onlyBuiltDependencies": [
       "ffmpeg-static"
@@ -24,7 +43,7 @@
     ]
   },
   "dependencies": {
-    "@clerk/react": "^6.4.1",
+    "@clerk/react": "^6.9.0",
     "lucide-react": "^0.563.0"
   }
 }

@@ -1,10 +1,10 @@
 import type { AgentContext, AgentResult } from "../../core/types.js";
-import { runBuildDemoTool } from "../../../../controllers/buildDemo/buildDemoTool.js";
-import { runPlacementCodeDownloadTool } from "../../../../controllers/platform/placementCodeDownloadTool.js";
+import { runBuildDemoTool } from "../../../../modules/buildDemo/controllers/buildDemoTool.js";
+import { runPlacementCodeDownloadTool } from "../../../../modules/platform/controllers/placementCodeDownloadTool.js";
 import { executeTool, resolveActionTool } from "../../tools/index.js";
 import { hasBuildDemoAttachments } from "../../memory/shortMemory.js";
-import { findAccountByEmail } from "../../../auth/accounts.js";
-import { resolveAllowedBuildDemoBrands } from "../../../../services/auth/permissions.js";
+import { findAccountByEmail } from "../../../../modules/auth/lib/accounts.js";
+import { resolveAllowedBuildDemoBrands } from "../../../../modules/auth/services/permissions.js";
 
 export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
   const startedAt = Date.now();

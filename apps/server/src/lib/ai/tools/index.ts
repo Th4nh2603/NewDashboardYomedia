@@ -7,7 +7,7 @@ export {
 export {
   runBuildDemoTool,
   type BuildDemoToolRunResult,
-} from "../../../controllers/buildDemo/buildDemoTool.js";
+} from "../../../modules/buildDemo/controllers/buildDemoTool.js";
 
 import type { ActionTool } from "./types.js";
 

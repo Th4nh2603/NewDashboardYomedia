@@ -1,3 +1,5 @@
-/** Shared AppRouter type for web tRPC client (implementation lives in apps/server). */
-export type { AppRouter } from "../../../apps/server/src/trpc/appRouter.js";
+import type { AnyRouter } from "@trpc/server";
+
+/** Shared AppRouter contract for clients without importing server implementation source. */
+export type AppRouter = AnyRouter;
 export { trpcTransformer } from "./trpcTransformer.js";

@@ -12,12 +12,17 @@ import type {
   AgentResult,
   ChatAttachmentMeta,
   ChatProvider,
+  RouteDecision,
   SupervisorResult,
 } from "../../core/types.js";
 import { resolveRoute } from "../router/routeIntent.js";
 import { runAgents } from "../../orchestration/runAgents.js";
 import { composeMultiResponse } from "../../orchestration/responseComposer.js";
-import { logChatEvent } from "../../logging/aiLogger.js";
+import {
+  logChatEvent,
+  logChatFlowError,
+  logChatFlowStep,
+} from "../../logging/aiLogger.js";
 
 type SupervisorInput = {
   question: string;
@@ -33,8 +38,21 @@ export async function runSupervisor(
   input: SupervisorInput,
 ): Promise<SupervisorResult | { ok: false; answer: string; provider: ChatProvider }> {
   const provider: ChatProvider = input.provider || "gemini";
+  const requestId = randomUUID();
+  logChatFlowStep(requestId, "message_received", {
+    provider,
+    role: input.role,
+    email: input.email,
+    sessionId: input.sessionId,
+    attachments: input.attachments?.length ?? 0,
+    questionLength: input.question.length,
+  });
+
   const guardrailError = runInputGuardrails(input.question);
   if (guardrailError) {
+    logChatFlowStep(requestId, "guardrail_block", {
+      reason: guardrailError,
+    });
     await logChatEvent({
       action: "chat_guardrail_block",
       description: guardrailError,
@@ -46,7 +64,6 @@ export async function runSupervisor(
   }
 
   const startedAt = Date.now();
-  const requestId = randomUUID();
   const memoryKey = buildShortMemoryKey({
     email: input.email,
     role: input.role,
@@ -70,8 +87,33 @@ export async function runSupervisor(
     req: input.req,
   };
 
-  const route = await resolveRoute(ctx);
-  const results: AgentResult[] = await runAgents(route.agents, ctx);
+  let route: RouteDecision;
+  let results: AgentResult[];
+  try {
+    route = await resolveRoute(ctx);
+    logChatFlowStep(requestId, "handler_route_start", {
+      intent: route.intent,
+      agents: route.agents,
+    });
+    results = await runAgents(route.agents, ctx);
+    logChatFlowStep(requestId, "handler_route_result", {
+      agents: route.agents,
+      results: results.map((result) => ({
+        agent: result.agent,
+        ok: result.ok,
+        confidence: result.confidence,
+        toolCalled: result.toolCalled,
+        sources: result.sources.length,
+      })),
+    });
+  } catch (err) {
+    logChatFlowError(requestId, "chat_flow", err, {
+      provider,
+      role: input.role,
+      sessionId: input.sessionId,
+    });
+    throw err;
+  }
   const successful = results.filter((r) => r.ok);
 
   if (!successful.length) {
@@ -93,9 +135,21 @@ export async function runSupervisor(
         trace: { route, spans: top.spans, totalMs: Date.now() - startedAt },
       },
     });
+    logChatFlowStep(requestId, "final_response", {
+      ok: false,
+      provider: failedProvider,
+      intent: route.intent,
+      agents: route.agents,
+      totalMs: Date.now() - startedAt,
+    });
     return { ok: false, answer: top.answer, provider: failedProvider };
   }
 
+  logChatFlowStep(requestId, "response_synthesis_start", {
+    intent: route.intent,
+    agents: route.agents,
+    successfulAgents: successful.map((result) => result.agent),
+  });
   const composed = composeMultiResponse({
     requestId,
     provider,
@@ -108,6 +162,13 @@ export async function runSupervisor(
     "Mình chưa có câu trả lời phù hợp. Bạn thử diễn đạt rõ hơn hoặc đổi provider.";
   composed.answer = safeAnswer;
   appendShortMemoryTurn(memoryKey, input.question, safeAnswer);
+  logChatFlowStep(requestId, "response_synthesis_result", {
+    intent: composed.intent,
+    agent: composed.agent,
+    provider: composed.provider,
+    sources: composed.sources.length,
+    answerLength: safeAnswer.length,
+  });
 
   await logChatEvent({
     action: composed.intent === "actions" ? "chat_tool_called" : "chat_query",
@@ -139,6 +200,14 @@ export async function runSupervisor(
       tool: composed.toolCalled,
       trace: composed.trace,
     },
+  });
+
+  logChatFlowStep(requestId, "final_response", {
+    ok: true,
+    intent: composed.intent,
+    agent: composed.agent,
+    provider: composed.provider,
+    totalMs: Date.now() - startedAt,
   });
 
   return composed;

@@ -1,0 +1,724 @@
+<div class="row wrapper-content animated fadeInDown" id="CreatePlacement">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h2>Create an Placement</h2>
+            </div>
+            <div class="ibox-content">       
+                <form class="form-horizontal" id="frmCreatePlacement" name="create_placement" method="post" role="form" action="https://platform.yomedia.vn/placement/store">
+                    <input type="hidden" name="_token" value="yzPxn2Xf4tThFH4Tht0OpCcyPFQKoYetCsGOozxr">
+                    <div class="form-group" id="placement_name">
+                        <label for="txtPlacementName" class="col-sm-3 control-label">Placement Name</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtPlacementName" name="placement_name" class="form-control" value="" placeholder="" maxlength="100">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="accounts">
+                        <label for="optAccounts" class="col-sm-3 control-label">Account</label>
+                        <div class="col-sm-6">
+                            <select id="optAccounts" name="accounts" data-placeholder="Choose an account..." class="chosen-select form-control">
+                                                                                                            <option value = "d0d02bfc80c342928f4bf6008f906864">admicro_direct</option>
+                                                                            <option value = "3d180df80a814ea0b02e06b47e6ea108">Adtima</option>
+                                                                            <option value = "27ace7e98bc2440dbe86699df7dcf03a">aviatek</option>
+                                                                            <option value = "078a057293d74a43a4cba9f6cd2fb1bc">bao24h</option>
+                                                                            <option value = "d9816a986baa4804bd585ba0eb049969">Bongdaplus_GM</option>
+                                                                            <option value = "25459c67dce049aebcff4c5d7b4fe7c7">bongdaso</option>
+                                                                            <option value = "406b67398d5a41fb828b2e3c78078515">cachlamhayorg</option>
+                                                                            <option value = "32a23f04d90f45de81b9c22a3a7b58dc">condonggamer</option>
+                                                                            <option value = "56956d6e61634365976605ac5bd30776">dailymotion</option>
+                                                                            <option value = "490793b4f4b84fa2a80150bbe49a2971">fptplay</option>
+                                                                            <option value = "6cbdf273727f43b0a69e9536fe7be9ec">Fshare</option>
+                                                                            <option value = "4470b58194ca42e6b167c23ed02afe6e">Grap</option>
+                                                                            <option value = "d1c65fae225e4e12abe610ed4fa1f2d9">khoaitv</option>
+                                                                            <option value = "44bac2f4e90c43b5a542927c125b3682">luatvietnam</option>
+                                                                            <option value = "03b6d08d0e52470588edf42f74896fec">mephim</option>
+                                                                            <option value = "04b85fa914304ecb9883f3630712171e">MinhPhuc</option>
+                                                                            <option value = "98226a7efdf44ec8bef4c07f44d66856">motgamevn</option>
+                                                                            <option value = "5565e302fb2e489cae28103f6c66db12">Operating Publisher</option>
+                                                                            <option value = "0a3a9b6c78c443a6b36498a73171c947">phuongnam</option>
+                                                                            <option value = "50d5e1804b6048599828c91f6b2abd10">sachvui</option>
+                                                                            <option value = "c25df01d248b4ad38312b681f16a07fb">saostar</option>
+                                                                            <option value = "4723e962ae6d4fda9e143cc13cb6866b">sitetest</option>
+                                                                            <option value = "cb644ea493db4a96bab1b1fccda857dc">sstruyen</option>
+                                                                            <option value = "34ebfab6d43345e8ab42da39330a358a">tailieu</option>
+                                                                            <option value = "d22296a7cec24378a37696ff77be72a9">tapchidepbiz</option>
+                                                                            <option value = "11b41ddb34914345b07e2eb467286721">Thanhnien</option>
+                                                                            <option value = "014b5689b7854ccfb64b2f8b11c480a5">thuysinhdep</option>
+                                                                            <option value = "a35ff70d98e94bdbb4d32d393f805374">tintucvn</option>
+                                                                            <option value = "a3cfe3959949494db0df985ea2ac27f5">truyenchoncom</option>
+                                                                            <option value = "9f8b411944c2418b90e13ef902859d7a">truyendkm</option>
+                                                                            <option value = "bdd17d62dd564ad3a7d51bad08f84d31">truyennhieu</option>
+                                                                            <option value = "f8388e411afb46e99b8365a837ccf675">truyensieuhay</option>
+                                                                            <option value = "4f61827597cf4dc4ba566309b83f57e2">urekaa</option>
+                                                                            <option value = "765f2b499497406296e637060bb2dd13">vforumvn</option>
+                                                                            <option value = "a955bb8f7fbe4837be364b73a0598408">vieauto</option>
+                                                                            <option value = "2c5f3ad5ee9244f1aa5d7c9642b5c5cb">vieteramedia</option>
+                                                                            <option value = "72d1913139aa41ca832138fb842fa578">vmedia</option>
+                                                                            <option value = "c55e8dc64b7e42f89a0f6696f9e75693">vn_express</option>
+                                                                            <option value = "f70d08465eb34518941ff0b523ac84e0">VNNN</option>
+                                                                            <option value = "0b5f41105edd496ca67f1e16009f937c">VTCnews</option>
+                                                                            <option value = "fc47036d93ef43568f860946b60b4c33">Vtvgo</option>
+                                                                            <option value = "20ff5ce5ca7545668136a66853959fdc">vuikhoebiz</option>
+                                                                            <option value = "3aee16cc08ac48eaa8df3c49084ef158">xemhdo</option>
+                                                                            <option value = "72f85990bcd54a8cae81b89dc55ec07d">xemtuongnet</option>
+                                                                            <option value = "f6eeb15f522b425eb0c37461c0840171">xemvanmenhnet</option>
+                                                                            <option value = "fd83314c6a704c3985c58e05675292f6">Zmedia A</option>
+                                                                            <option value = "9b2e0f4559c147e1b0d76182472392b8">Zmedia C</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="websites">
+                        <label for="optWebsites" class="col-sm-3 control-label">Website</label>
+                        <div class="col-sm-6">
+                            <select id="optWebsites" name="websites" data-placeholder="Choose a website..." class="chosen-select form-control">
+                                                                                                                        <option value = "43663229aecb4478a6698c54559e4f5b">admicro_direct_nữ</option>
+                                                                                                        </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="zones">
+                        <label for="optZones" class="col-sm-3 control-label">Zone</label>
+                        <div class="col-sm-6">
+                            <select id="optZones" name="zones" data-placeholder="Choose a zone..." class="chosen-select form-control">
+                                                        </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="type">
+                        <label for="optTypes" class="col-sm-3 control-label">Type</label>
+                        <div class="col-sm-6">
+                            <select id="optTypes" name="type" tabindex="2" data-placeholder="Choose an type..." class="chosen-select form-control">
+                                                                                                            <option value = "display">Display</option>
+                                                                            <option value = "mobile">Mobile</option>
+                                                                            <option value = "application">Application</option>
+                                                                            <option value = "video">Video</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group size">
+                        <label for="optSize" class="col-sm-3 control-label">Size</label>
+                        <div class="col-sm-6">
+                            <select id="optSize" name="size"  data-placeholder="Choose an size..." class="chosen-select form-control">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group custom_size size">
+                        <label for="txtWidth" class="col-sm-3 control-label">Width</label>
+                        <div class="col-sm-1">
+                            <input type="number" style="text-align:right;width:70px" maxlength="4" id="txtWidth" name="cutom_size_width" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+
+                        <label for="txtHeight" class="col-sm-2 control-label">Height</label>
+                        <div class="col-sm-1">
+                            <input type="number" style="text-align:right;width:70px" maxlength="4" id="txtHeight" name="custom_size_height" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+                    </div>
+                    <div class="form-group min_max_size">
+                        <label for="txtMinWidth" class="col-sm-3 control-label">Min Width</label>
+                        <div class="col-sm-1">
+                            <input type="text" style="text-align:right;width:70px" maxlength="4" id="txtMinWidth" name="min_width" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+                        <label for="txtMinHeight" class="col-sm-2 control-label">Min Height</label>
+                        <div class="col-sm-1">
+                            <input type="text" style="text-align:right;width:70px" maxlength="4" id="txtMinHeight" name="min_height" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+                    </div>
+                    <div class="form-group min_max_size">
+                        <label for="txtMaxWidth" class="col-sm-3 control-label">Max Width</label>
+                        <div class="col-sm-1">
+                            <input type="text" style="text-align:right;width:70px" maxlength="4" id="txtMaxWidth" name="max_width" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+                        <label for="txtMaxHeight" class="col-sm-2 control-label">Max height</label>
+                        <div class="col-sm-1">
+                            <input type="text" style="text-align:right;width:70px" maxlength="4" id="txtMaxHeight" name="max_height" class="form-control input-number input-group-custom-size" value="1" placeholder="">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">px</div>
+                    </div>
+                    <div class="form-group video">
+                        <label for="optVideoFormat" class="col-sm-3 control-label">Ad Format</label>
+                        <div class="col-sm-6">
+                            <select id="optVideoFormat" name="video_format"  data-placeholder="Choose an type..." class="chosen-select form-control">
+                                                                                                            <option value = "preroll">Preroll</option>
+                                                                            <option value = "midroll">Midroll</option>
+                                                                            <option value = "postroll">Postroll</option>
+                                                                            <option value = "overlay">Overlay</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group video">
+                        <label for="optConfig" class="col-sm-3 control-label">Config</label>
+                        <div class="col-sm-6">
+                            <select id="optConfig" name="video_format"  data-placeholder="Choose an type..." class="chosen-select form-control">
+                                                                                                            <option value = "ova">Ova</option>
+                                                                            <option value = "vast">Vast</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group video show-autoplay">
+                        <label for="optVideoAutoPlay" class="col-sm-3 control-label">Autoplay</label>
+                        <div class="col-sm-6">
+                            <select id="optVideoAutoPlay" name="show_autoplay" data-placeholder="" class="chosen-select-deselect form-control">
+                                <option value=""></option>
+                                                                                                            <option value = "viewable">Viewable</option>
+                                                                            <option value = "true">True</option>
+                                                                            <option value = "false">False</option>
+                                                                                                </select>
+                        </div>
+                    </div>
+                    <div class="form-group video show-skip">
+                        <label for="txtShowSkip" class="col-sm-3 control-label">Show Skip</label>
+                        <div class="col-sm-6">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="txtShowSkip" checked  name="show_skip">
+                                <label class="onoffswitch-label" for="txtShowSkip">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group video show-after">
+                        <label for="txtShowAfter" class="col-sm-3 control-label">Show After</label>
+                        <div class="col-sm-1">
+                            <input id="txtShowAfter" class="form-control input-number" style="text-align:right;width:70px" min="1" max="99" name="show_after" size="5" value="7"  type="number"/>
+                        </div>
+                        <div class="col-sm-5" style="margin-top: 7px;">seconds</div>
+                    </div>
+                    <div class="form-group video show-for">
+                        <label for="txtShowFor" class="col-sm-3 control-label">Showing For</label>
+                        <div class="col-sm-1">
+                            <input id="txtShowFor" class="form-control" style="text-align:right;width:70px" name="show_for" min="1" max="99" size="5" value="10" type="number"/>
+                        </div>
+                        <div class="col-sm-5" style="margin-top: 7px;">seconds</div>
+                    </div>       
+                    <div class="form-group video ad-duration">
+                        <label for="txtAdDuration" class="col-sm-3 control-label">Ad Duration</label>
+                        <div class="col-sm-1">
+                            <input id="txtAdDuration" class="form-control" style="text-align:right;width:70px" min="1" max="99" size="5"   name="min_ad_duration"  value="30" type="number"  />
+                        </div>
+                        <div class="col-sm-5" style="margin-top: 7px;">seconds</div>
+                    </div>
+                    <div class="form-group video ad-duration">
+                        <label for="txtMinDuration" class="col-sm-3 control-label">Min Duration</label>
+                        <div class="col-sm-1">
+                            <input id="txtMinDuration" class="form-control" style="text-align:right;width:70px" min="1" max="99" name="min_duration" size="5" value="1" type="number">
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">seconds</div>
+                        <label for="txtMaxDuration" class="col-sm-2 control-label">Max Duration</label>
+                        <div class="col-sm-1">
+                            <input id="txtMaxDuration" class="form-control" style="text-align:right;width:70px"  name="max_duration" min="1" max="99" size="5" value="1"  type="number"/>
+                        </div>
+                        <div class="col-sm-1" style="margin-top: 7px;">seconds</div>
+                    </div>
+                    <div class="form-group application">
+                        <label for="optPlatform" class="col-sm-3 control-label">Application</label>
+                        <div class="col-sm-6">
+                            <select id="optPlatform"  name="platform[]" data-placeholder="Choose an application..." class="chosen-select form-control" multiple>
+                                                                                                <option   value = "ios">iOS</option>
+                                                                    <option   value = "android">Android</option>
+                                                                                    </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="position">
+                        <label for="optPosition" class="col-sm-3 control-label">Position</label>
+                        <div class="col-sm-2">
+                            <select id="optPositionInsert" name="position_insert"  data-placeholder="Choose an size..." class="chosen-select form-control">
+                                <option value="">None</option>
+                                                                    <option value = "before">Before</option>
+                                                                    <option value = "first_child">First Child</option>
+                                                                    <option value = "middle_child">Middle Child</option>
+                                                                    <option value = "last_child">Last Child</option>
+                                                                    <option value = "after">After</option>
+                                                                    <option value = "random">Random</option>
+                                                            </select>
+                        </div>
+                        <div id="setting_type">
+                            <div class="col-sm-1 padding_second" >
+                                <select id="optPositionType" name="position_type" class="chosen-select form-control">
+                                                                            <option value = "id">ID</option>
+                                                                            <option value = "class">Class</option>
+                                                                    </select>
+                            </div>
+                            <div class="col-sm-2">
+                                <input type="text" id="txtPositionName" name="position_name" class="form-control"  placeholder="Name" maxlength="100">
+                            </div>
+                            <div class="col-sm-1 padding_first">
+                                <input type="text" id="txtPositionIndex" name="position_index" class="form-control" value="0" placeholder="Index">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group selector" style="display: none;">
+                        <label for="" class="col-sm-3 control-label">Selector</label>
+                        <div class="col-sm-6">
+                            <input type="text" id="txtSelector" name="position_name" class="form-control"  placeholder="Selector" >
+                        </div>
+                    </div>
+                    <div class="form-group selector" style="display: none;">
+                        <label for="" class="col-sm-3 control-label">From Index</label>
+                        <div class="col-sm-6">
+                            <input type="number" id="txtFromIndex" name="from_index" class="form-control"  placeholder="From Index" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group" id="native_ad_format">
+                        <label for="txtNative_ad_format" class="col-sm-3 control-label">Template</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="txtNative_ad_format" name="native_ad_format" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="chkActive" class="col-sm-3 control-label">Active</label>
+                        <div class="col-sm-6 switch">
+                            <div class="onoffswitch">
+                                <input type="checkbox" class="onoffswitch-checkbox" id="chkActive" name="active">
+                                <label class="onoffswitch-label" for="chkActive">
+                                    <span class="onoffswitch-inner"></span>
+                                    <span class="onoffswitch-switch"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="notes">
+                        <label for="txtNotes" class="col-sm-3 control-label">Notes</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="txtNotes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="hidden"><input type="submit"></div>
+                </form>
+            </div>
+            <div class="ibox-content">
+                <div class="text-right">
+                    <button type="button" id="btnSave" onclick="$('#frmCreatePlacement').submit();" class="btn btn-primary">Save changes</button>
+                    <button type="button" id="btnCancelCreate" class="btn btn-default">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style type="text/css">
+    .hideSetting{
+        display: none;
+    }
+    .padding_first {
+        padding: 0 12px 0 0 !important;
+    }
+    .padding_second {
+        padding: 0 0 0 0 !important;
+    }
+
+    @media  only screen and (max-width: 800px) {
+        .padding_first {
+            padding: 10px 15px 10px 15px !important;
+        }
+        .padding_second {
+            padding: 10px 15px 10px 15px !important;
+        }
+    }
+</style>
+<script type="text/javascript">
+    $(function () {
+        var config = {
+            '.chosen-select'           : {search_contains: true},
+            '.chosen-select-deselect'  : {allow_single_deselect:true, search_contains: true},
+            '.chosen-select-no-single' : {disable_search_threshold:10, search_contains: true},
+            '.chosen-select-no-results': {no_results_text:'Oops, nothing found!', search_contains: true},
+            '.chosen-select-width'     : {width:"95%", search_contains: true}
+        }
+        for (var selector in config) {
+            $(selector).chosen(config[selector]);
+        }
+        setTimeout(function () {
+            $('input[name="placement_name"]').focus();
+        }, 1000);
+        
+        $('#btnCancelCreate').on('click', function () {
+            setTimeout(function () {
+                getPlacementList();
+            }, 200);
+        });
+        $(document).ready(function(){
+            // validate input only number
+            allowNumber('txtShowAfter');
+            allowNumber('txtAdDuration');
+            allowNumber('txtShowFor');
+            //allowNumber('txtWidth');
+            //allowNumber('txtHeight');
+            allowNumber('txtShowFor');
+            allowNumber('txtMobileSizeWidth');
+            allowNumber('txtMobileSizeHeight');
+            allowNumber('txtAppSizeWidth');
+            allowNumber('txtAppSizeHeight');
+            allowNumber('txtMinDuration');
+            allowNumber('txtMaxDuration');
+            allowNumber('txtMinWidth');
+            allowNumber('txtMaxWidth');
+            allowNumber('txtMinHeight');
+            allowNumber('txtMaxHeight');
+            //allowNumber('txtPositionIndex');
+        });
+
+        $("#optAccounts,#optWebsites, #optZones, #optTypes,#optSize,#optMoblieSize,#optVideoFormat,#optApplication,#optPlatform").chosen({search_contains: true});
+        changeOptionType(true);
+
+        $('#optTypes').on('change', function(){
+            changeOptionType(true);
+        });
+        $('#optSize').on('change', function(){
+            setSize();
+            if ($('#optSize option:selected').data('version') == 2) {
+                $('.selector').show();
+                $('#position').hide();
+            } else {
+                $('.selector').hide();
+                $('#position').show();
+            }
+        });
+
+        $('#txtShowSkip').on('change', function(){
+            if ($('#txtShowSkip').prop('checked')) {
+                $('.show-after').show();
+            } else {
+                $('.show-after').hide();
+            }
+        });
+        $('#optPositionType').on('change', function() {
+            disablePositionIndex();
+        });
+        disablePositionIndex();
+
+        $('#setting_type').hide();
+        $('#optPositionInsert').on('change', function() {
+            if ($(this).val().trim().length == 0) {
+                $('#setting_type').hide();
+                $('#txtPositionName').val('');
+                $('#txtPositionIndex').val(0);
+            } else {
+                $('#setting_type').show();
+            }
+        });
+
+        $('#frmCreatePlacement').submit(function(e){
+            e.preventDefault();
+            var token = $('input[name="_token"]').val();
+            var placement_name = $("#txtPlacementName").val();
+            var accounts = $("#optAccounts").val();
+            var websites = $("#optWebsites").val();
+            var zones = $("#optZones").val();
+            var width  = $('#txtWidth').val();
+            var height = $('#txtHeight').val();
+            var type = $("#optTypes").val();
+            var setting = {};
+            var size = $('#optSize').val();
+            var video_format = $('#optVideoFormat').val();
+            var show_skip = $('#txtShowSkip').prop('checked') ? 1 : 0;
+            var show_autoplay = $('#optVideoAutoPlay').val();
+            var show_after = $('#txtShowAfter').val();
+            var minimum_ad_duration = $('#txtAdDuration').val();
+            var showing_for = $('#txtShowFor').val();            
+            var config = $('#optConfig').val();
+            var platform = $('#optPlatform').val();
+            var max_width  = $('#txtMaxWidth').val();
+            var min_width = $('#txtMinWidth').val();
+            var max_height  = $('#txtMaxHeight').val();
+            var min_height = $('#txtMinHeight').val();
+            var position_insert = $('#optPositionInsert').val();
+            var position_index = $('input[name="position_index"]').val();
+            var position_type = $('#optPositionType').val();
+            var selector = $('#txtSelector').val();
+            var from_index = $('#txtFromIndex').val();
+            var position_name = $('input[name=position_name]').val();
+            var position = {};
+            setting['max_width'] = max_width;
+            setting['min_width'] = min_width;
+            setting['max_height'] = max_height;
+            setting['min_height'] = min_height;
+            setting['ad_unit'] = size;
+            if(position_name != '' && position_insert.trim().length > 0) {
+                position['insert'] = position_insert;
+                position['type'] = position_type;
+                position['name'] = position_name;
+                if(position_type == 'class') {
+                    position['index'] = position_index;
+                }
+                setting['position'] =  position;
+            }
+            if (selector) {
+                setting['selector'] =  selector;
+            }
+            setting['from_index'] = from_index;
+            var template = $('#txtNative_ad_format').val();
+            if(template != '') {
+                setting['template'] = template;
+            }
+            var min_duration = $('#txtMinDuration').val();
+            var max_duration = $('#txtMaxDuration').val();
+            if (type === 'video') {
+                setting['video_ad_format'] = video_format;
+                setting['config'] = config;
+                setting['show_skip'] = show_skip;
+                setting['show_autoplay'] = show_autoplay;
+                setting['show_after'] = show_after;
+                setting['showing_for'] = showing_for;
+                setting['ad_duration'] = minimum_ad_duration;
+                setting['min_duration'] = min_duration;
+                setting['max_duration'] = max_duration;
+            }
+            if (type === 'application') {
+                setting['application_os'] = platform;
+            }  
+            var active = ($('#chkActive').is(":checked")) ? 1 : 0;
+            var notes = $("#txtNotes").val();
+                    
+            var data = {_token: token, placement_name: placement_name, accounts: accounts, websites: websites,zones:zones, type: type, setting:setting, width: width, height: height, active:active, notes: notes};
+            $.post($(this).attr('action'), data, function(data){
+                resetForm();
+                setTimeout(function () {
+                    $('input[name="placement_name"]').focus();
+                }, 1000);
+                showNotification(data.message, 'success');
+            }).fail(function(jqXhr){
+                if (jqXhr.status === 401) {
+                    $(location).prop('pathname', 'auth/login');
+                }
+                if(jqXhr.status === 422) {
+                    var errors = jqXhr.responseJSON;
+                    if (errors.message) {
+                        var errorsHtml = errors.message;
+                    }else{
+                        var errorsHtml = "<strong>Whoops!</strong> There were some problems with your input.";
+                        var error_first = '';
+                        $(".form-group").removeClass('has-error');
+                        if ($.isPlainObject(errors)){
+                            $.each(errors, function(k,v){
+                                $('div').each(function(){
+                                    if (error_first.length === 0){
+                                        error_first = k;
+                                    }
+                                    $(this).find('#' + k).addClass('has-error');
+                                });
+                                if (v.length > 1){
+                                    for (var i=0;i<v.length;i++){
+                                        errorsHtml += '<li>' + v[i] + '</li>';
+                                    }
+                                }else{
+                                    errorsHtml += '<li>' + v + '</li>';
+                                }
+                            });
+                        }else{
+                            errorsHtml += '<li>' + errors + '</li>';
+                        }
+                        errorsHtml += '';
+                        $('input[name="'+ error_first +'"]').focus();
+                    }
+                }
+                showNotification(errorsHtml, "error", '');
+            });
+        });
+        /*==== END SUBMIT FORM CREATE  ====*/
+    });
+   
+    function resetForm(){
+        $("#frmCreatePlacement").trigger("reset");
+        $("#optZones, #optSize, #optVideoFormat, #optConfig, #optPlatform, #optPositionType, #optPosition").trigger('chosen:updated');
+        $(".form-group").removeClass('has-error');
+        disablePositionIndex();
+    }
+
+    $('#CreatePlacement').bind('keyup', returnList);
+
+    function returnList(e) {
+        e.preventDefault();
+        if (e.keyCode === 27) {
+            setTimeout(function () {
+                getPlacementList();
+            }, 200);
+            $('#CreatePlacement').unbind('keyup');
+        }
+    }
+
+    
+    function postAjax(url, data, callback){
+        $.ajax({
+                type:'POST',
+                url:url,
+                data:data,
+                success: callback,
+                error: function (data, textStatus, jqXHR) { notify(textStatus); }
+            });
+    }
+
+    // change account get website, zone
+    function getAllFromAccount(){
+        $("#optAccounts").on('change', function(){ 
+            var account_id = $(this).val();
+            var url = '/placement/'+account_id+'/get';
+            var account = {'account_id':account_id};
+            postAjax(url, account, function(data){
+                $('#optWebsites').empty();
+                $('#optWebsites').append(data.website);
+                $('#optWebsites').trigger("chosen:updated");
+                $('#optZones').empty();
+                $('#optZones').append(data.zone);
+                $('#optZones').trigger("chosen:updated");
+            });
+        }); 
+    }
+
+    // chon website hien thi zone tuong ung website do.
+    function getZone(){
+        $("#optWebsites").on('change', function(){ 
+            var website_id = $(this).val();
+            var url = '/placement/'+website_id+'/zone';
+            var website = {'website_id':website_id};
+            postAjax(url, website, function(data){
+                $('#optZones').empty();
+                $('#optZones').append(data.zone);
+                $('#optZones').trigger("chosen:updated");
+            });
+        });
+    }
+    getAllFromAccount();
+    getZone();
+    /*=======================*/
+   
+    // change option Type
+    function changeOptionType(get_opt_size){
+        var optType = $('#optTypes').val();
+        switch(optType) {
+            case 'display':
+            case 'mobile':
+                if (get_opt_size) {
+                    getOptSize(optType);
+                }                
+                displaySizeField(true);
+                displayVideoField(false);
+                displayAppField(false);
+                displaySettingMinMaxSize(true);
+                break;
+            case 'application':
+                getOptSize(optType);
+                displaySizeField(true);
+                displayVideoField(false);
+                displayAppField(true);
+                displaySettingMinMaxSize(true);
+                break;
+            case 'video':
+                getOptSize(optType);
+                displaySizeField(true);
+                displayVideoField(true);
+                displayAppField(false);
+                displaySettingMinMaxSize(false);
+                setSize();
+                break;
+        }
+    }
+
+    function getOptSize(type) {
+        $.get('/placement/' + type + '/get-ad-unit' , function(data){
+            $('#optSize').empty();
+            if (data && data.ad_unit !== false) {
+                for (var index in data.ad_unit) {
+                    var option = $(' <option value="' + data.ad_unit[index].id + '" data-width="' + data.ad_unit[index].width + '" data-height="' + data.ad_unit[index].height + '" data-version="' + data.ad_unit[index].version + '">' + data.ad_unit[index].creative_unit_name + '</option>');
+                    $('#optSize').append(option);
+                }
+            }
+            var optType = $('#optTypes').val();
+            if (optType != 'video') {
+                $('#optSize').append('<option value = "custom_size">Custom Size</option>');
+            }
+            $('#optSize').trigger("chosen:updated");
+            setSize();
+        }).fail(function (jqXhr){
+            if (jqXhr.status === 401) {
+                $(location).prop('pathname', 'auth/login');
+            }
+        });
+    }
+
+    function setSize() {
+        var width = ($('#optSize option:selected').data('width') != undefined) ? $('#optSize option:selected').data('width') : 0;
+        var height = ($('#optSize option:selected').data('height') != undefined) ? $('#optSize option:selected').data('height') : 0;
+        $('#txtWidth').val(width);
+        $('#txtHeight').val(height);
+        if ($('#optSize').val() === 'custom_size') {
+            $('.custom_size').show();
+        } else {
+            $('.custom_size').hide();
+        }
+    }
+
+    function displaySizeField(show) {
+        if (show) {
+            $('.size').show();
+            if ($('#optSize').val() === 'custom_size') {
+                $('.custom_size').show();
+            } else {
+                $('.custom_size').hide();
+            }
+        } else {
+            $('.size').hide();
+        }
+    }
+
+    function displayVideoField(show) {
+        if (show) {
+            $('.video').show();
+            if ($('#txtShowSkip').prop('checked')) {
+                $('.show-after').show();
+            } else {
+                $('.show-after').hide();
+            }
+        } else {
+            $('.video').hide();
+        }
+    }
+
+    function displayAppField(show) {
+        if (show) {
+            $('.application').show();
+        } else {
+            $('.application').hide();
+        }
+    }
+
+
+    function displaySettingMinMaxSize(show) {
+        if (show) {
+            $('.min_max_size').show();
+        } else {
+            $('.min_max_size').hide();
+        }
+    }
+    
+    function disablePositionIndex() {
+        var type = $('#optPositionType').val();
+        if(type == 'id') {
+            $('input[name="position_index"]').prop('disabled', true);
+        } else {
+            $('input[name="position_index"]').prop('disabled', false);
+        }
+    }
+    function allowNumber(id){
+        jQuery('#'+id).keyup(function () {
+            this.value = Math.abs(this.value.replace(/[^0-9\.]/g,'')).toLocaleString('en').replace('.',',');
+            if( $('#optTypes').val() == 'video' ){
+                if(this.value.length  >=3){return this.value = 30; }
+                if(this.value  == 0 ){return this.value = 1; }
+            }
+        });
+    }
+
+    function displayPosition(show) {
+        if (show) {
+            $('#position').show();
+        } else {
+            $('#position').hide();
+        }
+    }
+</script>

@@ -1,15 +1,15 @@
 import { router } from "./trpc.js";
-import { healthRouter } from "../controllers/infra/health.js";
-import { authRouter } from "../controllers/auth/auth.js";
-import { userRouter } from "../controllers/auth/user.js";
-import { permissionsRouter } from "../controllers/auth/permissions.js";
-import { adminRouter } from "../controllers/admin/admin.js";
-import { creativeRouter } from "../controllers/creative/creative.js";
-import { activityLogRouter } from "../controllers/activity/activityLog.js";
-import { testDataRouter } from "../controllers/platform/testData.js";
-import { toolTestRouter } from "../controllers/platform/toolTest.js";
-import { platformPagesRouter } from "../controllers/platform/platformPages.js";
-import { ragRouter } from "../controllers/chat/rag.js";
+import { healthRouter } from "../modules/infra/controllers/health.js";
+import { authRouter } from "../modules/auth/controllers/auth.js";
+import { userRouter } from "../modules/auth/controllers/user.js";
+import { permissionsRouter } from "../modules/auth/controllers/permissions.js";
+import { adminRouter } from "../modules/admin/controllers/admin.js";
+import { creativeRouter } from "../modules/creative/controllers/creative.js";
+import { activityLogRouter } from "../modules/activity/controllers/activityLog.js";
+import { testDataRouter } from "../modules/platform/controllers/testData.js";
+import { toolTestRouter } from "../modules/platform/controllers/toolTest.js";
+import { platformPagesRouter } from "../modules/platform/controllers/platformPages.js";
+import { ragRouter } from "../modules/chat/controllers/rag.js";
 
 export const appRouter = router({
   health: healthRouter,

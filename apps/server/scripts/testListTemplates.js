@@ -6,7 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "../.env") });
 
 const { fetchTemplateOptionsForAdView } = await import(
-  "../src/services/platform/yomediaPlatform.ts"
+  "../src/modules/platform/services/yomediaPlatform.js"
 );
 
 for (const adView of ["display", "mobile"]) {

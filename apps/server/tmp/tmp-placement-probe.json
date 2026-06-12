@@ -1,0 +1,56 @@
+[
+  {
+    "method": "POST",
+    "path": "/placement/list",
+    "status": 200,
+    "len": 4006,
+    "keys": [
+      "rows",
+      "page",
+      "total",
+      "records"
+    ],
+    "rowCount": 10,
+    "sample": "{\"rows\":[{\"id\":\"7f952402517545db93936d09cdd5318a\",\"permission\":\"edit\",\"placement_name\":\"doisongphapluat - Footer\",\"account_name\":\"Zmedia A\",\"website_name\":\"Doisongphapluat\",\"zone_name\":\"mobile-footer-exp\",\"type\":\"Mobile\",\"size\":\"320x50\",\"active\":true,\"notes\":null,\"created_at\":\"2026-05-25 11:43:25\",\""
+  },
+  {
+    "method": "GET",
+    "path": "/placement/list",
+    "status": 405,
+    "len": 4519,
+    "keys": null,
+    "rowCount": null,
+    "sample": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta name=\"robots\" content=\"noindex,nofollow\" />\n        <style>\n            /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */\n       "
+  },
+  {
+    "method": "POST",
+    "path": "/placement/list",
+    "status": 200,
+    "len": 15888,
+    "keys": [
+      "html"
+    ],
+    "rowCount": null,
+    "sample": "{\"html\":\"<div class=\\\"row wrapper-content animated fadeInRight\\\" id=\\\"PlacementList\\\">\\n    <div class=\\\"col-lg-12\\\">\\n        <div class=\\\"ibox float-e-margins\\\">\\n            <div class=\\\"ibox-title\\\">\\n                <button type=\\\"button\\\" id=\\\"btnCreateNew\\\" class=\\\"btn btn-primary btn-xs\\\">\\n"
+  },
+  {
+    "method": "GET",
+    "path": "/placement/create",
+    "status": 200,
+    "len": 44190,
+    "keys": [
+      "html"
+    ],
+    "rowCount": null,
+    "sample": "{\"html\":\"<div class=\\\"row wrapper-content animated fadeInDown\\\" id=\\\"CreatePlacement\\\">\\n    <div class=\\\"col-lg-12\\\">\\n        <div class=\\\"ibox float-e-margins\\\">\\n            <div class=\\\"ibox-title\\\">\\n                <h2>Create an Placement<\\/h2>\\n            <\\/div>\\n            <div class=\\\"i"
+  },
+  {
+    "method": "POST",
+    "path": "/placement/create",
+    "status": 405,
+    "len": 4519,
+    "keys": null,
+    "rowCount": null,
+    "sample": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta name=\"robots\" content=\"noindex,nofollow\" />\n        <style>\n            /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */\n       "
+  }
+]

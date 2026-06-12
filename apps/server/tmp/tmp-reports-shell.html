@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Member Ad Network">
+        <meta name="author" content="Huy Cao">
+        <meta name="csrf-token" content="biHUmwtFZdsJwDkhjaSxxPu8xm4cFu38Ng9SY2Oz" />
+        <link rel="icon" href="../../favicon.ico">
+        <title>YOMEDIA | Reports</title>
+                <!-- Normalize style -->
+        <link href="https://platform.yomedia.vn/css/normalize-css/normalize.css" rel="stylesheet">
+        <!-- Bootstrap style -->
+        <link href="https://platform.yomedia.vn/css/bootstrap/bootstrap.min.css" rel="stylesheet">
+        <!-- Font Awesome style -->
+        <link href="https://platform.yomedia.vn/css/font-awesome/font-awesome.min.css" rel="stylesheet">
+        <!-- jQuery UI -->
+        <link href="https://platform.yomedia.vn/css/jquery-ui/jquery-ui.min.css" rel="stylesheet">
+        <!-- Animate style -->
+        <link href="https://platform.yomedia.vn/css/animate-css/animate.min.css" rel="stylesheet">
+        <!-- Toastr style -->
+        <link href="https://platform.yomedia.vn/css/toastr/toastr.min.css" rel="stylesheet">
+        
+<!-- jqGrid style -->
+<link href="https://platform.yomedia.vn/css/jqgrid/ui.jqgrid_532.css" rel="stylesheet">
+<!-- Context Memu style -->
+<link href="https://platform.yomedia.vn/css/jQuery-contextMenu/jquery.contextMenu.min.css" rel="stylesheet">
+<!-- iCheck style -->
+<link href="https://platform.yomedia.vn/css/icheck/green.css" rel="stylesheet">
+<!-- Chosen style -->
+<link href="https://platform.yomedia.vn/css/bootstrap-chosen/bootstrap-chosen.css" rel="stylesheet">
+<!-- Date Picker style -->
+<link href="https://platform.yomedia.vn/css/bootstrap-datepicker/bootstrap-datepicker3.min.css" rel="stylesheet">
+        <!-- Main style -->
+        <link href="https://platform.yomedia.vn/css/inspinia.css" rel="stylesheet">
+        <link href="https://platform.yomedia.vn/css/admin.css?v=2" rel="stylesheet">
+        <link href="https://platform.yomedia.vn/css/loading/jquery.loadingModal.min.css" rel="stylesheet">
+        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+    <input type="hidden" name="_token" value="biHUmwtFZdsJwDkhjaSxxPu8xm4cFu38Ng9SY2Oz">
+        <div id="wrapper">
+            <nav class="navbar-default navbar-static-side" role="navigation">
+                <div class="sidebar-collapse">
+                    <ul class="nav" id="side-menu">
+                        <li class="nav-header">
+                            <div class="dropdown profile-element"> 
+                                <span><img alt="avatar" name="avatar" class="img-circle" src="https://platform.yomedia.vn/img/profile.jpg" style="width: 48px;height: 48px" /></span>
+                                <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                                    <span class="clear">
+                                        <span class="block m-t-xs">
+                                            <strong class="font-bold">Thanh Minh</strong>
+                                        </span>
+                                        <span class="text-muted text-xs block">
+                                                                                    CHỦ TỊT H&Ocirc;̣I Đ&Ocirc;̀NG QUẢN TRỊ
+                                                                                <b class="caret"></b></span>
+                                    </span>
+                                </a>
+                                <ul class="dropdown-menu animated fadeInRight m-t-xs">
+                                    <li><a href="https://platform.yomedia.vn/profile">Profile</a></li>
+                                    <li><a href="https://platform.yomedia.vn/config">Configuration</a></li>
+                                    <!-- <li><a href="https://platform.yomedia.vn/mail">Mailbox</a></li> -->
+                                    <li class="divider"></li>
+                                    <li><a href="https://platform.yomedia.vn/auth/logout">Logout</a></li>
+                                </ul>
+                            </div>
+                            <div class="logo-element"><img src="https://platform.yomedia.vn/img/yomedia.png" width="60"></div>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <div id="page-wrapper" class="gray-bg">
+                <div class="row border-bottom">
+                    <nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0">
+                        <div class="navbar-header">
+                            <a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i class="fa fa-bars"></i> </a>
+                            <!-- <form role="search" class="navbar-form-custom" action="search_results.html">
+                                <div class="form-group">
+                                    <input type="text" placeholder="Search for something..." class="form-control" name="top-search" id="top-search">
+                                </div>
+                            </form> -->
+                        </div>
+                        <ul class="nav navbar-top-links navbar-right">
+                            <li>
+                                <span class="m-r-sm text-muted welcome-message">Welcome to YOMEDIA system</span>
+                            </li>
+                            
+                            <!-- <li class="dropdown"  title="New mails">
+                                <a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
+                                    <i class="fa fa-envelope"></i>  <span class="label label-warning" id="message-number"></span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-messages" id="messages-menu">
+                                </ul>
+                            </li> -->
+                                                        <li>
+                                <a href="https://platform.yomedia.vn/auth/logout">
+                                    <i class="fa fa-sign-out"></i> Log out
+                                </a>
+                            </li>
+                                                    </ul>
+                    </nav>
+                </div>
+                <div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>Report</h2>
+        <ol class="breadcrumb" id="breadcrumb">
+            <li><a href="https://platform.yomedia.vn/dashboard">Home</a></li>
+            <li class="active"><strong>Reports</strong></li>
+        </ol>
+    </div>
+</div>
+<div class="wrapper" id="content">
+    <div class="row wrapper-content animated fadeInRight" id="AnalyticsList">
+        <div class="col-lg-12">
+            <div class="ibox float-e-margins">
+                
+                <div class="ibox-content">
+                    <input type="hidden" id="filter" value="all">
+                    <input type="hidden" name="listCol" id="listCol" value="">
+                    <input type="hidden" name="listColInter" id="listColInter" value="">
+                    <form id="frmFilter" class="form-horizontal" name="filter_analytics" role="form" method="get" action="https://platform.yomedia.vn/reports/list">
+                        <div class="row">
+                            <div class="col-lg-4 pl5 pr5">
+                                <div class="panel panel-info custom-panel">
+                                    <div class="panel-heading custom-panel-heading">
+                                        <b>Filters</b>
+                                    </div>
+                                    <div class="panel-body custom-panel-body">
+                                        <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Time</label>
+                                            <div class="col-sm-9">
+                                                <div id="dateRange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: auto">
+                                                    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                                                    <span></span> <b class="caret"></b>
+                                                </div>
+                                                <input hidden name="txtDateRangeStartDate" id="txtDateRangeStartDate"/>
+                                                <input hidden name="txtDateRangeEndDate" id="txtDateRangeEndDate"/>
+                                                
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Ad View</label>
+                                            <div class="col-sm-9">
+                                                <select class="chosen-select" id="optAdViews" name="adview" multiple>
+                                                                                                                                                            <option value="display">Display</option>
+                                                                                                        <option value="mobile">Mobile</option>
+                                                                                                        <option value="video">Video</option>
+                                                                                                        <option value="in-app">In App</option>
+                                                                                                                                                        </select>
+                                            </div>
+                                        </div>
+                                                                                                                        <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Advertiser</label>
+                                            <div class="col-sm-9">
+                                                <select id="optAdvertisers" class="form-control" multiple></select>
+                                            </div>
+                                        </div>
+                                                                                                                                                                <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Ad Format</label>
+                                            <div class="col-sm-9">
+                                                <select class="form-control" id="optAdformats" name="adformat" multiple>
+                                                </select>
+                                            </div>
+                                        </div>
+                                                                                <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Campaigns</label>
+                                            <div class="col-sm-9">
+                                                <button type="button" class="btn btn-default btn-xs" id="btn-campaign" data-toggle="modal" data-target="#filterCampaignModal">Choose</button>
+                                                <ul class="todo-list small-list" id="filter-campaign-selected"></ul>
+                                            </div>
+                                        </div>
+                                                                                                                                                                <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Flights</label>
+                                            <div class="col-sm-9">
+                                                <button type="button" class="btn btn-default btn-xs" id="btn-flight" data-toggle="modal" data-target="#filterFlightModal">Choose</button>
+                                                <ul class="todo-list small-list" id="filter-flight-selected"></ul>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="col-sm-3 control-label align-left">Websites</label>
+                                            <div class="col-sm-9">
+                                                <button type="button" class="btn btn-default btn-xs" id="btn-website" data-toggle="modal" data-target="#filterWebsiteModal">Choose</button>
+                                                <ul class="todo-list small-list" id="filter-website-selected"></ul>
+                                            </div>
+                                        </div>
+                                                                                                                                                            </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 pl5 pr5">
+                                <div class="col-lg-12">
+                                    <div class="panel panel-info custom-panel">
+                                        <div class="panel-heading custom-panel-heading">
+                                            <b>Dimensions</b>
+                                            <button type="button" class="btn btn-default btn-xs custom-btn" id="btn-dimensions">Edit</button>
+                                        </div>
+                                        <div class="panel-body custom-panel-body">
+                                            <ul class="todo-list small-list" id="dimensions-selected"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 pl5 pr5">
+                                <div class="col-lg-12">
+                                    <div class="panel panel-info custom-panel">
+                                        <div class="panel-heading custom-panel-heading">
+                                            <b>Metrics</b>
+                                            <button type="button" class="btn btn-default btn-xs custom-btn" id="btn-metrics">Edit</button>
+                                        </div>
+                                        <div class="panel-body custom-panel-body">
+                                            <ul class="todo-list small-list" id="metrics-selected"></ul>
+                                        </div>
+                                    </div>
+                                </div> 
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <span class="fa fa-report" aria-hidden="true"></span>
+                                Run
+                            </button>
+                            <div class="btn-group">
+                                <button type="button" id="btnExport" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-expanded="false" disabled>
+                                    <span class="fa fa-external-link" aria-hidden="true"></span>
+                                    Export
+                                    <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu" role="menu" name="export">
+                                    <li><a href="javascript:void(0);" data-format="xlsx">Excel</a></li>
+                                    <li><a href="javascript:void(0);" data-format="csv">CSV</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="row" id="compare-chart">
+                        <div id="Chart"></div>
+                    </div>
+                    <div id="show-list" class="jqGrid" style="margin-top:40px;">
+                        <table id="ListGrid"></table>
+                        <div id="ListPager"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="filterCampaignModal" role="dialog" style="display: none;">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h4 class="modal-title">Campaign</h4>
+            </div>
+            <div class="modal-body">
+                <div class="jqGrid wp-table">
+                    <table id="filter-campaign-grid"></table>
+                    <div id="filter-campaign-page"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="filterFlightModal" role="dialog" style="display: none;">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h4 class="modal-title">Flight</h4>
+            </div>
+            <div class="modal-body">
+                <div class="jqGrid wp-table">
+                    <table id="filter-flight-grid"></table>
+                    <div id="filter-flight-page"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="filterWebsiteModal" role="dialog" style="display: none;">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h4 class="modal-title">Website</h4>
+            </div>
+            <div class="modal-body">
+                <div class="jqGrid wp-table">
+                    <table id="filter-website-grid"></table>
+                    <div id="filter-website-page"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<style type="text/css">
+    .caret {
+        float: right;
+        margin-top: 6px;
+    }
+    .pl5 {padding-left: 5px;}
+    .pr5 {padding-right: 5px;}
+    .custom-panel {
+        border: none;
+    }
+    .custom-panel-heading {border-radius: 0px;}
+    .custom-btn {
+        background-color: #FFFFFF;
+        color: #1a7bb9;
+        float: right;
+    }
+    .custom-panel-body {padding: 15px 0px;}
+    .align-left {text-align: left !important;}
+    .chosen-container {font-size: 13px;}
+    .chosen-container-single .chosen-single {line-height: 28px;}
+    .todo-list.small-list {font-size: 13px;}
+    .todo-list.small-list > li {padding: 4px 6px 5px 12px;}
+    .chosen-container-multi .chosen-choices .search-field input[type="text"] {height: 28px;}
+
+    #filterCampaignModal > div {
+        width: 70%;
+    }
+
+    #filterFlightModal > div {
+        width: 80%;
+    }
+    #filterWebsiteModal > div {
+        width: 70%;
+    }
+    .wp-table .ui-widget-content{
+        margin: 0 auto;
+    }
+    /* .filter-item {
+        background-color: #ffffff !important;
+    } */
+
+    table.ui-search-table > tbody > tr > td.ui-search-input > input, table.ui-search-table > tbody > tr > td.ui-search-input {
+        width: 90% !important;
+        font-weight: normal;
+    }
+</style>
+                <div class="footer">
+                    <div class="pull-right">
+                        
+                    </div>
+                    <div>
+                        <strong>Copyright</strong> YOMEDIA &copy; 2016
+                    </div>
+                </div>
+            </div>
+                    </div>
+        <div class="modal fade" id="ModalDlg" tabindex="-1" role="dialog"  aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer"></div>
+        </div>
+    </div>
+</div>        <div id="preview-template" style="display: none;">
+            <div class="dz-preview dz-file-preview">
+                <div class="dz-image"><img data-dz-thumbnail /></div>
+                <div class="dz-details">
+                    <div class="dz-size"><span data-dz-size></span></div>
+                    <div class="dz-filename"><span data-dz-name></span></div>
+                </div>
+                <div class="dz-progress">
+                    <span class="dz-upload" data-dz-uploadprogress></span>
+                </div>
+                <div class="dz-error-message">
+                    <span data-dz-errormessage></span>
+                </div>
+                <div class="dz-success-mark">
+                    <svg width="54px" height="54px" viewBox="0 0 54 54" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns">
+                    <!-- Generator: Sketch 3.2.1 (9971) - http://www.bohemiancoding.com/sketch -->
+                        <title>Check</title>
+                        <desc>Created with Sketch.</desc>
+                        <defs></defs>
+                        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage">
+                            <path d="M23.5,31.8431458 L17.5852419,25.9283877 C16.0248253,24.3679711 13.4910294,24.366835 11.9289322,25.9289322 C10.3700136,27.4878508 10.3665912,30.0234455 11.9283877,31.5852419 L20.4147581,40.0716123 C20.5133999,40.1702541 20.6159315,40.2626649 20.7218615,40.3488435 C22.2835669,41.8725651 24.794234,41.8626202 26.3461564,40.3106978 L43.3106978,23.3461564 C44.8771021,21.7797521 44.8758057,19.2483887 43.3137085,17.6862915 C41.7547899,16.1273729 39.2176035,16.1255422 37.6538436,17.6893022 L23.5,31.8431458 Z M27,53 C41.3594035,53 53,41.3594035 53,27 C53,12.6405965 41.3594035,1 27,1 C12.6405965,1 1,12.6405965 1,27 C1,41.3594035 12.6405965,53 27,53 Z" id="Oval-2" stroke-opacity="0.198794158" stroke="#747474" fill-opacity="0.816519475" fill="#FFFFFF" sketch:type="MSShapeGroup"></path>
+                        </g>
+                    </svg>
+                </div>
+                <div class="dz-error-mark">
+                    <svg width="54px" height="54px" viewBox="0 0 54 54" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns">
+                    <!-- Generator: Sketch 3.2.1 (9971) - http://www.bohemiancoding.com/sketch -->
+                        <title>error</title>
+                        <desc>Created with Sketch.</desc>
+                        <defs></defs>
+                        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage">
+                            <g id="Check-+-Oval-2" sketch:type="MSLayerGroup" stroke="#747474" stroke-opacity="0.198794158" fill="#FFFFFF" fill-opacity="0.816519475">
+                                <path d="M32.6568542,29 L38.3106978,23.3461564 C39.8771021,21.7797521 39.8758057,19.2483887 38.3137085,17.6862915 C36.7547899,16.1273729 34.2176035,16.1255422 32.6538436,17.6893022 L27,23.3431458 L21.3461564,17.6893022 C19.7823965,16.1255422 17.2452101,16.1273729 15.6862915,17.6862915 C14.1241943,19.2483887 14.1228979,21.7797521 15.6893022,23.3461564 L21.3431458,29 L15.6893022,34.6538436 C14.1228979,36.2202479 14.1241943,38.7516113 15.6862915,40.3137085 C17.2452101,41.8726271 19.7823965,41.8744578 21.3461564,40.3106978 L27,34.6568542 L32.6538436,40.3106978 C34.2176035,41.8744578 36.7547899,41.8726271 38.3137085,40.3137085 C39.8758057,38.7516113 39.8771021,36.2202479 38.3106978,34.6538436 L32.6568542,29 Z M27,53 C41.3594035,53 53,41.3594035 53,27 C53,12.6405965 41.3594035,1 27,1 C12.6405965,1 1,12.6405965 1,27 C1,41.3594035 12.6405965,53 27,53 Z" id="Oval-2" sketch:type="MSShapeGroup"></path>
+                            </g>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>                <!-- jQuery script -->
+        <script src="https://platform.yomedia.vn/js/jquery/jquery.min.js"></script>
+        <!-- jQuery UI -->
+        <script src="https://platform.yomedia.vn/js/jquery-ui/jquery-ui.min.js"></script>
+        <!-- Bootstrap script -->
+        <script src="https://platform.yomedia.vn/js/bootstrap/bootstrap.min.js"></script>
+        <!-- Metis Menu script -->
+        <script src="https://platform.yomedia.vn/js/metisMenu/metisMenu.min.js"></script>
+        <!-- Slim Scroll script -->
+        <script src="https://platform.yomedia.vn/js/jquery-slimscroll/jquery.slimscroll.min.js"></script>
+        <!-- Pace script -->
+        <script src="https://platform.yomedia.vn/js/pace/pace.min.js"></script>
+        <!-- Toastr script -->
+        <script src="https://platform.yomedia.vn/js/toastr/toastr.min.js"></script>
+        <script src="https://platform.yomedia.vn/js/loading/jquery.loadingModal.min.js"></script>
+        <script src="https://platform.yomedia.vn/js/moment.js"></script>
+        <script src="https://cdn.rawgit.com/oliver-moran/jimp/v0.2.26/browser/lib/jimp.min.js"></script>
+        <script src="https://platform.yomedia.vn/js/morris/raphael-2.1.0.min.js"></script>
+        <script src="https://platform.yomedia.vn/js/morris/morris.js"></script>
+        <!-- Nestable List -->
+        <script src="https://platform.yomedia.vn/js/nestable/jquery.nestable.js"></script>
+        <!-- Custom and plugin javascript -->
+        <script type="text/javascript">
+            var publicUrl = 'https://platform.yomedia.vn/';
+            $.ajaxSetup({
+                 headers: {
+                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                 }
+            });
+        </script>
+        <script src="https://platform.yomedia.vn/js/inspinia.js"></script>
+        <script src="https://platform.yomedia.vn/js/admin.js?v=2"></script>        
+        
+<!-- jqGrid script -->
+<script src="https://platform.yomedia.vn/js/jqgrid/grid.locale-en.js"></script>
+<script src="https://platform.yomedia.vn/js/jqgrid/jquery.jqGrid.532.js"></script>
+<script src="https://platform.yomedia.vn/js/jszip/jszip.min.js"></script>
+<!-- Context Memu script -->
+<script src="https://platform.yomedia.vn/js/jQuery-contextMenu/jquery.contextMenu.min.js"></script>
+<script src="https://platform.yomedia.vn/js/jQuery-contextMenu/jquery.ui.position.min.js"></script>
+<!-- iCheck script -->
+<script src="https://platform.yomedia.vn/js/iCheck/icheck.min.js"></script>
+<!-- Chosen script -->
+<script src="https://platform.yomedia.vn/js/chosen/chosen.jquery.min.js"></script>
+<!-- Date Picker script -->
+<script src="https://platform.yomedia.vn/js/bootstrap-datepicker/bootstrap-datepicker.min.js"></script>
+<!-- Accounting format script -->
+<script src="https://platform.yomedia.vn/js/accountingjs/accounting.min.js"></script>
+<!-- HighCharts script -->
+<script src="https://platform.yomedia.vn/js/highcharts/highcharts.js"></script>
+<script src="https://platform.yomedia.vn/js/numeral.js"></script>
+<script type="text/javascript" src="https://platform.yomedia.vn/js/bootstrap-datetimepicker/daterangepicker.js"></script>
+<script src="https://platform.yomedia.vn/js/select2/select2.js"></script>
+<link rel="stylesheet" type="text/css" href="https://platform.yomedia.vn/js/bootstrap-datetimepicker/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="https://platform.yomedia.vn/css/select2/select2.css" />
+<link rel="stylesheet" type="text/css" href="https://platform.yomedia.vn/css/select2/select2-bootstrap.min.css" />
+<script type="text/javascript">
+    loadColumn();
+    loadChosen();
+    var lock_column = [];
+     
+    lock_column = ["website", "domain", "placement", "zone"];
+        
+    $(function () {
+        $('#optAdformats').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/adformat',
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    };
+                },
+                data: function (params) {
+                    return Object.assign(params, {model: 'adformats'});
+                }
+            }
+        });
+
+        $('#optAdvertisers').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/account',
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    };
+                },
+                data: function (params) {
+                    return Object.assign(params, {model: 'advertiser'});
+                }
+            }
+        });
+
+        $('#optPublishers').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/account',
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    };
+                },
+                data: function (params) {
+                    return Object.assign(params, {model: 'publisher'});
+                }
+            }
+        });
+
+        $('#optCampaigns').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/campaign',
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    };
+                }
+            }
+        });
+
+        $('#optFlights').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/flight',
+                data: function (params) {
+                    return Object.assign({}, params, {campaign_id: $('#optCampaigns').val()});
+                },
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    }
+                }
+            }
+        });
+
+        $('#optWebsites').select2({
+            ajax: {
+                delay: 100,
+                url: 'reports/website',
+                dataType: 'json',
+                processResults: function (data, params) {
+                    return {
+                        results: data.results,
+                        pagination: {
+                            more: data.results.length == 20
+                        }
+                    };
+                }
+            }
+        });
+        var timeline = 'today';
+        var exact_date = getExactDate(timeline);
+        var dateRangeLabel = 'Today';
+        $('#dateRange').daterangepicker('performanceTime', dateRangeLabel,{
+            startDate: exact_date.start,
+            endDate: exact_date.end,
+            dateLimit: true,
+            ranges: Object.assign({'idPerformanceTime': ['','']}, getRange())
+        }, cbDateRange);
+        cbDateRange(exact_date.start, exact_date.end);
+        $('#dateRange span').html(dateRangeLabel);
+        $('#txt_idDateRange').val(dateRangeLabel);
+
+        $("#dimensions-selected").sortable();
+        $("#metrics-selected").sortable();
+        $('#btn-dimensions').click(function() {
+            showDimensionDialog();
+        });
+        $('#btn-metrics').click(function() {
+            showMetricDialog();
+        });
+
+        filterCampaignModal();
+        filterFlightModal();
+        filterWebsiteModal();
+
+        $('#frmFilter').on('submit', function (e) {
+            var error = false;
+            e.preventDefault();
+            var data = getParam();
+            if (data.dimension.length == 0) {
+                error = true;
+                showNotification('Please select at least 1 dimension!', 'error');
+                return false;
+            } 
+            if (data.metric.length == 0) {
+                error = true;
+                showNotification('Please select at least 1 metric!', 'error');
+                return false;
+            } 
+            if (!error) {
+                localStorage.setItem('yo:rpsn:col:24a678fb0a1a4a9684e72e9e404968b5', JSON.stringify({dimension: data.dimension, metric: data.metric}));
+                showList(data);
+                var data_chart =  Object.assign({}, data);
+                getChart(data_chart);
+                return true;
+            }
+        });
+
+        $('ul[name="export"]').find('a').on('click', function () {
+            exportFile($(this).data('format'));
+        });
+
+    });
+
+    function getChart(data){
+        data.dimension = ['daily'];
+        data.metric = ['impression', 'click'];
+        var filter = data.filter;
+        $.get('reports/chart', data, function (data_chart) {
+            showChart(data_chart);   
+        }).fail(function (jqXhr){
+            if (jqXhr.status === 401) {
+                $(location).prop('pathname', 'auth/login');
+            }
+        });
+    }
+
+    function showChart(data){
+        $('#Chart').highcharts({
+            chart: {
+                type: 'areaspline',
+                backgroundColor: "transparent"
+            },
+            title: {
+                text: 'Report'
+            },
+            subtitle: {
+                text: '',
+                x: -5
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'center',
+                verticalAlign: 'bottom',
+                borderWidth: 0
+            },
+            xAxis: {
+                labels: {
+                    x: 0,
+                    y: null,
+                    zIndex: 7,
+                },
+                categories: data.date
+            },
+            yAxis: [
+                { // Primary yAxis
+                    labels: {
+                        formatter: function () {
+                            if (this.value >= 1000) {
+                                return numeral(this.value).format('0,0.0a');
+                            } else {
+                                return this.value;
+                            }
+                        },
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    title: {
+                        text: 'Impression',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    }
+                },
+                { // Secondary yAxis
+                    title: {
+                        text: 'Ctr',
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    },
+                    labels: {
+                        formatter: function () {
+                            if (this.value >= 1000) {
+                                return numeral(this.value).format('0,0.0a');
+                            } else {
+                                return this.value + '%';
+                            }
+                        },
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    },
+                    opposite: true
+                }
+            ],
+            tooltip: {
+                shared: true
+            },
+            credits: {
+                enabled: false
+            },
+            plotOptions: {
+                spline: {
+                    marker: {
+                        enabled: true
+                    }
+                },
+                series: {
+                    states: {
+                        hover: {
+                            enabled: true,
+                            lineWidth: 1
+                        }
+                    },
+                    maxPointWidth: 50
+                },
+            },
+            series: [
+                {
+                    name: 'Impression',
+                    data: data.impression,
+                    type: 'column',
+                },
+                {
+                    name: 'Ctr',
+                    data: data.ctr,
+                    yAxis: 1,
+                    type: 'spline',
+                    tooltip: {
+                        valueSuffix: '%'
+                    }
+                }
+            ]
+        });
+    }
+
+    function showDimensionDialog() {
+        var start = moment();
+        if ($('#txtDateRangeStartDate').val()) {
+            start = moment($('#txtDateRangeStartDate').val(), 'YYYY-MM-DD');
+        }
+        var diffDays = moment().diff(start, 'days');
+        var dimensions = getSelected('dimensions-selected'); 
+        var html = '';
+                        var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('daily') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('daily') === -1) {
+                html += '<div class="col-sm-6" id="row-daily"><div class="col-sm-1"><input type="checkbox" value="daily" name="" class="i-checks choose-dimension" id="daily" data-label="Daily/Hourly" onclick="addDimension($(this))" ' + checked + ' /></div><label for="daily" class="col-sm-10 text-left hover">Daily/Hourly</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-daily"><div class="col-sm-1"><input type="checkbox" value="daily" name="" class="i-checks choose-dimension" id="daily" data-label="Daily/Hourly" onclick="addDimension($(this))" ' + checked + ' /></div><label for="daily" class="col-sm-10 text-left hover">Daily/Hourly</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('ad_format') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('ad_format') === -1) {
+                html += '<div class="col-sm-6" id="row-ad_format"><div class="col-sm-1"><input type="checkbox" value="ad_format" name="" class="i-checks choose-dimension" id="ad_format" data-label="Ad Format" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_format" class="col-sm-10 text-left hover">Ad Format</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-ad_format"><div class="col-sm-1"><input type="checkbox" value="ad_format" name="" class="i-checks choose-dimension" id="ad_format" data-label="Ad Format" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_format" class="col-sm-10 text-left hover">Ad Format</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('ad_unit') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('ad_unit') === -1) {
+                html += '<div class="col-sm-6" id="row-ad_unit"><div class="col-sm-1"><input type="checkbox" value="ad_unit" name="" class="i-checks choose-dimension" id="ad_unit" data-label="Ad Unit" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_unit" class="col-sm-10 text-left hover">Ad Unit</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-ad_unit"><div class="col-sm-1"><input type="checkbox" value="ad_unit" name="" class="i-checks choose-dimension" id="ad_unit" data-label="Ad Unit" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_unit" class="col-sm-10 text-left hover">Ad Unit</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('ad_view') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('ad_view') === -1) {
+                html += '<div class="col-sm-6" id="row-ad_view"><div class="col-sm-1"><input type="checkbox" value="ad_view" name="" class="i-checks choose-dimension" id="ad_view" data-label="Ad View" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_view" class="col-sm-10 text-left hover">Ad View</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-ad_view"><div class="col-sm-1"><input type="checkbox" value="ad_view" name="" class="i-checks choose-dimension" id="ad_view" data-label="Ad View" onclick="addDimension($(this))" ' + checked + ' /></div><label for="ad_view" class="col-sm-10 text-left hover">Ad View</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('advertiser') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('advertiser') === -1) {
+                html += '<div class="col-sm-6" id="row-advertiser"><div class="col-sm-1"><input type="checkbox" value="advertiser" name="" class="i-checks choose-dimension" id="advertiser" data-label="Advertiser" onclick="addDimension($(this))" ' + checked + ' /></div><label for="advertiser" class="col-sm-10 text-left hover">Advertiser</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-advertiser"><div class="col-sm-1"><input type="checkbox" value="advertiser" name="" class="i-checks choose-dimension" id="advertiser" data-label="Advertiser" onclick="addDimension($(this))" ' + checked + ' /></div><label for="advertiser" class="col-sm-10 text-left hover">Advertiser</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('banner') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('banner') === -1) {
+                html += '<div class="col-sm-6" id="row-banner"><div class="col-sm-1"><input type="checkbox" value="banner" name="" class="i-checks choose-dimension" id="banner" data-label="Banner" onclick="addDimension($(this))" ' + checked + ' /></div><label for="banner" class="col-sm-10 text-left hover">Banner</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-banner"><div class="col-sm-1"><input type="checkbox" value="banner" name="" class="i-checks choose-dimension" id="banner" data-label="Banner" onclick="addDimension($(this))" ' + checked + ' /></div><label for="banner" class="col-sm-10 text-left hover">Banner</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('os') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('os') === -1) {
+                html += '<div class="col-sm-6" id="row-os"><div class="col-sm-1"><input type="checkbox" value="os" name="" class="i-checks choose-dimension" id="os" data-label="OS" onclick="addDimension($(this))" ' + checked + ' /></div><label for="os" class="col-sm-10 text-left hover">OS</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-os"><div class="col-sm-1"><input type="checkbox" value="os" name="" class="i-checks choose-dimension" id="os" data-label="OS" onclick="addDimension($(this))" ' + checked + ' /></div><label for="os" class="col-sm-10 text-left hover">OS</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('browser') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('browser') === -1) {
+                html += '<div class="col-sm-6" id="row-browser"><div class="col-sm-1"><input type="checkbox" value="browser" name="" class="i-checks choose-dimension" id="browser" data-label="Browser" onclick="addDimension($(this))" ' + checked + ' /></div><label for="browser" class="col-sm-10 text-left hover">Browser</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-browser"><div class="col-sm-1"><input type="checkbox" value="browser" name="" class="i-checks choose-dimension" id="browser" data-label="Browser" onclick="addDimension($(this))" ' + checked + ' /></div><label for="browser" class="col-sm-10 text-left hover">Browser</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('campaign') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('campaign') === -1) {
+                html += '<div class="col-sm-6" id="row-campaign"><div class="col-sm-1"><input type="checkbox" value="campaign" name="" class="i-checks choose-dimension" id="campaign" data-label="Campaign" onclick="addDimension($(this))" ' + checked + ' /></div><label for="campaign" class="col-sm-10 text-left hover">Campaign</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-campaign"><div class="col-sm-1"><input type="checkbox" value="campaign" name="" class="i-checks choose-dimension" id="campaign" data-label="Campaign" onclick="addDimension($(this))" ' + checked + ' /></div><label for="campaign" class="col-sm-10 text-left hover">Campaign</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('country') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('country') === -1) {
+                html += '<div class="col-sm-6" id="row-country"><div class="col-sm-1"><input type="checkbox" value="country" name="" class="i-checks choose-dimension" id="country" data-label="Country" onclick="addDimension($(this))" ' + checked + ' /></div><label for="country" class="col-sm-10 text-left hover">Country</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-country"><div class="col-sm-1"><input type="checkbox" value="country" name="" class="i-checks choose-dimension" id="country" data-label="Country" onclick="addDimension($(this))" ' + checked + ' /></div><label for="country" class="col-sm-10 text-left hover">Country</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('city') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('city') === -1) {
+                html += '<div class="col-sm-6" id="row-city"><div class="col-sm-1"><input type="checkbox" value="city" name="" class="i-checks choose-dimension" id="city" data-label="City" onclick="addDimension($(this))" ' + checked + ' /></div><label for="city" class="col-sm-10 text-left hover">City</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-city"><div class="col-sm-1"><input type="checkbox" value="city" name="" class="i-checks choose-dimension" id="city" data-label="City" onclick="addDimension($(this))" ' + checked + ' /></div><label for="city" class="col-sm-10 text-left hover">City</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('domain') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('domain') === -1) {
+                html += '<div class="col-sm-6" id="row-domain"><div class="col-sm-1"><input type="checkbox" value="domain" name="" class="i-checks choose-dimension" id="domain" data-label="Domain" onclick="addDimension($(this))" ' + checked + ' /></div><label for="domain" class="col-sm-10 text-left hover">Domain</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-domain"><div class="col-sm-1"><input type="checkbox" value="domain" name="" class="i-checks choose-dimension" id="domain" data-label="Domain" onclick="addDimension($(this))" ' + checked + ' /></div><label for="domain" class="col-sm-10 text-left hover">Domain</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('flight') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('flight') === -1) {
+                html += '<div class="col-sm-6" id="row-flight"><div class="col-sm-1"><input type="checkbox" value="flight" name="" class="i-checks choose-dimension" id="flight" data-label="Flight" onclick="addDimension($(this))" ' + checked + ' /></div><label for="flight" class="col-sm-10 text-left hover">Flight</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-flight"><div class="col-sm-1"><input type="checkbox" value="flight" name="" class="i-checks choose-dimension" id="flight" data-label="Flight" onclick="addDimension($(this))" ' + checked + ' /></div><label for="flight" class="col-sm-10 text-left hover">Flight</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('placement') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('placement') === -1) {
+                html += '<div class="col-sm-6" id="row-placement"><div class="col-sm-1"><input type="checkbox" value="placement" name="" class="i-checks choose-dimension" id="placement" data-label="Placement" onclick="addDimension($(this))" ' + checked + ' /></div><label for="placement" class="col-sm-10 text-left hover">Placement</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-placement"><div class="col-sm-1"><input type="checkbox" value="placement" name="" class="i-checks choose-dimension" id="placement" data-label="Placement" onclick="addDimension($(this))" ' + checked + ' /></div><label for="placement" class="col-sm-10 text-left hover">Placement</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('platform') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('platform') === -1) {
+                html += '<div class="col-sm-6" id="row-platform"><div class="col-sm-1"><input type="checkbox" value="platform" name="" class="i-checks choose-dimension" id="platform" data-label="Platform" onclick="addDimension($(this))" ' + checked + ' /></div><label for="platform" class="col-sm-10 text-left hover">Platform</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-platform"><div class="col-sm-1"><input type="checkbox" value="platform" name="" class="i-checks choose-dimension" id="platform" data-label="Platform" onclick="addDimension($(this))" ' + checked + ' /></div><label for="platform" class="col-sm-10 text-left hover">Platform</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('website') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('website') === -1) {
+                html += '<div class="col-sm-6" id="row-website"><div class="col-sm-1"><input type="checkbox" value="website" name="" class="i-checks choose-dimension" id="website" data-label="Website" onclick="addDimension($(this))" ' + checked + ' /></div><label for="website" class="col-sm-10 text-left hover">Website</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-website"><div class="col-sm-1"><input type="checkbox" value="website" name="" class="i-checks choose-dimension" id="website" data-label="Website" onclick="addDimension($(this))" ' + checked + ' /></div><label for="website" class="col-sm-10 text-left hover">Website</label></div>';
+        }
+                
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('zone') !== -1) {
+            checked = 'checked';
+        }
+         
+        if (diffDays > 92) {
+            if (lock_column.indexOf('zone') === -1) {
+                html += '<div class="col-sm-6" id="row-zone"><div class="col-sm-1"><input type="checkbox" value="zone" name="" class="i-checks choose-dimension" id="zone" data-label="Zone" onclick="addDimension($(this))" ' + checked + ' /></div><label for="zone" class="col-sm-10 text-left hover">Zone</label></div>';
+            }
+        } else {
+            html += '<div class="col-sm-6" id="row-zone"><div class="col-sm-1"><input type="checkbox" value="zone" name="" class="i-checks choose-dimension" id="zone" data-label="Zone" onclick="addDimension($(this))" ' + checked + ' /></div><label for="zone" class="col-sm-10 text-left hover">Zone</label></div>';
+        }
+                
+                        html = '<div class="row">' + html + '</div>';
+        var footer = '<button type="button" id="btn-close-dimension" class="btn btn-primary">Close</button>';
+        showModalDialog('Dimensions', html, footer);
+        $('#btn-close-dimension').click(function() {
+            hideModalDialog();
+        });
+    }
+
+    function showMetricDialog() {
+        var dimensions = getSelected('metrics-selected'); 
+        var html = '';
+                        var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('impression') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="impression" name="" class="i-checks choose-metric" id="impression" data-label="Impression" onclick="addMetric($(this))" ' + checked + ' /></div><label for="impression" class="col-sm-10 text-left hover">Impression</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('reach') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="reach" name="" class="i-checks choose-metric" id="reach" data-label="Reach" onclick="addMetric($(this))" ' + checked + ' /></div><label for="reach" class="col-sm-10 text-left hover">Reach</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('frequency') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="frequency" name="" class="i-checks choose-metric" id="frequency" data-label="Frequency Imps" onclick="addMetric($(this))" ' + checked + ' /></div><label for="frequency" class="col-sm-10 text-left hover">Frequency Imps</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('click') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="click" name="" class="i-checks choose-metric" id="click" data-label="Click" onclick="addMetric($(this))" ' + checked + ' /></div><label for="click" class="col-sm-10 text-left hover">Click</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('ctr') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="ctr" name="" class="i-checks choose-metric" id="ctr" data-label="CTR (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="ctr" class="col-sm-10 text-left hover">CTR (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('viewable') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="viewable" name="" class="i-checks choose-metric" id="viewable" data-label="Viewability" onclick="addMetric($(this))" ' + checked + ' /></div><label for="viewable" class="col-sm-10 text-left hover">Viewability</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('viewable_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="viewable_rate" name="" class="i-checks choose-metric" id="viewable_rate" data-label="Viewability (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="viewable_rate" class="col-sm-10 text-left hover">Viewability (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('start') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="start" name="" class="i-checks choose-metric" id="start" data-label="Start Played" onclick="addMetric($(this))" ' + checked + ' /></div><label for="start" class="col-sm-10 text-left hover">Start Played</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('start_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="start_rate" name="" class="i-checks choose-metric" id="start_rate" data-label="Start Played (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="start_rate" class="col-sm-10 text-left hover">Start Played (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('first_quartile') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="first_quartile" name="" class="i-checks choose-metric" id="first_quartile" data-label="25% Played" onclick="addMetric($(this))" ' + checked + ' /></div><label for="first_quartile" class="col-sm-10 text-left hover">25% Played</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('first_quartile_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="first_quartile_rate" name="" class="i-checks choose-metric" id="first_quartile_rate" data-label="25% Played (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="first_quartile_rate" class="col-sm-10 text-left hover">25% Played (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('midpoint') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="midpoint" name="" class="i-checks choose-metric" id="midpoint" data-label="50% Played" onclick="addMetric($(this))" ' + checked + ' /></div><label for="midpoint" class="col-sm-10 text-left hover">50% Played</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('midpoint_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="midpoint_rate" name="" class="i-checks choose-metric" id="midpoint_rate" data-label="50% Played (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="midpoint_rate" class="col-sm-10 text-left hover">50% Played (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('third_quartile') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="third_quartile" name="" class="i-checks choose-metric" id="third_quartile" data-label="75% Played" onclick="addMetric($(this))" ' + checked + ' /></div><label for="third_quartile" class="col-sm-10 text-left hover">75% Played</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('third_quartile_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="third_quartile_rate" name="" class="i-checks choose-metric" id="third_quartile_rate" data-label="75% Played (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="third_quartile_rate" class="col-sm-10 text-left hover">75% Played (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('complete') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="complete" name="" class="i-checks choose-metric" id="complete" data-label="Full Played" onclick="addMetric($(this))" ' + checked + ' /></div><label for="complete" class="col-sm-10 text-left hover">Full Played</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('complete_rate') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="complete_rate" name="" class="i-checks choose-metric" id="complete_rate" data-label="Full Played (%)" onclick="addMetric($(this))" ' + checked + ' /></div><label for="complete_rate" class="col-sm-10 text-left hover">Full Played (%)</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('cost_paid') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="cost_paid" name="" class="i-checks choose-metric" id="cost_paid" data-label="Spending" onclick="addMetric($(this))" ' + checked + ' /></div><label for="cost_paid" class="col-sm-10 text-left hover">Spending</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('adv_unit_cost') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="adv_unit_cost" name="" class="i-checks choose-metric" id="adv_unit_cost" data-label="Adv Unit Cost" onclick="addMetric($(this))" ' + checked + ' /></div><label for="adv_unit_cost" class="col-sm-10 text-left hover">Adv Unit Cost</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('cost_received') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="cost_received" name="" class="i-checks choose-metric" id="cost_received" data-label="Cost Received" onclick="addMetric($(this))" ' + checked + ' /></div><label for="cost_received" class="col-sm-10 text-left hover">Cost Received</label></div>'
+                var checked = '';
+        if (dimensions.length > 0 && dimensions.indexOf('pub_unit_cost') !== -1) {
+            checked = 'checked';
+        }
+        html += '<div class="col-sm-6"><div class="col-sm-1"><input type="checkbox" value="pub_unit_cost" name="" class="i-checks choose-metric" id="pub_unit_cost" data-label="Pub Unit Cost" onclick="addMetric($(this))" ' + checked + ' /></div><label for="pub_unit_cost" class="col-sm-10 text-left hover">Pub Unit Cost</label></div>'
+                        html = '<div class="row">' + html + '</div>';
+        var footer = '<button type="button" id="btn-close-metric" class="btn btn-primary">Close</button>';
+        showModalDialog('Metrics', html, footer);
+        $('#btn-close-metric').click(function() {
+            hideModalDialog();
+        });
+    }
+
+    function addDimension(e) {
+        if (e.is(':checked')) {
+            $('#dimensions-selected').append($('<li class="ui-sortable-handle"><span class="m-l-xs">' + e.data('label') + '</span><button aria-hidden="true" data-value="' + e.val() + '" class="close" type="button" onclick="removeDimension($(this));">×</button></li>'));
+        } else {
+            if ($('#dimensions-selected > li > button[data-value="' + e.val() + '"]')) {
+                $('#dimensions-selected > li > button[data-value="' + e.val() + '"]').parent().remove();
+            }
+        }
+    }
+
+    function addMetric(e) {
+        if (e.is(':checked')) {
+            $('#metrics-selected').append($('<li class="ui-sortable-handle"><span class="m-l-xs">' + e.data('label') + '</span><button aria-hidden="true" data-value="' + e.val() + '" class="close" type="button" onclick="removeMetric($(this));">×</button></li>'));
+        } else {
+            if ($('#metrics-selected > li > button[data-value="' + e.val() + '"]')) {
+                $('#metrics-selected > li > button[data-value="' + e.val() + '"]').parent().remove();
+            }
+        }
+    }
+
+    function getSelected(id) {
+        var selected = [];
+        $('#' + id + ' > li > button').each(function( index ) {
+            selected.push($(this).data('value'));
+        });
+        return selected;
+    }
+
+    function removeDimension(e) {
+        e.parent().remove();
+    }
+
+    function removeMetric(e) {
+        e.parent().remove();
+    }
+    
+    function filterCampaignModal(object) {
+        var campaignGrid = $("#filter-campaign-grid").jqGrid({
+            url: '/api/campaigns',
+            datatype: 'json',
+            colModel:[
+                {label: 'ID', name: 'id', hidden: true, key: false, frozen: true},
+                {label: 'Campaign Name', name: 'campaign_name', search: true, width: 400, searchoptions: {sopt: ["cn"]}},
+                {label: 'Booking Code', name: 'booking_code', search: true, width: 150, searchoptions: {sopt: ["cn"]}},	
+                {label: 'Account', name: 'account_name', search: true, width: 150, searchoptions: {sopt: ["cn"]}}	
+            ],
+            height: 400,
+            autowidth: false,
+            shrinkToFit: false,
+            multiselect: true,
+            viewrecords: true,
+            sortname: 'created_at',
+            sortorder: 'desc',
+            rowNum: 20,
+            rowList: [10, 20, 50, 100, 200, 500, 1000],
+            pager: '#filter-campaign-page',
+            loadComplete: function (data) {
+                var selected = selectedFilter('campaign');
+                for (var i = 0; i < selected.length; i++) {
+                    var rowData = campaignGrid.getRowData(selected[i]);
+                    if (Object.keys(rowData).length > 0 && rowData.constructor === Object) {
+                        campaignGrid.jqGrid('setSelection', selected[i], true);
+                    }
+                }
+            },
+            onSelectRow: function (rowid, status) {
+                var rowData = campaignGrid.getRowData(rowid);
+                if (status) {
+                    addFilterItem('campaign', rowData);
+                } else {
+                    removeFilterItemByData('campaign', rowData);
+                }
+            },
+            onSelectAll: function(aRowids, status) {
+                for (var i = 0; i < aRowids.length; i++) {
+                    var rowData = campaignGrid.getRowData(aRowids[i]);
+                    if (status) {
+                        addFilterItem('campaign', rowData);
+                    } else {
+                        removeFilterItemByData('campaign', rowData);
+                    }
+                }
+            }
+        }); 
+        $("#filter-campaign-grid").jqGrid('filterToolbar',{stringResult: true, searchOperators: false});
+    }
+    
+    function filterFlightModal(object) {
+        var flightGrid = $("#filter-flight-grid").jqGrid({
+            url: '/api/flights',
+            datatype: 'json',
+            colModel:[
+                {label: 'ID', name: 'id', hidden: true, key: false, frozen: true},
+                {label: 'Flight Name', name: 'flight_name', search: true, width: 400, searchoptions: {sopt: ["cn"]}},
+                {label: 'Campaign Name', name: 'campaign_name', search: true, width: 400, searchoptions: {sopt: ["cn"]}},	
+                {label: 'Account', name: 'account_name', search: true, width: 150, searchoptions: {sopt: ["cn"]}}	
+            ],
+            height: 400,
+            autowidth: false,
+            shrinkToFit: false,
+            multiselect: true,
+            viewrecords: true,
+            sortname: 'created_at',
+            sortorder: 'desc',
+            rowNum: 20,
+            rowList: [10, 20, 50, 100, 200, 500, 1000],
+            pager: '#filter-flight-page',
+            loadComplete: function (data) {
+                var selected = selectedFilter('flight');
+                for (var i = 0; i < selected.length; i++) {
+                    var rowData = flightGrid.getRowData(selected[i]);
+                    if (Object.keys(rowData).length > 0 && rowData.constructor === Object) {
+                        flightGrid.jqGrid('setSelection', selected[i], true);
+                    }
+                }
+            },
+            onSelectRow: function (rowid, status) {
+                var rowData = flightGrid.getRowData(rowid);
+                if (status) {
+                    addFilterItem('flight', rowData);
+                } else {
+                    removeFilterItemByData('flight', rowData);
+                }
+            },
+            onSelectAll: function(aRowids, status) {
+                for (var i = 0; i < aRowids.length; i++) {
+                    var rowData = flightGrid.getRowData(aRowids[i]);
+                    if (status) {
+                        addFilterItem('flight', rowData);
+                    } else {
+                        removeFilterItemByData('flight', rowData);
+                    }
+                }
+            }
+        }); 
+        $("#filter-flight-grid").jqGrid('filterToolbar',{stringResult: true, searchOperators: false});
+    }
+
+    function filterWebsiteModal(object) {
+        var websiteGrid = $("#filter-website-grid").jqGrid({
+            url: '/api/websites',
+            datatype: 'json',
+            colModel:[
+                {label: 'ID', name: 'id', hidden: true, key: false, frozen: true},
+                {label: 'Website Name', name: 'website_name', search: true, width: 300, searchoptions: {sopt: ["cn"]}},
+                // {label: 'Domain', name: 'domain', search: true, width: 200, searchoptions: {sopt: ["cn"]}},	
+                // {label: 'Account', name: 'account_name', search: true, width: 350, searchoptions: {sopt: ["cn"]}}	
+            ],
+            height: 400,
+            autowidth: false,
+            shrinkToFit: false,
+            multiselect: true,
+            viewrecords: true,
+            sortname: 'created_at',
+            sortorder: 'desc',
+            rowNum: 20,
+            rowList: [10, 20, 50, 100, 200, 500, 1000],
+            pager: '#filter-website-page',
+            loadComplete: function (data) {
+                var selected = selectedFilter('website');
+                for (var i = 0; i < selected.length; i++) {
+                    var rowData = websiteGrid.getRowData(selected[i]);
+                    if (Object.keys(rowData).length > 0 && rowData.constructor === Object) {
+                        websiteGrid.jqGrid('setSelection', selected[i], true);
+                    }
+                }
+            },
+            onSelectRow: function (rowid, status) {
+                var rowData = websiteGrid.getRowData(rowid);
+                if (status) {
+                    addFilterItem('website', rowData);
+                } else {
+                    removeFilterItemByData('website', rowData);
+                }
+            },
+            onSelectAll: function(aRowids, status) {
+                for (var i = 0; i < aRowids.length; i++) {
+                    var rowData = websiteGrid.getRowData(aRowids[i]);
+                    if (status) {
+                        addFilterItem('website', rowData);
+                    } else {
+                        removeFilterItemByData('website', rowData);
+                    }
+                }
+            }
+        }); 
+        $("#filter-website-grid").jqGrid('filterToolbar',{stringResult: true, searchOperators: false});
+    }
+
+    function addFilterItem(entity, data) {
+        var selected = selectedFilter(entity);
+        if (selected.indexOf(parseInt(data.id)) === -1) {
+            $(`#filter-${entity}-selected`).append($(`<li class="filter-item"><span class="m-l-xs">${data[`${entity}_name`]}</span><button aria-hidden="true" data-entity="${entity}" data-id="${data.id}" class="close" type="button" onclick="removeFilterItem($(this));">×</button></li>` ));
+        }
+    }
+
+    function removeFilterItem(e) {
+        e.parent().remove();
+        $(`#filter-${e.data('entity')}-grid`).jqGrid('setSelection', e.data('id'), false);
+    }
+
+    function removeFilterItemByData(entity, data) {
+        if ($(`#filter-${entity}-selected > li > button[data-id="${data.id}"]`)) {
+            $(`#filter-${entity}-selected > li > button[data-id="${data.id}"]`).parent().remove();
+        }
+    }
+
+    function selectedFilter(entity) {
+        var selected = [];
+        $(`#filter-${entity}-selected > li > button`).each(function( index ) {
+            selected.push($(this).data('id'));
+        });
+        return selected;
+    }
+
+    function cbDateRange(start, end) {
+        if ($('#txt_idDateRange').val()) {
+            $('#dateRange span').html($('#txt_idDateRange').val());
+        } else {
+            $('#dateRange span').html(start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
+        }            
+        $('#txtDateRangeStartDate').val(start.format('YYYY-MM-DD'));
+        $('#txtDateRangeEndDate').val(end.format('YYYY-MM-DD'));
+         
+        checkDimension(start, end);
+            }
+    function checkDimension(start, end) {
+        var diffDays = moment().diff(start, 'days');
+        if (diffDays > 92) {
+            var dimensions = getSelected('dimensions-selected'); 
+            for (var i=0; i < dimensions.length; i++) {
+                if (lock_column.indexOf(dimensions[i]) !== -1) {
+                    removeDimension($(`#dimensions-selected > li > button[data-value='${dimensions[i]}']`));
+                }
+            }
+        }
+    }
+    function getExactDate(type) {
+        var date = {};
+        switch (type) {
+            case 'today':
+                date.start = moment().startOf('day');
+                date.end = moment().endOf('day');
+                break;
+            case 'yesterday':
+                date.start = moment().subtract(1, 'days').endOf('day');
+                date.end = moment().subtract(1, 'days').endOf('day');
+                break;
+            case 'this_week':
+                date.start = moment().startOf('isoWeek');
+                date.end = moment().endOf('isoWeek');
+                break;
+            case 'last_week':
+                date.start = moment().subtract(1, 'week').startOf('isoWeek');
+                date.end = moment().subtract(1, 'week').endOf('isoWeek');
+                break;  
+            case 'this_month':
+                date.start = moment().startOf('month');
+                date.end = moment().endOf('month');
+                break;
+            case 'last_month':
+                date.start = moment().subtract(1, 'month').startOf('month');
+                date.end = moment().subtract(1, 'month').endOf('month');
+                break;  
+            default:
+                date.start = moment().startOf('day');
+                date.end = moment().endOf('day');
+                break;
+        }
+        return date;
+    }
+    function getRange() {
+        return {
+            'Today': [moment().startOf('day'), moment().endOf('day')],
+            'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
+            'This Week': [moment().startOf('isoWeek'), moment().endOf('isoWeek')],
+            'Last Week': [moment().subtract(1, 'week').startOf('isoWeek'), moment().subtract(1, 'week').endOf('isoWeek')],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],   
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        };
+    }
+
+    function getParam() {
+        return data = {
+            start_date: $('#txtDateRangeStartDate').val() || '',
+            end_date: $('#txtDateRangeEndDate').val() || '',
+            timezone: $('#optTimezones').val(),
+            ad_view: $('#optAdViews').val(),
+            ad_format: $('#optAdformats').val(),
+            advertiser: $('#optAdvertisers').val(),
+            publisher: $('#optPublishers').val(),
+            campaign: selectedFilter('campaign'),
+            flight: selectedFilter('flight'),
+            website: selectedFilter('website'),
+            dimension: getSelected('dimensions-selected'),
+            metric: getSelected('metrics-selected'),
+            report_type: $('#optReportType').val(),
+            report_dco: $('#optReportDco').val()
+        };
+
+    }
+
+    function showList(data) {
+        $('#btnExport').prop('disabled', true);
+        var sortColumnName = $("#ListGrid").jqGrid('getGridParam','sortname');
+        var sortOrder = $("#ListGrid").jqGrid('getGridParam','sortorder');
+        $('#show-list').html('<table id="ListGrid"></table><div id="ListPager"></div>');
+        var colModel = [];
+        data.dimension.forEach(function(item) {
+            var configColumn = getConfigColumn(item);
+            if (configColumn) {
+                colModel.push(configColumn);
+            }
+        });
+        if (!sortColumnName && data.dimension[0] == 'daily') {
+            sortColumnName = 'daily';
+            sortOrder = 'asc';
+        }
+        if (!sortColumnName || data.dimension.indexOf(sortColumnName) === -1) {
+            sortColumnName = data.metric[0];
+            sortOrder = 'desc';
+        } 
+        data.metric.forEach(function(item) {
+            var configColumn = getConfigColumn(item);
+            if (configColumn) {
+                colModel.push(configColumn);
+                if (item == 'adv_unit_cost') {
+                    colModel.push(getConfigColumn('adv_buying_model'));
+                }
+                if (item == 'pub_unit_cost') {
+                    colModel.push(getConfigColumn('pub_buying_model'));
+                }
+            }
+        });
+        data.au = 1;
+        $("#ListGrid").jqGrid({
+            url: $('form[name="filter_analytics"]').attr('action'),
+            postData: data,
+            datatype: 'json',
+            mtype: 'get',
+            colModel: colModel,
+            height: 450,
+            autowidth: true,
+            shrinkToFit: false,
+            multiselect: true,
+            viewrecords: true,
+            rowNum: 20,
+            rowList: [10, 20, 50, 100, 500],
+            pager: '#ListPager',
+            sortname: sortColumnName,
+            sortorder: sortOrder,
+            footerrow: true,
+            userDataOnFooter: true,
+            loadonce:true,
+            loadComplete: function (data) {
+                var {lock_column} = data;
+                if (lock_column && lock_column.length > 0) {
+                    for (var i=0; i<lock_column.length; i++) {
+                        $("#ListGrid").jqGrid('hideCol', lock_column[i]);
+                    }
+                }
+                $('#btnExport').prop('disabled', false);
+            },
+            loadError : function(jqXhr, st, str){
+                $('#btnExport').prop('disabled', true);
+                if (jqXhr.status === 401) {
+                    $(location).prop('pathname', 'auth/login');
+                }
+            }
+        });        
+        $("#ListGrid").jqGrid('hideCol', 'cb');  
+        $("#ListGrid").jqGrid("setFrozenColumns");
+    }
+
+    function formatAmount(v, o, r) {
+        return accounting.formatMoney(v, '', 2, ',', '.', '%v %s');
+    }
+
+    function formatNumber(v, o, r) {
+        var ovr = o.colModel.name + '_ovr';
+        var value = accounting.formatNumber(v, '0', ',', '.');
+        return  value;
+    }
+
+    function formatPercent(v, o, r) {
+        return accounting.formatNumber(v, 2, ',', '.') ;
+    }
+
+    function getConfigColumn(name) {
+        var columns = {
+            daily: {label: 'Date', name: 'daily', align: 'center', width: 80},
+            ad_format: {label: 'Ad Format', name: 'ad_format', align: 'left', width: 300},
+            ad_unit: {label: 'Ad Unit', name: 'ad_unit', align: 'left', width: 200},
+            ad_view: {label: 'Ad View', name: 'ad_view', align: 'left', width: 100},
+            advertiser: {label: 'Advertiser', name: 'advertiser', align: 'left', width: 100},
+            banner: {label: 'Banner', name: 'banner', align: 'left', width: 300},
+            os: {label: 'OS', name: 'os', align: 'left', width: 100},
+            browser: {label: 'Browser', name: 'browser', align: 'left', width: 100},
+            campaign: {label: 'Campaign', name: 'campaign', align: 'left', width: 300},
+            country: {label: 'Country', name: 'country', align: 'left', width: 100},
+            city: {label: 'City', name: 'city', align: 'left', width: 100, formatter: formatShowEmpty},
+            domain: {label: 'Domain', name: 'domain', align: 'left', width: 150},
+            flight: {label: 'Flight', name: 'flight', align: 'left', width: 300},
+            placement: {label: 'Placement', name: 'placement', align: 'left', width: 150},
+            platform: {label: 'Platform', name: 'platform', align: 'left', width: 100},
+            website: {label: 'Website', name: 'website', align: 'left', width: 150},
+            zone: {label: 'Zone', name: 'zone', align: 'left', width: 100},
+            keyword: {label: 'Keyword', name: 'keyword', align: 'left', width: 150},
+            adv_buying_model: {label: 'Adv Buying Model', name: 'adv_buying_model', align: 'center', width: 150, formatter: upperCase},
+            pub_buying_model: {label: 'Pub Buying Model', name: 'pub_buying_model', align: 'center', width: 150, formatter: upperCase},
+            impression: {label: 'Impression', name: 'impression', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            reach: {label: 'Reach', name: 'reach', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            frequency: {label: 'Frequency Imps', name: 'frequency', width: 120, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            click: {label: 'Click', name: 'click', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            ctr: {label: 'CTR (%)', name: 'ctr', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            viewable: {label: 'Viewability', name: 'viewable', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            viewable_rate: {label: 'Viewability (%)', name: 'viewable_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            start: {label: 'Start Played', name: 'start', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            start_rate: {label: 'Start Played (%)', name: 'start_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            first_quartile: {label: '25% Played', name: 'first_quartile', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            first_quartile_rate: {label: '25% Played (%)', name: 'first_quartile_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            midpoint: {label: '50% Played', name: 'midpoint', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            midpoint_rate: {label: '50% Played (%)', name: 'midpoint_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            third_quartile: {label: '75% Played', name: 'third_quartile', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            third_quartile_rate: {label: '75% Played (%)', name: 'third_quartile_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            complete: {label: 'Full Played', name: 'complete', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            complete_rate: {label: 'Full Played (%)', name: 'complete_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            cost_paid: {label: 'Spending', name: 'cost_paid', width: 120, align: 'right', formatter: formatAmount, sorttype: 'number'},
+            adv_unit_cost: {label: 'Unit Cost (Adv)', name: 'adv_unit_cost', width: 100, align: 'right', formatter: formatAmount, sorttype: 'number'},
+            adv_buying_model: {label: 'Buying Model (Adv)', name: 'adv_buying_model', align: 'center', width: 150, formatter: upperCase},
+            cost_received: {label: 'Cost Received', name: 'cost_received', width: 120, align: 'right', formatter: formatAmount, sorttype: 'number'},
+            pub_unit_cost: {label: 'Unit Cost (Pub)', name: 'pub_unit_cost', width: 100, align: 'right', formatter: formatAmount, sorttype: 'number'},
+            pub_buying_model: {label: 'Buying Model (Pub)', name: 'pub_buying_model', align: 'center', width: 150, formatter: upperCase},
+            age: {label: 'Age', name: 'age', align: 'left', width: 100, formatter: formatShowEmpty},
+            gender: {label: 'Gender', name: 'gender', align: 'left', width: 100, formatter: formatShowEmpty},
+            intarget_impression: {label: 'Intarget Impression', name: 'intarget_impression', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            intarget_impression_rate: {label: 'Intarget Impression (%)', name: 'intarget_impression_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            intarget_click: {label: 'Intarget Click', name: 'intarget_click', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            intarget_click_rate: {label: 'Intarget Click (%)', name: 'intarget_click_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+            intarget_complete: {label: 'Intarget Full Played', name: 'intarget_complete', width: 100, align: 'right', formatter: formatNumber, sorttype: 'number'},
+            intarget_complete_rate: {label: 'Intarget Full Played (%)', name: 'intarget_complete_rate', width: 100, align: 'right', formatter: formatPercent, sorttype: 'number'},
+        };
+
+        return columns[name];
+    }
+
+    function loadChosen(){
+        var config = {
+            '.chosen-select'           : {width:"100%", placeholder_text_multiple: "None", search_contains: true},
+            '.chosen-select-deselect'  : {allow_single_deselect:true, placeholder_text_multiple: "None", search_contains: true},
+            '.chosen-select-no-single' : {disable_search_threshold:10, placeholder_text_multiple: "None", search_contains: true},
+            '.chosen-select-no-results': {no_results_text:'Oops, nothing found!', placeholder_text_multiple: "None", search_contains: true},
+            '.chosen-select-width'     : {width:"100%", placeholder_text_multiple: "None", search_contains: true}
+        }
+        for (var selector in config) {
+            $(selector).chosen(config[selector]);
+        }
+    }
+    function loadColumn() {
+        var cache = localStorage.getItem('yo:rpsn:col:24a678fb0a1a4a9684e72e9e404968b5');
+        var defaultDimension = ['ad_format'];
+        var defaultMetric = ['impression', 'reach', 'click'];
+        if (cache) {
+            var beforeColumns = JSON.parse(cache);
+            if (typeof beforeColumns.dimension) {
+                defaultDimension = beforeColumns.dimension;
+            }
+            if (typeof beforeColumns.metric) {
+                defaultMetric = beforeColumns.metric;
+            }
+        }
+        defaultDimension.forEach(function(d) {
+            var item = getConfigColumn(d);
+            $('#dimensions-selected').append($('<li class="ui-sortable-handle"><span class="m-l-xs">' + (item ? item.label : '') + '</span><button aria-hidden="true" data-value="' + d + '" class="close" type="button" onclick="removeDimension($(this));">×</button></li>'));
+        });
+        defaultMetric.forEach(function(m) {
+            var item = getConfigColumn(m);
+            $('#metrics-selected').append($('<li class="ui-sortable-handle"><span class="m-l-xs">' + (item ? item.label : '') + '</span><button aria-hidden="true" data-value="' + m + '" class="close" type="button" onclick="removeMetric($(this));">×</button></li>'));
+        });
+    }
+    function exportFile(format) {
+        var method = 'exportToExcel';
+        switch(format) {
+            case 'xlsx':
+                method = 'exportToExcel';
+                break;
+            case 'csv':
+                method = 'exportToCsv';
+                break;
+        }
+        $("#ListGrid").jqGrid(method, {
+            includeLabels : true,
+            includeGroupHeader : true,
+            includeFooter: true,
+            fileName : 'yomedia_analytic.' + format
+        });
+    }
+    function formatShowEmpty(v, o, r) {
+        var text = v;
+        if (text == '-1' || text == null) {
+            text = '';
+        }
+        return text;
+    }
+    function upperCase(v, o, r) {
+        if (!v) return '';
+        return v.toUpperCase(); 
+    }
+</script>
+        
+    </body>
+</html>

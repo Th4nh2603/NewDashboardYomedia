@@ -3,13 +3,13 @@ import type { Request } from "express";
 import {
   buildVerifiedAuth,
   type VerifiedAuth,
-} from "../lib/auth/clerkAuth.js";
+} from "../modules/auth/lib/clerkAuth.js";
 import {
   getBearerToken,
   isClerkAuthConfigured,
   verifyClerkBearerToken,
-} from "../lib/auth/clerkVerify.js";
-import { migrateLegacyRoleKey } from "../lib/auth/accounts.js";
+} from "../modules/auth/lib/clerkVerify.js";
+import { migrateLegacyRoleKey } from "../modules/auth/lib/accounts.js";
 
 export type TrpcContext = {
   req: Request;

@@ -5,6 +5,1227 @@
   ],
   "records": [
     {
+      "id": "act_1781261416419_1u3c9p",
+      "createdAt": "2026-06-12T10:50:16.410Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781261408906",
+        "memoryTurns": 0,
+        "requestId": "771ce307-0809-4f27-a4df-86bb506e7ba5",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "771ce307-0809-4f27-a4df-86bb506e7ba5",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781261413062,
+              "endedAt": 1781261416406,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 3351
+        }
+      }
+    },
+    {
+      "id": "act_1781257766271_k4g1vr",
+      "createdAt": "2026-06-12T09:49:26.266Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation about AI model"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781255235772",
+        "memoryTurns": 4,
+        "requestId": "679ce3a3-6bd0-4816-b8b8-3f25cce901af",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "679ce3a3-6bd0-4816-b8b8-3f25cce901af",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.8,
+            "reason": "general conversation about AI model",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781257760973,
+              "endedAt": 1781257766265,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 6826
+        }
+      }
+    },
+    {
+      "id": "act_1781257745133_ngpl56",
+      "createdAt": "2026-06-12T09:49:05.124Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.8,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781255235772",
+        "memoryTurns": 2,
+        "requestId": "a9914939-b9fb-4f94-a966-450a0b6d4d80",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "a9914939-b9fb-4f94-a966-450a0b6d4d80",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.8,
+            "reason": "general conversation",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781257743696,
+              "endedAt": 1781257745123,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 3393
+        }
+      }
+    },
+    {
+      "id": "act_1781255242342_3cctc1",
+      "createdAt": "2026-06-12T09:07:22.338Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781255235772",
+        "memoryTurns": 0,
+        "requestId": "ec0c48bb-1981-4540-b529-c472e165617e",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "ec0c48bb-1981-4540-b529-c472e165617e",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general greeting",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781255241372,
+              "endedAt": 1781255242338,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 3257
+        }
+      }
+    },
+    {
+      "id": "act_1781254389713_qluajg",
+      "createdAt": "2026-06-12T08:53:09.709Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "Matched rag agent"
+        },
+        "classifierSource": "rule_fallback",
+        "sessionId": "c-1781253967219",
+        "memoryTurns": 0,
+        "requestId": "54cd0bd7-d255-48c4-a06d-8f2552044fc0",
+        "agents": [
+          "rag"
+        ],
+        "agent": "rag",
+        "trace": {
+          "requestId": "54cd0bd7-d255-48c4-a06d-8f2552044fc0",
+          "route": {
+            "intent": "knowledge_qa",
+            "agent": "rag",
+            "agents": [
+              "rag"
+            ],
+            "confidence": 0.8,
+            "reason": "Matched rag agent",
+            "source": "rule_fallback"
+          },
+          "spans": [
+            {
+              "agent": "rag",
+              "startedAt": 1781254387658,
+              "endedAt": 1781254389708,
+              "ok": true,
+              "confidence": 0.8,
+              "sources": [
+                "yomedia-demo-guide.md"
+              ]
+            }
+          ],
+          "totalMs": 2059
+        }
+      }
+    },
+    {
+      "id": "act_1781254375899_lxfdnl",
+      "createdAt": "2026-06-12T08:52:55.843Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781249289521",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781250422659_7f7rzp",
+      "createdAt": "2026-06-12T07:47:02.651Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781250207648",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781249769896_2tyxkp",
+      "createdAt": "2026-06-12T07:36:09.892Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 2,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781249600653",
+        "memoryTurns": 4,
+        "requestId": "6806a440-360b-4a58-bc75-8d949ef54cfa",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "6806a440-360b-4a58-bc75-8d949ef54cfa",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781249765767,
+              "endedAt": 1781249769892,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 4126
+        }
+      }
+    },
+    {
+      "id": "act_1781249713601_unmb2w",
+      "createdAt": "2026-06-12T07:35:13.598Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 2,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781249600653",
+        "memoryTurns": 2,
+        "requestId": "70506472-4766-4fb4-bd4a-13c5ae91aa3c",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "70506472-4766-4fb4-bd4a-13c5ae91aa3c",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781249709527,
+              "endedAt": 1781249713597,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 4070
+        }
+      }
+    },
+    {
+      "id": "act_1781249621534_biv7e9",
+      "createdAt": "2026-06-12T07:33:41.529Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 2,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781249600653",
+        "memoryTurns": 0,
+        "requestId": "83c415b1-ae44-4980-a5de-25358ac00635",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "83c415b1-ae44-4980-a5de-25358ac00635",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781249617055,
+              "endedAt": 1781249621528,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 4477
+        }
+      }
+    },
+    {
+      "id": "act_1781235594806_dga8ls",
+      "createdAt": "2026-06-12T03:39:54.802Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: compress_demo_assets",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 12,
+        "requestId": "0845b2ae-6bd0-4e2e-99cc-fca1e8f3612c",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "compress_demo_assets",
+        "trace": {
+          "requestId": "0845b2ae-6bd0-4e2e-99cc-fca1e8f3612c",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781235593577,
+              "endedAt": 1781235594802,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "compress_demo_assets"
+            }
+          ],
+          "totalMs": 1226
+        }
+      }
+    },
+    {
+      "id": "act_1781235040668_gsqriu",
+      "createdAt": "2026-06-12T03:30:40.665Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: compress_demo_assets",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 10,
+        "requestId": "df98cc11-df2a-44a1-971c-7ed9d3c8a1d4",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "compress_demo_assets",
+        "trace": {
+          "requestId": "df98cc11-df2a-44a1-971c-7ed9d3c8a1d4",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781235038995,
+              "endedAt": 1781235040664,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "compress_demo_assets"
+            }
+          ],
+          "totalMs": 1670
+        }
+      }
+    },
+    {
+      "id": "act_1781234880703_7zr7ju",
+      "createdAt": "2026-06-12T03:28:00.699Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "knowledge_qa",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "yomedia-demo-guide.md"
+        ],
+        "classifier": {
+          "intent": "knowledge_qa",
+          "confidence": 0.8,
+          "reason": "Matched rag agent"
+        },
+        "classifierSource": "rule_fallback",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 8,
+        "requestId": "72821875-087f-46f8-97bb-43cb645b0d40",
+        "agents": [
+          "rag"
+        ],
+        "agent": "rag",
+        "trace": {
+          "requestId": "72821875-087f-46f8-97bb-43cb645b0d40",
+          "route": {
+            "intent": "knowledge_qa",
+            "agent": "rag",
+            "agents": [
+              "rag"
+            ],
+            "confidence": 0.8,
+            "reason": "Matched rag agent",
+            "source": "rule_fallback"
+          },
+          "spans": [
+            {
+              "agent": "rag",
+              "startedAt": 1781234879230,
+              "endedAt": 1781234880699,
+              "ok": true,
+              "confidence": 0.8,
+              "sources": [
+                "yomedia-demo-guide.md"
+              ]
+            }
+          ],
+          "totalMs": 1470
+        }
+      }
+    },
+    {
+      "id": "act_1781234854123_3evig4",
+      "createdAt": "2026-06-12T03:27:34.120Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 6,
+        "requestId": "8d46581f-5527-4fce-8b0f-bf23a710c15c",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "8d46581f-5527-4fce-8b0f-bf23a710c15c",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781234848558,
+              "endedAt": 1781234854119,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 5561
+        }
+      }
+    },
+    {
+      "id": "act_1781234816877_bpj2wo",
+      "createdAt": "2026-06-12T03:26:56.873Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 4,
+        "requestId": "f65536b0-6360-425d-9df6-5caa3eb0e4ea",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "f65536b0-6360-425d-9df6-5caa3eb0e4ea",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781234814951,
+              "endedAt": 1781234816873,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 1922
+        }
+      }
+    },
+    {
+      "id": "act_1781234811277_ccijt3",
+      "createdAt": "2026-06-12T03:26:51.273Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 2,
+        "requestId": "a5531064-3b93-4d07-b52c-4baa8c8c8bd6",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "a5531064-3b93-4d07-b52c-4baa8c8c8bd6",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781234809371,
+              "endedAt": 1781234811273,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 1904
+        }
+      }
+    },
+    {
+      "id": "act_1781234781323_h31arr",
+      "createdAt": "2026-06-12T03:26:21.320Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_tool_called",
+      "area": "Chat",
+      "description": "Tool executed: upload_sftp_demo",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "actions",
+        "requestedProvider": "gemini",
+        "usedProvider": "gemini",
+        "attachments": 1,
+        "sources": [],
+        "classifier": {
+          "intent": "actions",
+          "confidence": 0.95,
+          "reason": "Matched action/tool keyword"
+        },
+        "classifierSource": "rule_tool",
+        "sessionId": "c-1781234758906",
+        "memoryTurns": 0,
+        "requestId": "43a19df8-58e9-4e4a-8e7c-b1005b7c62ac",
+        "agents": [
+          "actions"
+        ],
+        "agent": "actions",
+        "tool": "upload_sftp_demo",
+        "trace": {
+          "requestId": "43a19df8-58e9-4e4a-8e7c-b1005b7c62ac",
+          "route": {
+            "intent": "actions",
+            "agent": "actions",
+            "agents": [
+              "actions"
+            ],
+            "confidence": 0.95,
+            "reason": "Matched action/tool keyword",
+            "source": "rule_tool"
+          },
+          "spans": [
+            {
+              "agent": "actions",
+              "startedAt": 1781234781062,
+              "endedAt": 1781234781319,
+              "ok": true,
+              "confidence": 0.95,
+              "toolCalled": "upload_sftp_demo"
+            }
+          ],
+          "totalMs": 262
+        }
+      }
+    },
+    {
+      "id": "act_1781233311337_l4rjo0",
+      "createdAt": "2026-06-12T03:01:51.282Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1781166387072_0evorx",
+      "createdAt": "2026-06-11T08:26:27.064Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation about a book/movie"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781166360401",
+        "memoryTurns": 0,
+        "requestId": "c2d8feb8-15f4-4d6f-a9d7-b212e6b05dcd",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "c2d8feb8-15f4-4d6f-a9d7-b212e6b05dcd",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general conversation about a book/movie",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781166384693,
+              "endedAt": 1781166387063,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 6213
+        }
+      }
+    },
+    {
+      "id": "act_1781151263488_9qdcvo",
+      "createdAt": "2026-06-11T04:14:23.463Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781146887820",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781150827409_9w7c4z",
+      "createdAt": "2026-06-11T04:07:07.399Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1781147503092_s24gr8",
+      "createdAt": "2026-06-11T03:11:43.086Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_provider_failed",
+      "area": "Chat",
+      "description": "SQL Agent chưa sẵn sàng. Cấu hình MYSQL_HOST, MYSQL_USER, MYSQL_DATABASE, MYSQL_PASSWORD và MYSQL_ALLOWED_TABLES trên server.",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "sql_query",
+        "requestedProvider": "openai",
+        "requestId": "58c04f8b-ff17-495c-8f8c-54bdf71276fb",
+        "agents": [
+          "sql"
+        ],
+        "trace": {
+          "route": {
+            "intent": "sql_query",
+            "agent": "sql",
+            "agents": [
+              "sql"
+            ],
+            "confidence": 0.8,
+            "reason": "Matched sql agent",
+            "source": "rule_fallback"
+          },
+          "spans": [
+            {
+              "agent": "sql",
+              "startedAt": 1781147503086,
+              "endedAt": 1781147503086,
+              "ok": false,
+              "error": "MySQL not configured"
+            }
+          ],
+          "totalMs": 1
+        }
+      }
+    },
+    {
+      "id": "act_1781147478815_tjcl2y",
+      "createdAt": "2026-06-11T03:11:18.809Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "dashboard_insight",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [
+          "activity-log"
+        ],
+        "classifier": {
+          "intent": "dashboard_insight",
+          "confidence": 0.8,
+          "reason": "Matched dashboard agent"
+        },
+        "classifierSource": "rule_fallback",
+        "sessionId": "c-1781147456041",
+        "memoryTurns": 2,
+        "requestId": "e8887ef3-66b2-4949-ac9a-1c91b9a4247d",
+        "agents": [
+          "dashboard"
+        ],
+        "agent": "dashboard",
+        "trace": {
+          "requestId": "e8887ef3-66b2-4949-ac9a-1c91b9a4247d",
+          "route": {
+            "intent": "dashboard_insight",
+            "agent": "dashboard",
+            "agents": [
+              "dashboard"
+            ],
+            "confidence": 0.8,
+            "reason": "Matched dashboard agent",
+            "source": "rule_fallback"
+          },
+          "spans": [
+            {
+              "agent": "dashboard",
+              "startedAt": 1781147477057,
+              "endedAt": 1781147478809,
+              "ok": true,
+              "confidence": 0.82,
+              "sources": [
+                "activity-log"
+              ]
+            }
+          ],
+          "totalMs": 1754
+        }
+      }
+    },
+    {
+      "id": "act_1781147465602_5jupol",
+      "createdAt": "2026-06-11T03:11:05.595Z",
+      "userName": "thanh.ntm@pinetech.vn",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "manager",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general conversation"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781147456041",
+        "memoryTurns": 0,
+        "requestId": "dfeeae7f-2763-4020-8ab8-a6db09e713eb",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "dfeeae7f-2763-4020-8ab8-a6db09e713eb",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general conversation",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781147464337,
+              "endedAt": 1781147465593,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 2541
+        }
+      }
+    },
+    {
+      "id": "act_1781147452998_23a1o8",
+      "createdAt": "2026-06-11T03:10:52.987Z",
+      "userName": "Thanh Nguyen Tran Minh",
+      "userEmail": "thanh.ntm@pinetech.vn",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "act_1781147092057_3apf73",
+      "createdAt": "2026-06-11T03:04:52.052Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781146887820",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781146898695_7feq2k",
+      "createdAt": "2026-06-11T03:01:38.688Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_query",
+      "area": "Chat",
+      "description": "Chat query processed",
+      "target": "rag.query",
+      "metadata": {
+        "intent": "free_chat",
+        "requestedProvider": "openai",
+        "usedProvider": "openai",
+        "attachments": 0,
+        "sources": [],
+        "classifier": {
+          "intent": "free_chat",
+          "confidence": 0.9,
+          "reason": "general greeting"
+        },
+        "classifierSource": "llm",
+        "sessionId": "c-1781146887820",
+        "memoryTurns": 0,
+        "requestId": "14e81ef9-1a8f-4cac-a492-83dc87812da6",
+        "agents": [
+          "free_chat"
+        ],
+        "agent": "free_chat",
+        "trace": {
+          "requestId": "14e81ef9-1a8f-4cac-a492-83dc87812da6",
+          "route": {
+            "intent": "free_chat",
+            "agent": "free_chat",
+            "agents": [
+              "free_chat"
+            ],
+            "confidence": 0.9,
+            "reason": "general greeting",
+            "source": "llm"
+          },
+          "spans": [
+            {
+              "agent": "free_chat",
+              "startedAt": 1781146897714,
+              "endedAt": 1781146898687,
+              "ok": true,
+              "confidence": 0.7
+            }
+          ],
+          "totalMs": 4403
+        }
+      }
+    },
+    {
+      "id": "act_1781146890956_3mvz2t",
+      "createdAt": "2026-06-11T03:01:30.945Z",
+      "userName": "thanh26031994@gmail.com",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "Chat",
+      "description": "Cleared short-memory session c-1781079448473",
+      "target": "rag.query",
+      "metadata": {
+        "cleared": 1,
+        "allSessions": false
+      }
+    },
+    {
+      "id": "act_1781146866470_k7uw3u",
+      "createdAt": "2026-06-11T03:01:06.426Z",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "guest",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
       "id": "act_1781086116555_sfs4f0",
       "createdAt": "2026-06-10T10:08:36.545Z",
       "userName": "thanh26031994@gmail.com",
