@@ -61,7 +61,6 @@ export const adminRouter = router({
     .input(updateAccountInputSchema)
     .mutation(({ input }) =>
       runHandler(async () => {
-        console.log("input5656", input);
         const patch = buildUpdateAccountPatch(input);
         const result = await updateAdminAccount(input.id, patch);
         if (!result.ok) {

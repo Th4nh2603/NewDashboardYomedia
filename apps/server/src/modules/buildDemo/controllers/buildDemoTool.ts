@@ -14,6 +14,7 @@ import {
 } from "../../../lib/ai/tools/buildDemo/buildDemoAgent.js";
 import type { ActionTool } from "../../../lib/ai/tools/types.js";
 import { buildDemoInputSchema } from "../../../shared/schemas/buildDemo.schema.js";
+import { getAllowedBuildDemoBrandsForRequest } from "../../auth/lib/buildDemoBrandAccess.js";
 import {
   assertBuildDemoBrandPolicy,
   assertBuildDemoSftpAllowed,
@@ -35,12 +36,12 @@ export async function runBuildDemoTool(input: {
   provider: ChatProvider;
   history: MemoryMessage[];
   attachments: ChatAttachmentMeta[];
-  allowedBrands: string[] | null;
   memoryKey: string;
   actionTool: Extract<ActionTool, "upload_sftp_demo" | "compress_demo_assets">;
   req: Request;
 }): Promise<BuildDemoToolRunResult> {
   assertBuildDemoSftpAllowed(input.req);
+  const allowedBrands = getAllowedBuildDemoBrandsForRequest(input.req);
 
   const attachments = mergeBuildDemoAttachments(
     input.memoryKey,
@@ -53,12 +54,15 @@ export async function runBuildDemoTool(input: {
       provider: input.provider,
       question: input.question,
       history: input.history,
-      allowedBrands: input.allowedBrands,
+      allowedBrands,
       attachments,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Agent unavailable";
-    return { answer: `Không gọi được agent Build Demo: ${message}`, executed: false };
+    return {
+      answer: `Không gọi được agent Build Demo: ${message}`,
+      executed: false,
+    };
   }
 
   const rawToolInput =
@@ -67,7 +71,7 @@ export async function runBuildDemoTool(input: {
       : resolveBuildDemoToolInput({
           question: input.question,
           history: input.history,
-          allowedBrands: input.allowedBrands,
+          allowedBrands,
           attachments,
         });
 
@@ -80,12 +84,12 @@ export async function runBuildDemoTool(input: {
   }
 
   const toolInput = buildDemoInputSchema.parse(rawToolInput);
-  assertBuildDemoBrandPolicy(toolInput.brandId, input.allowedBrands);
+  assertBuildDemoBrandPolicy(toolInput.brandId, allowedBrands);
 
   const result = await executeBuildDemo({
     toolInput,
     attachments,
-    allowedBrands: input.allowedBrands,
+    allowedBrands,
     intent:
       input.actionTool === "upload_sftp_demo"
         ? "upload_sftp"

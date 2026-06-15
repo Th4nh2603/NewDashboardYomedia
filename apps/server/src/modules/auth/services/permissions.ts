@@ -353,7 +353,7 @@ export function upsertLocalAccountFromClerkUser(clerkUser: any) {
 type ManageDemoPermSlice = NonNullable<
   RolePermissionConfig[string]["manageDemo"]
 >;
-type SftpAclField = keyof Pick<
+export type SftpAclField = keyof Pick<
   ManageDemoPermSlice,
   | "canSftpUploadBinary"
   | "canSftpWriteFile"
@@ -361,6 +361,8 @@ type SftpAclField = keyof Pick<
   | "canSftpRename"
   | "canSftpMkdir"
 >;
+
+export type SftpAcl = Record<SftpAclField, boolean>;
 
 function resolveLegacySftpBundle(
   md: ManageDemoPermSlice | undefined,
@@ -470,12 +472,9 @@ function normalizeRolePermissions(
         canSftpDelete: resolveSftpAclField(config?.manageDemo, "canSftpDelete"),
         canSftpRename: resolveSftpAclField(config?.manageDemo, "canSftpRename"),
         canSftpMkdir: resolveSftpAclField(config?.manageDemo, "canSftpMkdir"),
-        allowedBuildDemoBrands:
-          r === "admin"
-            ? []
-            : normalizeBuildDemoBrandIds(
-                config?.manageDemo?.allowedBuildDemoBrands,
-              ),
+        allowedBuildDemoBrands: normalizeBuildDemoBrandIds(
+          config?.manageDemo?.allowedBuildDemoBrands,
+        ),
       },
       routeAccess: {
         allowedRoutes: normalizeAllowedRoutes(
@@ -500,6 +499,43 @@ export function loadRolePermissions(): RolePermissionConfig {
     );
   }
   return rolePermissionsCache;
+}
+
+export function getRolePermission(roleRaw: string | undefined) {
+  const role = normalizeText(roleRaw);
+  const permissions = loadRolePermissions();
+  return permissions[role] ?? permissions.default;
+}
+
+export function getManageDemoPermission(roleRaw: string | undefined) {
+  return getRolePermission(roleRaw)?.manageDemo;
+}
+
+export function getSftpAclByRole(roleRaw: string | undefined): SftpAcl {
+  const manageDemo = getManageDemoPermission(roleRaw);
+  return {
+    canSftpUploadBinary: manageDemo?.canSftpUploadBinary === true,
+    canSftpWriteFile: manageDemo?.canSftpWriteFile === true,
+    canSftpDelete: manageDemo?.canSftpDelete === true,
+    canSftpRename: manageDemo?.canSftpRename === true,
+    canSftpMkdir: manageDemo?.canSftpMkdir === true,
+  };
+}
+
+export function canSwitchManageDemoMediaSftp(roleRaw: string | undefined): boolean {
+  const role = normalizeText(roleRaw);
+  return (
+    role === "admin" &&
+    getManageDemoPermission(role)?.canSwitchSftpHost === true
+  );
+}
+
+export function canSetupBuildDemoMediaSftp(roleRaw: string | undefined): boolean {
+  return getManageDemoPermission(roleRaw)?.canSetupMediaSftp === true;
+}
+
+export function canDownloadCreativeShowcase(roleRaw: string | undefined): boolean {
+  return getRolePermission(roleRaw)?.creativeShowcase?.canDownload === true;
 }
 
 export function saveRolePermissions(permissions: RolePermissionConfig) {
@@ -545,10 +581,9 @@ export function updateRolePermission(
     throw new Error("Missing role");
   }
 
-  const allowedBuildDemoBrands =
-    role === "admin"
-      ? []
-      : normalizeBuildDemoBrandIds(payload?.manageDemo?.allowedBuildDemoBrands);
+  const allowedBuildDemoBrands = normalizeBuildDemoBrandIds(
+    payload?.manageDemo?.allowedBuildDemoBrands,
+  );
   const canUseFileActionButtons =
     payload?.manageDemo?.canUseFileActionButtons === true;
   const canSwitchSftpHost =

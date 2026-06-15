@@ -9,6 +9,15 @@
       "roleTitle": "Manager",
       "status": "active",
       "allowedBuildDemoBrands": [
+        "Enchanteur",
+        "Romano",
+        "Bio",
+        "Gervenne",
+        "BBHH",
+        "Maxkleen",
+        "Aiken",
+        "Carrie Junior",
+        "Sacombank",
         "Yomedia"
       ]
     },
@@ -19,7 +28,19 @@
       "phone": "",
       "role": "admin",
       "roleTitle": "Administrator",
-      "status": "active"
+      "status": "active",
+      "allowedBuildDemoBrands": [
+        "Enchanteur",
+        "Romano",
+        "Bio",
+        "Gervenne",
+        "BBHH",
+        "Maxkleen",
+        "Aiken",
+        "Carrie Junior",
+        "Sacombank",
+        "Yomedia"
+      ]
     },
     {
       "id": "user_3D1hm9CSu1ARH289V5KM7MxoYJi",
@@ -45,11 +66,7 @@
       "role": "media",
       "roleTitle": "Media",
       "status": "active",
-      "allowedBuildDemoBrands": [
-        "Enchanteur",
-        "BBHH",
-        "Yomedia"
-      ]
+      "allowedBuildDemoBrands": ["Enchanteur", "BBHH", "Yomedia"]
     },
     {
       "id": "user_3DaCbwmZ3XTfPLhiIJUjfKKRfSO",

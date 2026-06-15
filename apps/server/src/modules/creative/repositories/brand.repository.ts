@@ -3,6 +3,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const demoConfigPath = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "web",
+  "src",
+  "data",
+  "demoConfig.json",
+);
 
 function normalizeText(value: string | undefined): string {
   return String(value || "")
@@ -75,15 +87,6 @@ let cachedBrandIds: string[] | null = null;
 export function getBuildDemoBrandIds(): string[] {
   if (cachedBrandIds) return cachedBrandIds;
   try {
-    const demoConfigPath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "web",
-      "data",
-      "demoConfig.json",
-    );
     const raw = fs.readFileSync(demoConfigPath, "utf8");
     const parsed = JSON.parse(raw) as { ListBrands?: Array<{ id?: string }> };
     cachedBrandIds = (parsed.ListBrands ?? [])
@@ -115,15 +118,6 @@ export function normalizeBuildDemoBrandIds(value: unknown): string[] {
 
 export function getBuildDemoBrandOptions(): Array<{ id: string; label: string }> {
   try {
-    const demoConfigPath = path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "web",
-      "data",
-      "demoConfig.json",
-    );
     const raw = fs.readFileSync(demoConfigPath, "utf8");
     const parsed = JSON.parse(raw) as {
       ListBrands?: Array<{ id?: string; label?: string }>;

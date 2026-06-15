@@ -3,9 +3,6 @@ import { runBuildDemoTool } from "../../../../modules/buildDemo/controllers/buil
 import { runPlacementCodeDownloadTool } from "../../../../modules/platform/controllers/placementCodeDownloadTool.js";
 import { executeTool, resolveActionTool } from "../../tools/index.js";
 import { hasBuildDemoAttachments } from "../../memory/shortMemory.js";
-import { findAccountByEmail } from "../../../../modules/auth/lib/accounts.js";
-import { resolveAllowedBuildDemoBrands } from "../../../../modules/auth/services/permissions.js";
-
 export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
   const startedAt = Date.now();
   const tool = resolveActionTool(ctx.question, {
@@ -36,13 +33,6 @@ export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
     };
   }
 
-  const allowedBuildDemoBrands = (() => {
-    const role = String(ctx.role || "").trim().toLowerCase();
-    if (role === "admin") return null;
-    const account = ctx.email ? findAccountByEmail(ctx.email) : undefined;
-    return account ? resolveAllowedBuildDemoBrands(account) : [];
-  })();
-
   const buildDemoRun =
     tool === "upload_sftp_demo" || tool === "compress_demo_assets"
       ? ctx.req
@@ -51,7 +41,6 @@ export async function runActionAgent(ctx: AgentContext): Promise<AgentResult> {
             provider: ctx.provider,
             history: ctx.history,
             attachments: ctx.attachments,
-            allowedBrands: allowedBuildDemoBrands,
             memoryKey: ctx.memoryKey,
             actionTool: tool,
             req: ctx.req,

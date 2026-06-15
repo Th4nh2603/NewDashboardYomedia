@@ -13,7 +13,9 @@ function forbidden(code: string, message: string): never {
 }
 
 export function assertRouteAllowed(req: Request, route: string): void {
-  const role = String(getUserRole(req) ?? "").trim().toLowerCase();
+  const role = String(getUserRole(req) ?? "")
+    .trim()
+    .toLowerCase();
   if (!role) {
     forbidden("FORBIDDEN_ROUTE", "Forbidden: authenticated role required.");
   }

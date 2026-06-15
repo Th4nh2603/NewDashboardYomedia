@@ -1,81 +1,10 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import type { Request } from "express";
 import { HttpError } from "../../../lib/http/errors.js";
+import {
+  getSftpAclByRole,
+  type SftpAclField as SftpAclKey,
+} from "../services/permissions.js";
 import { getUserRole } from "./role.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const ROLE_PERMISSIONS_PATH = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "data",
-  "role-permissions.json",
-);
-
-export type SftpAclKey =
-  | "canSftpUploadBinary"
-  | "canSftpWriteFile"
-  | "canSftpDelete"
-  | "canSftpRename"
-  | "canSftpMkdir";
-
-type ManageDemoSlice = {
-  canUseFileActionButtons?: boolean;
-  canEditDeleteSftp?: boolean;
-  canSftpUploadBinary?: boolean;
-  canSftpWriteFile?: boolean;
-  canSftpDelete?: boolean;
-  canSftpRename?: boolean;
-  canSftpMkdir?: boolean;
-};
-
-type Raw = Record<
-  string,
-  | {
-      manageDemo?: ManageDemoSlice;
-    }
-  | undefined
->;
-
-/** Legacy bundle: deprecated canEditDeleteSftp or canUseFileActionButtons. */
-function resolveLegacyBundle(md: ManageDemoSlice | undefined): boolean {
-  if (md?.canEditDeleteSftp === true) return true;
-  if (md?.canEditDeleteSftp === false) return false;
-  return md?.canUseFileActionButtons === true;
-}
-
-function resolveField(
-  md: ManageDemoSlice | undefined,
-  field: SftpAclKey,
-): boolean {
-  const v = md?.[field];
-  if (v === true) return true;
-  if (v === false) return false;
-  return resolveLegacyBundle(md);
-}
-
-function readAcl(roleRaw: string): Record<SftpAclKey, boolean> | null {
-  const r = roleRaw.trim().toLowerCase();
-  try {
-    const raw = fs.readFileSync(ROLE_PERMISSIONS_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Raw;
-    const block =
-      parsed[r]?.manageDemo ?? parsed.default?.manageDemo ?? undefined;
-    return {
-      canSftpUploadBinary: resolveField(block, "canSftpUploadBinary"),
-      canSftpWriteFile: resolveField(block, "canSftpWriteFile"),
-      canSftpDelete: resolveField(block, "canSftpDelete"),
-      canSftpRename: resolveField(block, "canSftpRename"),
-      canSftpMkdir: resolveField(block, "canSftpMkdir"),
-    };
-  } catch {
-    return null;
-  }
-}
 
 function forbid(code: string, msg: string): never {
   throw new HttpError(403, msg, { code });
@@ -85,19 +14,14 @@ function gate(req: Request, field: SftpAclKey, msg: string): void {
   const role = String(getUserRole(req) ?? "")
     .trim()
     .toLowerCase();
-  console.log("role", role);
   if (!role) {
     forbid(
       "FORBIDDEN_SFTP_ACL",
       "Forbidden: SFTP actions require an authenticated role.",
     );
   }
-  const acl = readAcl(role);
-  console.log("acl", acl);
-  console.log("field", field);
-  console.log("acl?.[field]", acl?.[field]);
+  const acl = getSftpAclByRole(role);
   if (!acl?.[field]) {
-    console.log("forbid2");
     forbid("FORBIDDEN_SFTP_ACL", msg);
   }
 }

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { createClerkClient } from "@clerk/backend";
 import {
+  findAccountByEmail,
   findAccountById,
   migrateLegacyRoleKey,
   normalizeAccountText,
@@ -44,20 +45,45 @@ export type VerifiedAuth = {
   account?: Account;
 };
 
+function normalizeEmailHint(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function getEmailHintFromClerkClaims(
+  claims: Record<string, unknown>,
+): string {
+  return (
+    normalizeEmailHint(claims.email) ||
+    normalizeEmailHint(claims.primary_email_address) ||
+    normalizeEmailHint(claims.primaryEmailAddress)
+  );
+}
+
 export async function buildVerifiedAuth(
   clerkUserId: string,
+  emailHint?: string,
 ): Promise<VerifiedAuth> {
-  const account = findAccountById(clerkUserId);
-  if (account) {
+  const accountById = findAccountById(clerkUserId);
+  if (accountById) {
     return {
       clerkUserId,
-      email: account.email?.trim() || "",
-      role: migrateLegacyRoleKey(account.role),
-      account,
+      email: accountById.email?.trim() || "",
+      role: migrateLegacyRoleKey(accountById.role),
+      account: accountById,
     };
   }
 
-  const email = await fetchClerkPrimaryEmail(clerkUserId);
+  const email = emailHint?.trim() || (await fetchClerkPrimaryEmail(clerkUserId));
+  const accountByEmail = email ? findAccountByEmail(email) : undefined;
+  if (accountByEmail) {
+    return {
+      clerkUserId,
+      email: accountByEmail.email?.trim() || email,
+      role: migrateLegacyRoleKey(accountByEmail.role),
+      account: accountByEmail,
+    };
+  }
+
   return {
     clerkUserId,
     email,
@@ -131,7 +157,10 @@ export async function requireClerkAuth(
 
   try {
     const claims = await verifyClerkBearerToken(token);
-    req.verifiedAuth = await buildVerifiedAuth(claims.sub);
+    req.verifiedAuth = await buildVerifiedAuth(
+      claims.sub,
+      getEmailHintFromClerkClaims(claims),
+    );
     next();
   } catch (verifyErr) {
     const msg =

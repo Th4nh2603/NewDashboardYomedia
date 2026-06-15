@@ -118,11 +118,7 @@ export async function updateAdminAccount(
     updates.status = payload.status.trim().toLowerCase();
   }
   if (payload.allowedBuildDemoBrands !== undefined) {
-    const existing = loadAccounts().find((account) => account.id === id);
-    const effectiveRole = normalizeAccountText(updates.role ?? existing?.role);
-    if (effectiveRole === "admin") {
-      updates.allowedBuildDemoBrands = null;
-    } else if (payload.allowedBuildDemoBrands === null) {
+    if (payload.allowedBuildDemoBrands === null) {
       updates.allowedBuildDemoBrands = null;
     } else {
       updates.allowedBuildDemoBrands = normalizeBuildDemoBrandIds(

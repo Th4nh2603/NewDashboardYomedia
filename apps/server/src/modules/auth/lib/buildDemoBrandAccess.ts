@@ -16,12 +16,18 @@ import { resolveAllowedBuildDemoBrands } from "../services/permissions.js";
 const DEMO_UPLOAD_PATH_RE = /^\/script\/demo\/\d{4}\/\d{1,2}\/([^/]+)(?:\/|$)/i;
 
 export function isDemoSftpUploadPath(remotePath: string): boolean {
-  const normalized = String(remotePath || "").replace(/\\/g, "/").trim();
+  const normalized = String(remotePath || "")
+    .replace(/\\/g, "/")
+    .trim();
   return DEMO_UPLOAD_PATH_RE.test(normalized);
 }
 
-export function extractBrandFromDemoSftpPath(remotePath: string): string | null {
-  const normalized = String(remotePath || "").replace(/\\/g, "/").trim();
+export function extractBrandFromDemoSftpPath(
+  remotePath: string,
+): string | null {
+  const normalized = String(remotePath || "")
+    .replace(/\\/g, "/")
+    .trim();
   const match = normalized.match(DEMO_UPLOAD_PATH_RE);
   if (!match?.[1]) return null;
   return resolveCanonicalBuildDemoBrand(match[1]) ?? match[1];

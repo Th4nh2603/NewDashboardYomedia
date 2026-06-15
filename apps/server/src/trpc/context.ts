@@ -2,6 +2,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import type { Request } from "express";
 import {
   buildVerifiedAuth,
+  getEmailHintFromClerkClaims,
   type VerifiedAuth,
 } from "../modules/auth/lib/clerkAuth.js";
 import {
@@ -40,7 +41,10 @@ export async function resolveAuth(req: Request): Promise<VerifiedAuth | null> {
 
   try {
     const claims = await verifyClerkBearerToken(token);
-    return await buildVerifiedAuth(claims.sub);
+    return await buildVerifiedAuth(
+      claims.sub,
+      getEmailHintFromClerkClaims(claims),
+    );
   } catch {
     return null;
   }
