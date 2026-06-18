@@ -5,4 +5,7 @@ dist
 .pnpm-store
 **/.pnpm-store
 .env
+.env.*
 *.env.local
+!.env.example
+!**/.env.example

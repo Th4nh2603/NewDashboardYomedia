@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Web typecheck
+        run: pnpm --filter nova-ai-creative-suite lint
+
+      - name: API typecheck
+        run: pnpm --filter @yomedia/api-server build
+
+      - name: Mobile lint
+        run: pnpm --filter mobile lint
+
+      - name: Web build
+        run: pnpm --filter nova-ai-creative-suite build
+
+      - name: Architecture checks
+        run: pnpm check:architecture
+
+      - name: Deterministic eval fixture checks
+        run: pnpm eval

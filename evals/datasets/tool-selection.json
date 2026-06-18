@@ -1,0 +1,26 @@
+{
+  "name": "tool-selection",
+  "metrics": {
+    "toolSelectionAccuracy": true,
+    "toolAuthorizationFailures": true,
+    "latency": true
+  },
+  "cases": [
+    {
+      "id": "tool-rag-search-001",
+      "input": "Search authorized documents for upload requirements.",
+      "expected": {
+        "tool": "rag_search",
+        "requiresAuthorization": true
+      }
+    },
+    {
+      "id": "tool-calculator-001",
+      "input": "Calculate the total impressions from 1200 and 3400.",
+      "expected": {
+        "tool": "calculator",
+        "requiresAuthorization": false
+      }
+    }
+  ]
+}

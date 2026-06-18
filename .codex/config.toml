@@ -1,0 +1,30 @@
+# Project-level Codex configuration.
+# Do not store API keys, tokens, passwords, or other secrets in this file.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+
+[project]
+name = "NewDashboardYomedia"
+package_manager = "pnpm"
+
+[safety]
+require_git_diff_review = true
+forbid_destructive_commands = true
+forbid_secret_logging = true
+forbid_unrestricted_filesystem = true
+forbid_unrestricted_network = true
+
+[commands]
+install = "pnpm install"
+dev = "pnpm dev"
+verify = "pnpm verify"
+verify_changed = "pnpm verify:changed"
+architecture = "pnpm check:architecture"
+evals = "pnpm eval"
+
+[notes]
+user_specific_configuration = "Configure provider keys, MCP credentials, and private environment values outside this file."

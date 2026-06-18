@@ -1,0 +1,18 @@
+{
+  "name": "citation-correctness",
+  "metrics": {
+    "citationCorrectness": true,
+    "retrievalRecall": true,
+    "unsupportedClaimRate": true
+  },
+  "cases": [
+    {
+      "id": "cite-001",
+      "input": "Answer using the uploaded demo guide and cite each claim.",
+      "expected": {
+        "requiresCitations": true,
+        "citationFields": ["documentId", "chunkId", "sourceTitle"]
+      }
+    }
+  ]
+}

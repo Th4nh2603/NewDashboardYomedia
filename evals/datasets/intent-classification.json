@@ -1,0 +1,26 @@
+{
+  "name": "intent-classification",
+  "metrics": {
+    "intentAccuracy": true,
+    "latency": true,
+    "tokenUsageWhenAvailable": true
+  },
+  "cases": [
+    {
+      "id": "intent-rag-001",
+      "input": "Which uploaded brand guidelines mention CTA colors?",
+      "expected": {
+        "intent": "rag_question",
+        "requiresRetrieval": true
+      }
+    },
+    {
+      "id": "intent-tool-001",
+      "input": "Check the approved external tool for the latest campaign asset status.",
+      "expected": {
+        "intent": "tool_request",
+        "requiresTool": true
+      }
+    }
+  ]
+}

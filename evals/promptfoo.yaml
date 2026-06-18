@@ -1,0 +1,20 @@
+description: NewDashboardYomedia starter AI evaluation configuration
+
+prompts:
+  - "{{input}}"
+
+providers:
+  - id: echo
+    config:
+      response: "{{input}}"
+
+tests:
+  - vars:
+      input: "Classify intent for a document-grounded question."
+    assert:
+      - type: contains
+        value: "document"
+
+# Optional model-based providers can be added locally after installing promptfoo
+# and configuring API keys outside source control. CI must keep deterministic
+# evals separate from secret-dependent model evals.

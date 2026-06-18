@@ -20,7 +20,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
-        "./*"
+        "./src/*"
       ],
       "@yomedia/api": [
         "../../packages/api/src/index.ts"
@@ -30,7 +30,7 @@
     "noEmit": true
   },
   "include": [
-    "./**/*",
-    "../server/src/types/express.d.ts"
+    "src/**/*",
+    "vite.config.ts"
   ]
 }

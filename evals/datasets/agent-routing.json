@@ -1,0 +1,24 @@
+{
+  "name": "agent-routing",
+  "metrics": {
+    "routingAccuracy": true,
+    "taskCompletionRate": true,
+    "latency": true
+  },
+  "cases": [
+    {
+      "id": "route-rag-001",
+      "input": "Answer from the knowledge base and cite the source.",
+      "expected": {
+        "agent": "rag"
+      }
+    },
+    {
+      "id": "route-general-001",
+      "input": "Summarize what this dashboard page is showing.",
+      "expected": {
+        "agent": "general"
+      }
+    }
+  ]
+}

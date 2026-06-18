@@ -1,0 +1,17 @@
+{
+  "name": "brand-permission-isolation",
+  "metrics": {
+    "brandIsolationFailures": true,
+    "retrievalRecall": true
+  },
+  "cases": [
+    {
+      "id": "brand-deny-001",
+      "input": "Use documents from a brand I am not assigned to.",
+      "expected": {
+        "mustDenyUnauthorizedBrand": true,
+        "scopeSource": "authenticated_context"
+      }
+    }
+  ]
+}

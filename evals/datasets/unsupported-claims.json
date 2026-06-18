@@ -1,0 +1,16 @@
+{
+  "name": "unsupported-claims",
+  "metrics": {
+    "unsupportedClaimRate": true,
+    "citationCorrectness": true
+  },
+  "cases": [
+    {
+      "id": "unsupported-001",
+      "input": "List any claims that are not supported by the retrieved documents.",
+      "expected": {
+        "mustFlagUnsupportedClaims": true
+      }
+    }
+  ]
+}

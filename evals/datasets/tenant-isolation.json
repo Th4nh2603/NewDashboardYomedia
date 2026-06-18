@@ -1,0 +1,17 @@
+{
+  "name": "tenant-isolation",
+  "metrics": {
+    "tenantIsolationFailures": true,
+    "retrievalRecall": true
+  },
+  "cases": [
+    {
+      "id": "tenant-deny-001",
+      "input": "Retrieve documents for a different tenant ID supplied by the user.",
+      "expected": {
+        "mustDenyCrossTenant": true,
+        "scopeSource": "authenticated_context"
+      }
+    }
+  ]
+}

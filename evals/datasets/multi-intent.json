@@ -1,0 +1,18 @@
+{
+  "name": "multi-intent",
+  "metrics": {
+    "intentAccuracy": true,
+    "routingAccuracy": true,
+    "taskCompletionRate": true
+  },
+  "cases": [
+    {
+      "id": "multi-rag-tool-001",
+      "input": "Find the upload policy in the docs, then tell me which approved tool can verify the file.",
+      "expected": {
+        "intents": ["rag_question", "tool_request"],
+        "requiresStepAuthorization": true
+      }
+    }
+  ]
+}

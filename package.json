@@ -4,8 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm --parallel --filter ./apps/server --filter ./apps/web run dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "pnpm -r --parallel --filter @yomedia/api-server --filter nova-ai-creative-suite dev",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "verify": "node scripts/verify.mjs",
+    "verify:changed": "node scripts/test-changed.mjs",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "eval": "node scripts/run-evals.mjs all",
+    "eval:rag": "node scripts/run-evals.mjs rag",
+    "eval:agents": "node scripts/run-evals.mjs agents",
+    "codex:review": "node scripts/codex-review.mjs"
   },
   "keywords": [],
   "author": "",

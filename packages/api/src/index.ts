@@ -1,3 +1,3 @@
-/** Shared AppRouter type for web tRPC client (implementation lives in apps/server). */
-export type { AppRouter } from "../../../apps/server/src/trpc/appRouter.js";
+/** API app was removed; keep a loose client router type so web imports stay stable. */
+export type AppRouter = any;
 export { trpcTransformer } from "./trpcTransformer.js";

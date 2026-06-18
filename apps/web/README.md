@@ -1,20 +1,22 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Web App
 
-# Run and deploy your AI Studio app
+React + Vite dashboard frontend for NewDashboardYomedia.
 
-This contains everything you need to run your app locally.
+## Commands
 
-View your app in AI Studio: https://ai.studio/apps/22d41b4e-a377-4ef8-ad1c-0043b8648866
+Run from the repository root:
 
-## Run Locally
+```bash
+pnpm --filter nova-ai-creative-suite dev
+pnpm --filter nova-ai-creative-suite build
+pnpm --filter nova-ai-creative-suite preview
+pnpm --filter nova-ai-creative-suite lint
+```
 
-**Prerequisites:**  Node.js
+The dev server runs on port `3000`.
 
+## Notes
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- Follow `apps/web/AGENTS.md` before changing frontend code.
+- Keep server-only concerns out of browser code.
+- Use `apps/web/.env.example` as the environment variable reference.

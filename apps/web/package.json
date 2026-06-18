@@ -19,6 +19,7 @@
     "@trpc/client": "^11.17.0",
     "@trpc/react-query": "^11.17.0",
     "@yomedia/api": "workspace:*",
+    "@yomedia/shared": "workspace:*",
     "jszip": "^3.10.1",
     "jwt-decode": "^4.0.0",
     "motion": "^12.34.3",
