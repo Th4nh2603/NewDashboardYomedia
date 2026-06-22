@@ -1,0 +1,19 @@
+{
+  "name": "rag-citation-correctness",
+  "metrics": {
+    "citationCorrectness": true,
+    "retrievalRecall": true,
+    "unsupportedClaimRate": true
+  },
+  "cases": [
+    {
+      "id": "rag-citation-001",
+      "input": "Dựa trên tài liệu nội bộ, chính sách upload yêu cầu metadata nào?",
+      "expected": {
+        "requiresCitations": true,
+        "citationFields": ["documentId", "chunkId", "title"],
+        "mustOnlyCiteRetrievedChunks": true
+      }
+    }
+  ]
+}

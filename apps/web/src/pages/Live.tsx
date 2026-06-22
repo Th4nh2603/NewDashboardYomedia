@@ -70,7 +70,7 @@ const Live = () => {
     try {
       setIsConnecting(true);
       // Create fresh instance right before connection to ensure latest API key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       
       const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
       const inputCtx = new AudioContextClass({ sampleRate: 16000 });

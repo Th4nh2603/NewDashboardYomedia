@@ -1,0 +1,17 @@
+{
+  "name": "rag-retrieval-recall",
+  "metrics": {
+    "retrievalRecall": true,
+    "latency": true
+  },
+  "cases": [
+    {
+      "id": "rag-recall-001",
+      "input": "Creative guideline nào nói về CTA color?",
+      "expected": {
+        "mustRetrieveRelevantChunk": true,
+        "topK": 8
+      }
+    }
+  ]
+}

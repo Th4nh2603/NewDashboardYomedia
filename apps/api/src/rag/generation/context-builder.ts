@@ -1,1 +1,1 @@
-export const contextBuilder = {};
+export { buildRagContext } from "../retrieval/context-builder.js";

@@ -1,0 +1,17 @@
+{
+  "name": "rag-answer-groundedness",
+  "metrics": {
+    "answerGroundedness": true,
+    "unsupportedClaimRate": true
+  },
+  "cases": [
+    {
+      "id": "rag-grounded-001",
+      "input": "Tóm tắt các yêu cầu trong tài liệu onboarding.",
+      "expected": {
+        "mustUseRetrievedContextOnly": true,
+        "mustSeparateKnownAndInsufficientData": true
+      }
+    }
+  ]
+}

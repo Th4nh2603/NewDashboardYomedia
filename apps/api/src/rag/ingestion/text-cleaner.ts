@@ -1,3 +1,1 @@
-export function cleanText(text: string): string {
-  return text.trim();
-}
+export { cleanText } from "./cleaner.js";

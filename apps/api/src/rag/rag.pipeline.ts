@@ -1,1 +1,1 @@
-export const ragPipeline = {};
+export { ragService, RagService } from "./rag.service.js";

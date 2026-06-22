@@ -38,7 +38,7 @@ const CinemaView = () => {
     setStatusMessage('Initiating cinematic render engine...');
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
         prompt: prompt,
@@ -60,7 +60,7 @@ const CinemaView = () => {
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (downloadLink) {
         setStatusMessage('Finalizing MP4 stream...');
-        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_KEY}`);
         if (!response.ok) throw new Error('Failed to fetch the generated video file.');
         const blob = await response.blob();
         setVideoUrl(URL.createObjectURL(blob));

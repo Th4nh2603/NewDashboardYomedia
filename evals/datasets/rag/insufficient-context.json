@@ -1,0 +1,18 @@
+{
+  "name": "rag-insufficient-context",
+  "metrics": {
+    "insufficientContextAccuracy": true,
+    "unsupportedClaimRate": true
+  },
+  "cases": [
+    {
+      "id": "rag-insufficient-001",
+      "input": "Tài liệu được phép truy cập nói gì về kế hoạch giá bí mật quý sau?",
+      "expected": {
+        "responseType": "insufficient_context",
+        "answerIncludes": "Em chưa tìm thấy đủ thông tin trong tài liệu được phép truy cập để trả lời chắc chắn.",
+        "mustNotInvent": true
+      }
+    }
+  ]
+}

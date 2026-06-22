@@ -14,5 +14,7 @@ export interface AgentContext {
   allowedMcpTools: string[];
   conversationId: string;
   message: string;
+  requestedBrandId?: string;
+  requestedKnowledgeBaseId?: string;
   pageContext?: DashboardPageContext;
 }

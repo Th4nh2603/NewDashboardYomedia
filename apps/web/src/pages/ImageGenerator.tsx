@@ -45,7 +45,7 @@ const ImageGenerator: React.FC = () => {
     setIsGenerating(true);
     try {
       // Create a new instance right before making an API call to ensure it always uses the most up-to-date API key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY || '' });
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
         contents: {
