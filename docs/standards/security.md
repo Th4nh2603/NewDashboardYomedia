@@ -44,6 +44,8 @@ MCP and agent tools must be allowlisted, argument-validated, permission-checked,
 
 Never log passwords, access tokens, refresh tokens, API keys, private prompts, full confidential documents, private user data, or unredacted model prompts containing sensitive data.
 
+Backend error logs must use the shared logger so sensitive keys are redacted. Error responses sent to clients must be user-safe and must not include stack traces, provider internals, SQL details, raw prompts, confidential document text, or secret-bearing request metadata.
+
 ## Document Access Control
 
 Document ingestion, retrieval, citation, and answer generation must preserve tenant, brand, source, document, and chunk metadata. Unauthorized documents must not be included in hidden context.

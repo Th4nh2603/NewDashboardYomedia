@@ -1,5 +1,6 @@
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { env } from "../../config/env.js";
+import { permissions } from "../../shared/constants/permissions.js";
 import type { AuthenticatedUser, AuthMeResult } from "./auth.types.js";
 
 const BASE_ALLOWED_ROUTES = [
@@ -114,6 +115,12 @@ function metadataStringArray(
     .filter(Boolean);
 }
 
+function resolveUserPermissions(metadata: Record<string, unknown>): string[] {
+  return Array.from(
+    new Set([...metadataStringArray(metadata, "permissions"), permissions.chatUse]),
+  );
+}
+
 function metadataNullableStringArray(
   metadata: Record<string, unknown>,
   key: string,
@@ -164,7 +171,7 @@ export async function resolveAuthenticatedUser(
     imageUrl: clerkUser.imageUrl,
     role,
     roleTitle: metadataText(publicMetadata, "roleTitle") ?? roleTitleFromRole(role),
-    permissions: metadataStringArray(publicMetadata, "permissions"),
+    permissions: resolveUserPermissions(publicMetadata),
     allowedRoutes: getAllowedRoutesByRole(role),
     allowedBrandIds: metadataStringArray(publicMetadata, "allowedBrandIds"),
     allowedKnowledgeBaseIds: metadataStringArray(

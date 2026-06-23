@@ -38,6 +38,7 @@ const AdminOfflineFetchGate: React.FC = () => {
 
       return orig(input, init).then(
         (res) => {
+          console.log("res", res);
           if (trackHealth) {
             if (res.ok) reportHealthProbeSuccess();
             else if (res.status >= 502) reportHealthProbeFailure();
@@ -45,6 +46,7 @@ const AdminOfflineFetchGate: React.FC = () => {
           return res;
         },
         (err) => {
+          console.log("err", err);
           if (trackHealth) reportHealthProbeFailure();
           return Promise.reject(err);
         },

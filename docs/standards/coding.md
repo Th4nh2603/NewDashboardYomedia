@@ -45,9 +45,13 @@ These standards apply to TypeScript, React, Express, tRPC, backend modules, RAG,
 ## Error Handling
 
 - Use typed application errors for expected backend failures.
+- Use `AppError` for expected backend failures and include a stable `code` when the frontend or operators need to branch on the error.
+- Express handlers should pass failures to `errorMiddleware`; tRPC procedures should throw `TRPCError` or translate `AppError` to `TRPCError`.
+- Unexpected backend failures should be logged with request ID, route/procedure, status/code, and sanitized summaries only.
 - Map backend errors to frontend-safe messages.
 - Preserve enough diagnostic context for operators without logging secrets or private data.
 - Do not expose stack traces, provider internals, SQL details, raw prompts, or confidential document text to clients.
+- Frontend route/component boundaries should show user-safe messages; detailed exception text is only appropriate in local development.
 
 ## Async Code
 
@@ -65,6 +69,7 @@ These standards apply to TypeScript, React, Express, tRPC, backend modules, RAG,
 ## Logging
 
 - Prefer structured logs with request IDs, run IDs, user/tenant/brand identifiers where policy allows, durations, status, and sanitized summaries.
+- Use `apps/api/src/shared/logger/logger.ts` instead of raw `console.*` in backend application code so metadata is sanitized consistently.
 - Never log passwords, access tokens, refresh tokens, API keys, private prompts, full confidential documents, or unredacted private user data.
 - Agent logs should summarize inputs and outputs rather than storing raw prompts or raw retrieved content.
 

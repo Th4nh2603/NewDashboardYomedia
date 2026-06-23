@@ -6,6 +6,7 @@ import { appRouter } from "./trpc/routers/index.js";
 import { corsMiddleware } from "./middleware/cors.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { requestIdMiddleware } from "./middleware/request-id.middleware.js";
+import { handleTrpcError } from "./trpc/error-handler.js";
 
 export function createApp() {
   const app = express();
@@ -23,6 +24,7 @@ export function createApp() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError: handleTrpcError,
     }),
   );
 

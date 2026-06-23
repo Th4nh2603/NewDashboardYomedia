@@ -12,6 +12,7 @@ import { knowledgeRouter } from "./knowledge.router.js";
 import { agentRouter } from "./agent.router.js";
 import { mcpRouter } from "./mcp.router.js";
 import { healthRouter } from "./health.router.js";
+import { activityLogRouter } from "./activity-log.router.js";
 
 export const appRouter = router({
   health: healthRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   knowledge: knowledgeRouter,
   agent: agentRouter,
   mcp: mcpRouter,
+  activityLog: activityLogRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -13,8 +13,16 @@ export interface AgentContext {
   allowedKnowledgeBaseIds: string[];
   allowedMcpTools: string[];
   conversationId: string;
+  requestId?: string;
   message: string;
   requestedBrandId?: string;
   requestedKnowledgeBaseId?: string;
-  pageContext?: DashboardPageContext;
+  pageContext?: unknown;
+  provider?: "gemini" | "openai";
+  attachments?: {
+    name: string;
+    relativePath?: string;
+    size: number;
+    mimeType?: string;
+  }[];
 }

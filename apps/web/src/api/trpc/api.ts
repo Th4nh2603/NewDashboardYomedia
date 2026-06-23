@@ -11,11 +11,38 @@ import {
   type AccountStatus,
 } from "@/utils/form/schemas/adminAccount";
 
+const looseTrpcClient = trpcClient as any;
+
 type ChatAttachmentMeta = {
   name: string;
   relativePath?: string;
   size: number;
   mimeType?: string;
+};
+
+type ChatSendMessageInput = {
+  message: string;
+  conversationId?: string;
+  pageContext?: unknown;
+  attachments?: ChatAttachmentMeta[];
+  provider?: "gemini" | "openai";
+};
+
+type ChatSendMessageResponse = {
+  conversationId: string;
+  messageId: string;
+  answer: string;
+  intent?: string;
+  agent?: string;
+  sources?: unknown[];
+  toolCalls?: unknown[];
+  steps?: unknown[];
+  data?: unknown;
+  action?: {
+    tool: string;
+    [key: string]: unknown;
+  };
+  insufficientContext?: boolean;
 };
 
 function normalizeApiRole(role: string): AccountRole {
@@ -47,24 +74,24 @@ async function call<T>(fn: () => Promise<T>): Promise<T> {
 
 export const api = {
   health: {
-    check: () => call(() => trpcClient.health.check.query()),
+    check: () => call(() => looseTrpcClient.health.check.query()),
   },
   auth: {
-    session: () => call(() => trpcClient.auth.session.query()),
+    session: () => call(() => looseTrpcClient.auth.session.query()),
     me: (input?: { name?: string }) =>
-      call(() => trpcClient.auth.me.mutate(input)),
+      call(() => looseTrpcClient.auth.me.mutate(input)),
     roleRoutes: (input?: { name?: string }) =>
-      call(() => trpcClient.auth.roleRoutes.mutate(input)),
+      call(() => looseTrpcClient.auth.roleRoutes.mutate(input)),
   },
   user: {
-    me: () => call(() => trpcClient.user.me.query()),
+    me: () => call(() => looseTrpcClient.user.me.query()),
   },
   permissions: {
-    get: () => call(() => trpcClient.permissions.get.query()),
-    adminGet: () => call(() => trpcClient.permissions.adminGet.query()),
+    get: () => call(() => looseTrpcClient.permissions.get.query()),
+    adminGet: () => call(() => looseTrpcClient.permissions.adminGet.query()),
     adminUpdate: (role: string, payload: Record<string, unknown>) =>
       call(() =>
-        trpcClient.permissions.adminUpdate.mutate({
+        looseTrpcClient.permissions.adminUpdate.mutate({
           role,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           payload: payload as any,
@@ -72,7 +99,7 @@ export const api = {
       ),
   },
   admin: {
-    accounts: () => call(() => trpcClient.admin.accounts.query()),
+    accounts: () => call(() => looseTrpcClient.admin.accounts.query()),
     updateAccount: (
       id: string,
       patch: {
@@ -82,8 +109,13 @@ export const api = {
         allowedBuildDemoBrands?: string[] | null;
       },
     ) => {
-      const input: Parameters<typeof trpcClient.admin.updateAccount.mutate>[0] =
-        { id: String(id).trim() };
+      const input: {
+        id: string;
+        role?: AccountRole;
+        roleTitle?: string;
+        status?: AccountStatus;
+        allowedBuildDemoBrands?: string[] | null;
+      } = { id: String(id).trim() };
       if (typeof patch.role === "string") {
         input.role = normalizeApiRole(patch.role);
       }
@@ -101,13 +133,13 @@ export const api = {
           new Error("At least one field to update is required"),
         );
       }
-      return call(() => trpcClient.admin.updateAccount.mutate(input));
+      return call(() => looseTrpcClient.admin.updateAccount.mutate(input));
     },
   },
   creative: {
-    demos: () => call(() => trpcClient.creative.demos.query()),
+    demos: () => call(() => looseTrpcClient.creative.demos.query()),
     demoTitles: (activeOnly?: boolean) =>
-      call(() => trpcClient.creative.demoTitles.query({ activeOnly })),
+      call(() => looseTrpcClient.creative.demoTitles.query({ activeOnly })),
   },
   activityLog: {
     list: (input?: {
@@ -115,45 +147,41 @@ export const api = {
       special?: string;
       scope?: string;
       limit?: number;
-    }) => call(() => trpcClient.activityLog.list.query(input)),
+    }) => call(() => looseTrpcClient.activityLog.list.query(input)),
     append: (entry: Record<string, unknown>) =>
       call(() =>
-        trpcClient.activityLog.append.mutate(
-          entry as Parameters<typeof trpcClient.activityLog.append.mutate>[0],
+        looseTrpcClient.activityLog.append.mutate(
+          entry as Parameters<typeof looseTrpcClient.activityLog.append.mutate>[0],
         ),
       ),
-    clear: () => call(() => trpcClient.activityLog.clear.mutate()),
+    clear: () => call(() => looseTrpcClient.activityLog.clear.mutate()),
   },
   testData: {
-    get: () => call(() => trpcClient.testData.get.query()),
+    get: () => call(() => looseTrpcClient.testData.get.query()),
     update: (content: string | Record<string, unknown>) =>
-      call(() => trpcClient.testData.update.mutate({ content })),
+      call(() => looseTrpcClient.testData.update.mutate({ content })),
   },
   toolTest: {
-    platformBanner: () => call(() => trpcClient.toolTest.platformBanner.query()),
+    platformBanner: () => call(() => looseTrpcClient.toolTest.platformBanner.query()),
     bannerAdUnits: (adView: string) =>
-      call(() => trpcClient.toolTest.bannerAdUnits.query({ adView })),
+      call(() => looseTrpcClient.toolTest.bannerAdUnits.query({ adView })),
     bannerTemplates: (adView: string, market?: string) =>
       call(() =>
-        trpcClient.toolTest.bannerTemplates.query({ adView, market }),
+        looseTrpcClient.toolTest.bannerTemplates.query({ adView, market }),
       ),
     bannerSettings: (formatId: string, type: string) =>
       call(() =>
-        trpcClient.toolTest.bannerSettings.query({ formatId, type }),
+        looseTrpcClient.toolTest.bannerSettings.query({ formatId, type }),
       ),
     createBanner: (payload: Record<string, unknown>) =>
-      call(() => trpcClient.toolTest.createBanner.mutate(payload)),
+      call(() => looseTrpcClient.toolTest.createBanner.mutate(payload)),
     bannerAdvertisers: () =>
-      call(() => trpcClient.toolTest.bannerAdvertisers.query()),
+      call(() => looseTrpcClient.toolTest.bannerAdvertisers.query()),
   },
-  rag: {
-    query: (
-      question: string,
-      provider?: "gemini" | "openai",
-      attachments?: ChatAttachmentMeta[],
-    ) =>
-      call(() =>
-        trpcClient.rag.query.mutate({ question, provider, attachments }),
+  chat: {
+    sendMessage: (input: ChatSendMessageInput) =>
+      call<ChatSendMessageResponse>(() =>
+        looseTrpcClient.chat.sendMessage.mutate(input),
       ),
   },
 };

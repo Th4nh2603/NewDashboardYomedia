@@ -2702,16 +2702,16 @@ const ChatView = () => {
     setIsLoading(true);
 
     try {
-      const data = await api.rag.query(
-        trimmedInput,
-        aiProvider,
-        attachments.map((item) => ({
+      const data = await api.chat.sendMessage({
+        message: trimmedInput,
+        provider: aiProvider,
+        attachments: attachments.map((item) => ({
           name: item.file.name,
           relativePath: item.relativePath,
           size: item.file.size,
           mimeType: item.file.type || guessMimeFromName(item.file.name),
         })),
-      );
+      });
 
       const action = (
         data as {

@@ -22,6 +22,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.hasError && this.state.error) {
+      const showDetails = import.meta.env.DEV;
       return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
           <div className="max-w-lg w-full rounded-2xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 shadow-xl p-6 space-y-4">
@@ -32,9 +33,11 @@ export class AppErrorBoundary extends Component<Props, State> {
               The UI hit an unexpected error. You can reload the page or go
               back to the dashboard.
             </p>
-            <pre className="text-xs overflow-auto max-h-40 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">
-              {this.state.error.message}
-            </pre>
+            {showDetails ? (
+              <pre className="text-xs overflow-auto max-h-40 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">
+                {this.state.error.message}
+              </pre>
+            ) : null}
             <div className="flex gap-3 flex-wrap">
               <Button
                 type="button"

@@ -43,15 +43,23 @@ export interface ChatResponseDto {
   conversationId: string;
   messageId: string;
   answer: string;
-  data?: ChatResponseDataDto;
-  sources: ChatSourceDto[];
-  toolCalls: ChatToolCallDto[];
-  steps: ChatStepDto[];
+  intent?: string;
+  agent?: string;
+  sources?: unknown[];
+  toolCalls?: unknown[];
+  steps?: unknown[];
+  data?: unknown;
+  action?: {
+    tool: string;
+    [key: string]: unknown;
+  };
+  insufficientContext?: boolean;
 }
 
 export interface ChatServiceInput {
   input: ChatRequest;
   auth: AuthenticatedChatContext;
+  requestId?: string;
 }
 
 export interface ChatExecutionScope {
@@ -69,8 +77,15 @@ export interface ChatInternalResult {
   conversationId: string;
   messageId: string;
   answer: string;
+  intent?: string;
+  agent?: string;
   data?: unknown;
   sources?: unknown[];
   toolCalls?: unknown[];
   steps?: unknown[];
+  action?: {
+    tool: string;
+    [key: string]: unknown;
+  };
+  insufficientContext?: boolean;
 }

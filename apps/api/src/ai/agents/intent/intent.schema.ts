@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const intentSchema = z.object({
-  intents: z.array(
-    z.enum(["GENERAL_CHAT", "RAG_SEARCH", "SQL_QUERY", "MCP_TOOL", "MULTI_INTENT"]),
-  ),
+  intent: z.enum(["rag", "sql", "tool", "general"]),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().min(1),
 });

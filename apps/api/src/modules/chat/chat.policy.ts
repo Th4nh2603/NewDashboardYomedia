@@ -29,7 +29,15 @@ export const chatPolicy = {
     auth: AuthenticatedChatContext,
     input: ChatRequest,
   ): string | undefined {
-    const brandHint = input.brandId ?? input.pageContext?.selectedBrandId;
+    const pageContext =
+      typeof input.pageContext === "object" && input.pageContext !== null
+        ? (input.pageContext as Record<string, unknown>)
+        : null;
+    const selectedBrandId =
+      typeof pageContext?.selectedBrandId === "string"
+        ? pageContext.selectedBrandId
+        : undefined;
+    const brandHint = input.brandId ?? selectedBrandId;
     if (!brandHint) return undefined;
 
     if (!auth.allowedBrandIds.includes(brandHint)) {

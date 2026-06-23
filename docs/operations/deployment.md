@@ -48,8 +48,10 @@ NODE_ENV
 PORT
 DATABASE_URL
 OPENAI_API_KEY
+OPENAI_MODEL
 ANTHROPIC_API_KEY
 GEMINI_API_KEY
+GEMINI_MODEL
 ```
 
 Frontend Vite environment variables must use the `VITE_` prefix when exposed to browser code. The checked-in `apps/web/.env.example` contains `VITE_CLERK_PUBLISHABLE_KEY`.
