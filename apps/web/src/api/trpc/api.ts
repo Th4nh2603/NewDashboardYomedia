@@ -11,7 +11,160 @@ import {
   type AccountStatus,
 } from "@/utils/form/schemas/adminAccount";
 
-const looseTrpcClient = trpcClient as any;
+type ProcedureClient = {
+  query: (input?: unknown) => Promise<unknown>;
+  mutate: (input?: unknown) => Promise<unknown>;
+};
+
+const looseTrpcClient = trpcClient as unknown as {
+  [group: string]: Record<string, ProcedureClient>;
+};
+
+type RolePermissionConfig = Record<
+  string,
+  {
+    manageDemo?: {
+      canUseFileActionButtons?: boolean;
+      canSwitchSftpHost?: boolean;
+      canSetupMediaSftp?: boolean;
+      canSftpUploadBinary?: boolean;
+      canSftpWriteFile?: boolean;
+      canSftpDelete?: boolean;
+      canSftpRename?: boolean;
+      canSftpMkdir?: boolean;
+      allowedBuildDemoBrands?: string[];
+    };
+    routeAccess?: {
+      allowedRoutes?: string[];
+    };
+    creativeShowcase?: {
+      canDownload?: boolean;
+    };
+  }
+>;
+
+type PermissionsResponse = {
+  permissions?: RolePermissionConfig;
+  availableRoutes?: string[];
+};
+
+type AccountsResponse = {
+  accounts?: unknown[];
+};
+
+type CreativeDemosResponse = {
+  demos?: unknown[];
+};
+
+type CreativeDemoTitlesResponse = {
+  items?: {
+    id: string;
+    title: string;
+    category: string;
+    fileType?: string;
+    value?: string;
+    size?: string | string[];
+    fla?: boolean;
+  }[];
+};
+
+type ActivityLogListResponse = {
+  records?: unknown[];
+  total?: number;
+};
+
+type ApprovalListResponse = {
+  approvals?: unknown[];
+};
+
+type ApprovalMutationResponse = {
+  approval?: unknown;
+  toolCall?: unknown;
+  result?: unknown;
+};
+
+type TestDataResponse = {
+  ok?: boolean;
+  content?: unknown;
+};
+
+type ToolOption = {
+  value: string;
+  label: string;
+  [key: string]: unknown;
+};
+
+type ToolField = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "checkbox";
+  value?: string;
+  checked?: boolean;
+  [key: string]: unknown;
+};
+
+type ToolOptionsResponse = {
+  ok?: boolean;
+  options: ToolOption[];
+};
+
+type ToolSettingsResponse = {
+  ok?: boolean;
+  fields: ToolField[];
+};
+
+type PlatformFormFieldOption = {
+  value: string;
+  label: string;
+  selected?: boolean;
+  width?: number;
+  height?: number;
+};
+
+type PlatformFormField = {
+  id: string;
+  name: string;
+  label: string;
+  type: "text" | "textarea" | "select" | "checkbox" | "file" | "size";
+  value?: string;
+  placeholder?: string;
+  maxlength?: number;
+  checked?: boolean;
+  width?: string;
+  height?: string;
+  options?: PlatformFormFieldOption[];
+  optionTotal?: number;
+};
+
+type ToolPlatformBannerResponse = {
+  ok?: boolean;
+  page?: {
+    url: string;
+    fetchedAt: string;
+    title: string;
+    profileName: string | null;
+    profileRole: string | null;
+    grid: {
+      page: number;
+      total: number;
+      records: number;
+      rows: Record<string, unknown>[];
+      columns: { name: string; label: string }[];
+    };
+    createForm: {
+      url: string;
+      title: string;
+      formAction: string;
+      fields: PlatformFormField[];
+    };
+  };
+};
+
+type ToolCreateBannerResponse = {
+  ok?: boolean;
+  message?: string;
+  [key: string]: unknown;
+};
 
 type ChatAttachmentMeta = {
   name: string;
@@ -29,13 +182,14 @@ type ChatSendMessageInput = {
 };
 
 type ChatSendMessageResponse = {
-  conversationId: string;
-  messageId: string;
-  answer: string;
+  conversationId?: string;
+  messageId?: string;
+  answer?: string;
   intent?: string;
   agent?: string;
   sources?: unknown[];
   toolCalls?: unknown[];
+  approvals?: unknown[];
   steps?: unknown[];
   data?: unknown;
   action?: {
@@ -72,34 +226,45 @@ async function call<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+function procedure(group: string, name: string): ProcedureClient {
+  return looseTrpcClient[group][name];
+}
+
+function query<T>(group: string, name: string, input?: unknown): Promise<T> {
+  return procedure(group, name).query(input) as Promise<T>;
+}
+
+function mutate<T>(group: string, name: string, input?: unknown): Promise<T> {
+  return procedure(group, name).mutate(input) as Promise<T>;
+}
+
 export const api = {
   health: {
-    check: () => call(() => looseTrpcClient.health.check.query()),
+    check: () => call(() => query<{ ok?: boolean }>("health", "check")),
   },
   auth: {
-    session: () => call(() => looseTrpcClient.auth.session.query()),
-    me: (input?: { name?: string }) =>
-      call(() => looseTrpcClient.auth.me.mutate(input)),
+    session: () => call(() => query<unknown>("auth", "session")),
+    me: (input?: { name?: string }) => call(() => mutate<unknown>("auth", "me", input)),
     roleRoutes: (input?: { name?: string }) =>
-      call(() => looseTrpcClient.auth.roleRoutes.mutate(input)),
+      call(() => mutate<unknown>("auth", "roleRoutes", input)),
   },
   user: {
-    me: () => call(() => looseTrpcClient.user.me.query()),
+    me: () => call(() => query<unknown>("user", "me")),
   },
   permissions: {
-    get: () => call(() => looseTrpcClient.permissions.get.query()),
-    adminGet: () => call(() => looseTrpcClient.permissions.adminGet.query()),
+    get: () => call(() => query<PermissionsResponse>("permissions", "get")),
+    adminGet: () =>
+      call(() => query<PermissionsResponse>("permissions", "adminGet")),
     adminUpdate: (role: string, payload: Record<string, unknown>) =>
       call(() =>
-        looseTrpcClient.permissions.adminUpdate.mutate({
+        mutate<unknown>("permissions", "adminUpdate", {
           role,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          payload: payload as any,
+          payload,
         }),
       ),
   },
   admin: {
-    accounts: () => call(() => looseTrpcClient.admin.accounts.query()),
+    accounts: () => call(() => query<AccountsResponse>("admin", "accounts")),
     updateAccount: (
       id: string,
       patch: {
@@ -133,13 +298,17 @@ export const api = {
           new Error("At least one field to update is required"),
         );
       }
-      return call(() => looseTrpcClient.admin.updateAccount.mutate(input));
+      return call(() => mutate<unknown>("admin", "updateAccount", input));
     },
   },
   creative: {
-    demos: () => call(() => looseTrpcClient.creative.demos.query()),
+    demos: () => call(() => query<CreativeDemosResponse>("creative", "demos")),
     demoTitles: (activeOnly?: boolean) =>
-      call(() => looseTrpcClient.creative.demoTitles.query({ activeOnly })),
+      call(() =>
+        query<CreativeDemoTitlesResponse>("creative", "demoTitles", {
+          activeOnly,
+        }),
+      ),
   },
   activityLog: {
     list: (input?: {
@@ -147,41 +316,63 @@ export const api = {
       special?: string;
       scope?: string;
       limit?: number;
-    }) => call(() => looseTrpcClient.activityLog.list.query(input)),
+    }) =>
+      call(() => query<ActivityLogListResponse>("activityLog", "list", input)),
     append: (entry: Record<string, unknown>) =>
+      call(() => mutate<unknown>("activityLog", "append", entry)),
+    clear: () => call(() => mutate<unknown>("activityLog", "clear")),
+  },
+  approval: {
+    listPending: (input?: { status?: string; limit?: number }) =>
+      call(() => query<ApprovalListResponse>("approval", "listPending", input)),
+    approve: (approvalId: string) =>
       call(() =>
-        looseTrpcClient.activityLog.append.mutate(
-          entry as Parameters<typeof looseTrpcClient.activityLog.append.mutate>[0],
-        ),
+        mutate<ApprovalMutationResponse>("approval", "approve", { approvalId }),
       ),
-    clear: () => call(() => looseTrpcClient.activityLog.clear.mutate()),
+    reject: (approvalId: string) =>
+      call(() =>
+        mutate<ApprovalMutationResponse>("approval", "reject", { approvalId }),
+      ),
+    execute: (approvalId: string) =>
+      call(() =>
+        mutate<ApprovalMutationResponse>("approval", "execute", { approvalId }),
+      ),
   },
   testData: {
-    get: () => call(() => looseTrpcClient.testData.get.query()),
+    get: () => call(() => query<TestDataResponse>("testData", "get")),
     update: (content: string | Record<string, unknown>) =>
-      call(() => looseTrpcClient.testData.update.mutate({ content })),
+      call(() => mutate<TestDataResponse>("testData", "update", { content })),
   },
   toolTest: {
-    platformBanner: () => call(() => looseTrpcClient.toolTest.platformBanner.query()),
+    platformBanner: () =>
+      call(() => query<ToolPlatformBannerResponse>("toolTest", "platformBanner")),
     bannerAdUnits: (adView: string) =>
-      call(() => looseTrpcClient.toolTest.bannerAdUnits.query({ adView })),
+      call(() =>
+        query<ToolOptionsResponse>("toolTest", "bannerAdUnits", {
+          adView,
+        }),
+      ),
     bannerTemplates: (adView: string, market?: string) =>
       call(() =>
-        looseTrpcClient.toolTest.bannerTemplates.query({ adView, market }),
+        query<ToolOptionsResponse>("toolTest", "bannerTemplates", {
+          adView,
+          market,
+        }),
       ),
     bannerSettings: (formatId: string, type: string) =>
       call(() =>
-        looseTrpcClient.toolTest.bannerSettings.query({ formatId, type }),
+        query<ToolSettingsResponse>("toolTest", "bannerSettings", {
+          formatId,
+          type,
+        }),
       ),
     createBanner: (payload: Record<string, unknown>) =>
-      call(() => looseTrpcClient.toolTest.createBanner.mutate(payload)),
+      call(() => mutate<ToolCreateBannerResponse>("toolTest", "createBanner", payload)),
     bannerAdvertisers: () =>
-      call(() => looseTrpcClient.toolTest.bannerAdvertisers.query()),
+      call(() => query<ToolOptionsResponse>("toolTest", "bannerAdvertisers")),
   },
   chat: {
     sendMessage: (input: ChatSendMessageInput) =>
-      call<ChatSendMessageResponse>(() =>
-        looseTrpcClient.chat.sendMessage.mutate(input),
-      ),
+      call(() => mutate<ChatSendMessageResponse>("chat", "sendMessage", input)),
   },
 };

@@ -11,7 +11,23 @@ export interface RagAnswerGenerator {
 }
 
 export const answerGenerator: RagAnswerGenerator = {
-  async generate(_input: GenerateRagAnswerInput): Promise<string> {
-    throw new Error("RAG answer generator is not configured.");
+  async generate(input: GenerateRagAnswerInput): Promise<string> {
+    const excerpt = input.context
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 1_200);
+    const citationList = input.citations
+      .slice(0, 3)
+      .map((citation) => citation.chunkId)
+      .join(", ");
+    return [
+      "Em tìm thấy nội dung liên quan trong tài liệu đã index.",
+      "",
+      excerpt,
+      "",
+      citationList ? `Nguồn: ${citationList}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
   },
 };

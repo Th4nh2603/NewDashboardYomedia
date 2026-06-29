@@ -8,6 +8,14 @@ import { fetchJsonOrThrow } from "@/api/apiError";
 import { api } from "@/api/trpc/api";
 import { recordActivity } from "@/utils/activityLog";
 import {
+  ChatBubbleBottomCenterTextIcon,
+  DocumentTextIcon,
+  FolderIcon,
+  PaperAirplaneIcon,
+  PaperClipIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import {
   CHAT_AI_PROVIDER_OPTIONS,
   chatProviderLabel,
   loadChatAiProvider,
@@ -53,6 +61,51 @@ type ChatMessage = {
   id: string;
   role: "user" | "model";
   content: string;
+  data?: ChatResponseDataView;
+  steps?: AgentStepView[];
+  toolCalls?: ToolCallView[];
+  approvals?: ApprovalView[];
+  insufficientContext?: boolean;
+};
+
+type ChatResponseDataView = {
+  type: "table" | "chart" | "metric" | "text";
+  payload: unknown;
+};
+
+type SftpListEntryView = {
+  name: string;
+  type: string;
+  size: number;
+  modifyTime?: number;
+};
+
+type SftpListView = {
+  path?: string;
+  entries: SftpListEntryView[];
+};
+
+type AgentStepView = {
+  name: string;
+  status: string;
+  summary?: string;
+  durationMs?: number;
+};
+
+type ApprovalView = {
+  id: string;
+  toolName: string;
+  reason: string;
+  status: string;
+  inputSummary?: Record<string, unknown>;
+};
+
+type ToolCallView = {
+  toolName: string;
+  status: string;
+  summary?: string;
+  durationMs?: number;
+  requiresApproval?: boolean;
 };
 
 type ChatAttachment = {
@@ -92,6 +145,177 @@ type DeleteUploadedDemoAction = {
   tool: "delete_uploaded_demo";
   remotePath?: string | null;
 };
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function normalizeAgentSteps(value: unknown): AgentStepView[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map<AgentStepView | null>((item) => {
+      const record = asObject(item);
+      if (!record) return null;
+      const name =
+        typeof record.name === "string"
+          ? record.name
+          : typeof record.agent === "string" && typeof record.action === "string"
+            ? `${record.agent}.${record.action}`
+            : typeof record.agent === "string"
+              ? record.agent
+              : "agent.step";
+      const status =
+        typeof record.status === "string" ? record.status : "success";
+      return {
+        name,
+        status,
+        summary:
+          typeof record.summary === "string" ? record.summary : undefined,
+        durationMs:
+          typeof record.durationMs === "number"
+            ? record.durationMs
+            : undefined,
+      };
+    })
+    .filter((item): item is AgentStepView => item !== null);
+}
+
+function normalizeApprovals(value: unknown): ApprovalView[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map<ApprovalView | null>((item) => {
+      const record = asObject(item);
+      if (!record) return null;
+      const id = typeof record.id === "string" ? record.id : "";
+      const toolName =
+        typeof record.toolName === "string" ? record.toolName : "";
+      const reason = typeof record.reason === "string" ? record.reason : "";
+      const status =
+        typeof record.status === "string" ? record.status : "pending";
+      if (!id || !toolName) return null;
+      return {
+        id,
+        toolName,
+        reason,
+        status,
+        inputSummary:
+          typeof record.inputSummary === "object" && record.inputSummary !== null
+            ? (record.inputSummary as Record<string, unknown>)
+            : undefined,
+      };
+    })
+    .filter((item): item is ApprovalView => item !== null);
+}
+
+function normalizeToolCalls(value: unknown): ToolCallView[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map<ToolCallView | null>((item) => {
+      const record = asObject(item);
+      if (!record) return null;
+      const toolName =
+        typeof record.toolName === "string" ? record.toolName : "";
+      const status =
+        typeof record.status === "string" ? record.status : "success";
+      if (!toolName) return null;
+      return {
+        toolName,
+        status,
+        summary:
+          typeof record.summary === "string" ? record.summary : undefined,
+        durationMs:
+          typeof record.durationMs === "number"
+            ? record.durationMs
+            : undefined,
+        requiresApproval:
+          typeof record.requiresApproval === "boolean"
+            ? record.requiresApproval
+            : undefined,
+      };
+    })
+    .filter((item): item is ToolCallView => item !== null);
+}
+
+function normalizeChatResponseData(
+  value: unknown,
+): ChatResponseDataView | undefined {
+  const record = asObject(value);
+  if (!record) return undefined;
+  const type = typeof record.type === "string" ? record.type : "";
+  if (!["table", "chart", "metric", "text"].includes(type)) {
+    return undefined;
+  }
+  return {
+    type: type as ChatResponseDataView["type"],
+    payload: record.payload,
+  };
+}
+
+function inferChatResponseDataFromAction(
+  action: { result?: unknown } | undefined,
+): ChatResponseDataView | undefined {
+  const result = asObject(action?.result);
+  if (!result || !Array.isArray(result.entries)) return undefined;
+  return {
+    type: "table",
+    payload: result,
+  };
+}
+
+function normalizeSftpListEntry(value: unknown): SftpListEntryView | null {
+  const record = asObject(value);
+  if (!record) return null;
+  const name = typeof record.name === "string" ? record.name : "";
+  if (!name) return null;
+  const type = typeof record.type === "string" ? record.type : "-";
+  const size = typeof record.size === "number" ? record.size : 0;
+  return {
+    name,
+    type,
+    size,
+    modifyTime:
+      typeof record.modifyTime === "number" ? record.modifyTime : undefined,
+  };
+}
+
+function extractSftpListView(data: ChatResponseDataView | undefined): SftpListView | null {
+  const payload = asObject(data?.payload);
+  if (!payload || !Array.isArray(payload.entries)) return null;
+  const entries = payload.entries
+    .map(normalizeSftpListEntry)
+    .filter((entry): entry is SftpListEntryView => entry !== null)
+    .filter((entry) => !entry.name.startsWith(".") && !entry.name.startsWith(".bash"))
+    .sort((a, b) => {
+      const aIsDir = a.type === "d";
+      const bIsDir = b.type === "d";
+      if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  return {
+    path: typeof payload.path === "string" ? payload.path : undefined,
+    entries,
+  };
+}
+
+function formatChatSftpSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function chatSftpNameClass(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("yomedia")) return "text-white";
+  if (lower.includes("romano")) return "text-[#4cceac]";
+  if (lower.includes("enchant") || lower.includes("shower")) {
+    return "text-yellow-300";
+  }
+  if (lower.includes("bb")) return "text-rose-300";
+  return "text-slate-100";
+}
 
 const LAST_UPLOADED_DEMO_STORAGE_PREFIX = "yomedia-chat-last-demo:";
 
@@ -442,6 +666,62 @@ function renderColoredContent(content: string) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ChatDataPreview({ data }: { data?: ChatResponseDataView }) {
+  const list = extractSftpListView(data);
+  if (!list) return null;
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#071323] text-xs shadow-[0_18px_45px_-28px_rgba(6,182,212,0.55)]">
+      {list.path && (
+        <div className="border-b border-cyan-400/15 px-4 py-2 font-mono text-[11px] text-slate-400">
+          {list.path}
+        </div>
+      )}
+      <div className="grid grid-cols-12 border-b border-cyan-400/20 bg-cyan-500/10 px-4 py-3 font-semibold text-cyan-100">
+        <div className="col-span-6">Name</div>
+        <div className="col-span-3 text-center">Type</div>
+        <div className="col-span-3 text-right">Size</div>
+      </div>
+      <div className="max-h-72 overflow-y-auto">
+        {list.entries.length === 0 ? (
+          <div className="px-4 py-8 text-center text-slate-400">
+            No entries in this directory.
+          </div>
+        ) : (
+          list.entries.map((entry, index) => {
+            const isDir = entry.type === "d";
+            return (
+              <div
+                key={`${entry.name}-${index}`}
+                className="grid grid-cols-12 border-t border-white/[0.04] px-4 py-3 transition-colors odd:bg-[#09172a] even:bg-[#071120] hover:bg-cyan-500/10"
+              >
+                <div
+                  className={`col-span-6 min-w-0 truncate pr-3 font-medium ${chatSftpNameClass(
+                    entry.name,
+                  )}`}
+                  title={entry.name}
+                >
+                  {entry.name}
+                </div>
+                <div className="col-span-3 flex items-center justify-center text-slate-300">
+                  {isDir ? (
+                    <FolderIcon className="h-4 w-4" aria-label="Directory" />
+                  ) : (
+                    <DocumentTextIcon className="h-4 w-4" aria-label="File" />
+                  )}
+                </div>
+                <div className="col-span-3 text-right text-slate-300">
+                  {isDir ? "-" : formatChatSftpSize(entry.size)}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -1505,8 +1785,195 @@ function inferUploadBaseToken(items: ChatAttachment[]): string {
   return same ? first : "";
 }
 
+function agentStepStatusClass(status: string): string {
+  if (status === "success") {
+    return "bg-[#4cceac]/15 text-[#0f766e] dark:text-[#7ddfc7]";
+  }
+  if (status === "approval_required") {
+    return "bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200";
+  }
+  if (status === "failed" || status === "error") {
+    return "bg-rose-100 text-rose-800 dark:bg-rose-400/15 dark:text-rose-200";
+  }
+  return "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300";
+}
+
+function AgentStepViewer({
+  steps,
+  toolCalls,
+  approvals,
+  insufficientContext,
+}: {
+  steps?: AgentStepView[];
+  toolCalls?: ToolCallView[];
+  approvals?: ApprovalView[];
+  insufficientContext?: boolean;
+}) {
+  const [approvalStatusById, setApprovalStatusById] = React.useState<
+    Record<string, string>
+  >({});
+
+  async function runApprovalAction(
+    approvalId: string,
+    action: "approve" | "reject" | "execute",
+  ) {
+    setApprovalStatusById((prev) => ({ ...prev, [approvalId]: `${action}...` }));
+    try {
+      if (action === "approve") {
+        await api.approval.approve(approvalId);
+        setApprovalStatusById((prev) => ({ ...prev, [approvalId]: "approved" }));
+      } else if (action === "reject") {
+        await api.approval.reject(approvalId);
+        setApprovalStatusById((prev) => ({ ...prev, [approvalId]: "rejected" }));
+      } else {
+        const result = await api.approval.execute(approvalId);
+        const status =
+          typeof result.result === "object" &&
+          result.result !== null &&
+          "status" in result.result
+            ? String((result.result as { status?: unknown }).status ?? "executed")
+            : "executed";
+        setApprovalStatusById((prev) => ({ ...prev, [approvalId]: status }));
+      }
+    } catch (error) {
+      setApprovalStatusById((prev) => ({
+        ...prev,
+        [approvalId]: error instanceof Error ? error.message : "failed",
+      }));
+    }
+  }
+
+  const visibleSteps = steps ?? [];
+  const visibleToolCalls = toolCalls ?? [];
+  const visibleApprovals = approvals ?? [];
+  if (
+    visibleSteps.length === 0 &&
+    visibleToolCalls.length === 0 &&
+    visibleApprovals.length === 0 &&
+    !insufficientContext
+  ) {
+    return null;
+  }
+
+  return (
+    <details className="mt-3 border-t border-slate-200 pt-3 dark:border-white/10">
+      <summary className="cursor-pointer text-xs font-semibold text-slate-500 outline-none transition-colors hover:text-slate-800 focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4cceac] dark:text-slate-400 dark:hover:text-slate-200">
+        Agent steps ({visibleSteps.length})
+      </summary>
+      {insufficientContext && (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
+          Not enough authorized document context or valid citations were found.
+        </div>
+      )}
+      {visibleToolCalls.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {visibleToolCalls.map((toolCall, index) => (
+            <div
+              key={`${toolCall.toolName}-${index}`}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono">{toolCall.toolName}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 font-semibold ${agentStepStatusClass(toolCall.status)}`}
+                >
+                  {toolCall.status}
+                </span>
+                {toolCall.durationMs !== undefined && (
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {toolCall.durationMs}ms
+                  </span>
+                )}
+              </div>
+              {toolCall.summary && (
+                <div className="mt-1 leading-5 text-slate-500 dark:text-slate-400">
+                  {toolCall.summary}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {visibleApprovals.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {visibleApprovals.map((approval) => (
+            <div
+              key={approval.id}
+              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100"
+            >
+              <div className="font-semibold">{approval.toolName}</div>
+              <div className="mt-1 leading-5">{approval.reason}</div>
+              {approval.inputSummary && (
+                <pre className="mt-2 max-h-28 overflow-auto rounded-lg bg-white/60 p-2 font-mono text-[11px] text-amber-950 dark:bg-black/20 dark:text-amber-100">
+                  {JSON.stringify(approval.inputSummary, null, 2)}
+                </pre>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="primary"
+                  onClick={() => void runApprovalAction(approval.id, "approve")}
+                >
+                  Approve
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void runApprovalAction(approval.id, "execute")}
+                >
+                  Execute
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => void runApprovalAction(approval.id, "reject")}
+                >
+                  Reject
+                </Button>
+                <span className="text-[11px] font-semibold">
+                  {approvalStatusById[approval.id] ?? approval.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <ol className="mt-3 space-y-2">
+        {visibleSteps.map((step, index) => (
+          <li key={`${step.name}-${index}`} className="text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-slate-700 dark:text-slate-200">
+                {step.name}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 font-semibold ${agentStepStatusClass(step.status)}`}
+              >
+                {step.status}
+              </span>
+              {step.durationMs !== undefined && (
+                <span className="text-slate-500 dark:text-slate-400">
+                  {step.durationMs}ms
+                </span>
+              )}
+            </div>
+            {step.summary && (
+              <p className="mt-1 leading-5 text-slate-500 dark:text-slate-400">
+                {step.summary}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
 const ChatView = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | undefined>();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
@@ -1514,6 +1981,10 @@ const ChatView = () => {
     useState<ChatAiProvider>(loadChatAiProvider);
   const [pendingUploadAction, setPendingUploadAction] =
     useState<PendingUploadDemoAction | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalView[]>([]);
+  const [pendingApprovalStatus, setPendingApprovalStatus] = useState<
+    Record<string, string>
+  >({});
   const [pendingBannerSetup, setPendingBannerSetup] =
     useState<BannerSetupSession | null>(null);
   const advertiserOptionsRef = useRef<AdvertiserOption[]>([]);
@@ -1538,6 +2009,46 @@ const ChatView = () => {
       }),
     [normalizedRole],
   );
+  const useLegacyFrontendToolFallback = false;
+
+  const refreshPendingApprovals = React.useCallback(async () => {
+    try {
+      const data = await api.approval.listPending({ status: "pending", limit: 25 });
+      setPendingApprovals(normalizeApprovals(data.approvals));
+    } catch {
+      setPendingApprovals([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshPendingApprovals();
+  }, [refreshPendingApprovals]);
+
+  async function runPendingApprovalAction(
+    approvalId: string,
+    action: "approve" | "reject" | "execute",
+  ) {
+    setPendingApprovalStatus((prev) => ({
+      ...prev,
+      [approvalId]: `${action}...`,
+    }));
+    try {
+      if (action === "approve") {
+        await api.approval.approve(approvalId);
+      } else if (action === "reject") {
+        await api.approval.reject(approvalId);
+      } else {
+        await api.approval.execute(approvalId);
+      }
+      setPendingApprovalStatus((prev) => ({ ...prev, [approvalId]: action }));
+      await refreshPendingApprovals();
+    } catch (error) {
+      setPendingApprovalStatus((prev) => ({
+        ...prev,
+        [approvalId]: error instanceof Error ? error.message : "failed",
+      }));
+    }
+  }
 
   const handleProviderChange = (next: ChatAiProvider) => {
     setAiProvider(next);
@@ -2356,6 +2867,7 @@ const ChatView = () => {
     }
 
     if (
+      useLegacyFrontendToolFallback &&
       detectDeleteDemoIntent(trimmedInput) &&
       !isDeleteDemoHelpQuestion(trimmedInput)
     ) {
@@ -2585,7 +3097,7 @@ const ChatView = () => {
     try {
       const decoded = decodeURIComponent(trimmedInput);
       const match = decoded.match(/b=([^&]*?)index\.html/);
-      if (match && match[1]) {
+      if (useLegacyFrontendToolFallback && match && match[1]) {
         const extractedRaw = match[1]; // e.g. 2026/03/romano/384x683/
         const displayDir = extractedRaw
           .replace(/index\.html$/i, "")
@@ -2598,6 +3110,7 @@ const ChatView = () => {
 
         let exists: boolean | null = null;
         let message: string | null = null;
+        let listData: ChatResponseDataView | undefined;
         try {
           const data = await fetchJsonOrThrow<
             | { ok: true; exists: boolean; message?: string | null }
@@ -2617,6 +3130,23 @@ const ChatView = () => {
           handleApiError(e, "SFTP Exists");
         }
 
+        if (exists) {
+          try {
+            const listResult = await sftpClient.list(sftpDir, { scope: "demo" });
+            if (Array.isArray(listResult.entries)) {
+              listData = {
+                type: "table",
+                payload: {
+                  path: sftpDir,
+                  entries: listResult.entries,
+                },
+              };
+            }
+          } catch (e) {
+            handleApiError(e, "SFTP List");
+          }
+        }
+
         const content =
           exists === null
             ? `Directory: ${displayDir}\nCould not verify SFTP (network/server error).`
@@ -2628,6 +3158,7 @@ const ChatView = () => {
           id: (Date.now() + 1).toString(),
           role: "model",
           content,
+          data: listData,
         };
         setMessages((prev) => [...prev, extractedMsg]);
         void recordActivity({
@@ -2650,7 +3181,7 @@ const ChatView = () => {
     }
 
     const demoPath = tryExtractDemoRemotePath(trimmedInput);
-    if (demoPath) {
+    if (useLegacyFrontendToolFallback && demoPath) {
       setInput("");
       setIsLoading(true);
       const serverApiUrl = serverApiOrigin();
@@ -2703,6 +3234,7 @@ const ChatView = () => {
 
     try {
       const data = await api.chat.sendMessage({
+        conversationId,
         message: trimmedInput,
         provider: aiProvider,
         attachments: attachments.map((item) => ({
@@ -2712,11 +3244,16 @@ const ChatView = () => {
           mimeType: item.file.type || guessMimeFromName(item.file.name),
         })),
       });
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
 
       const action = (
         data as {
           action?: {
             tool?: string;
+            requiresApproval?: boolean;
+            result?: unknown;
             remotePath?: string | null;
             brand?: string | null;
             demoId?: string | null;
@@ -2726,6 +3263,27 @@ const ChatView = () => {
           };
         }
       ).action;
+      const responseSteps = normalizeAgentSteps(data.steps);
+      const responseToolCalls = normalizeToolCalls(data.toolCalls);
+      const responseApprovals = normalizeApprovals(data.approvals);
+      const responseData =
+        normalizeChatResponseData(data.data) ??
+        inferChatResponseDataFromAction(action);
+      if (action?.requiresApproval) {
+        const approvalMsg: ChatMessage = {
+          id: (Date.now() + 2).toString(),
+          role: "model",
+          content: data.answer || "This action requires approval.",
+          data: responseData,
+          steps: responseSteps,
+          toolCalls: responseToolCalls,
+          approvals: responseApprovals,
+          insufficientContext: data.insufficientContext === true,
+        };
+        setMessages((prev) => [...prev, approvalMsg]);
+        setIsLoading(false);
+        return;
+      }
       if (action?.tool === "delete_uploaded_demo") {
         const deleteAction = action as DeleteUploadedDemoAction;
         await executeDeleteUploadedDemo({
@@ -2809,6 +3367,11 @@ const ChatView = () => {
         id: (Date.now() + 2).toString(),
         role: "model",
         content: data.answer || "Sorry, I could not generate a response.",
+        data: responseData,
+        steps: responseSteps,
+        toolCalls: responseToolCalls,
+        approvals: responseApprovals,
+        insufficientContext: data.insufficientContext === true,
       };
       setMessages((prev) => [...prev, modelMsg]);
       void recordActivity({
@@ -2845,10 +3408,13 @@ const ChatView = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-6rem)] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl transition-colors duration-300">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex items-center justify-between gap-3">
+    <div className="mx-auto flex h-[calc(100dvh-7rem)] min-h-[32rem] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.18)] transition-colors duration-300 dark:border-white/10 dark:bg-[#151d2f] dark:shadow-[0_24px_80px_-28px_rgba(0,0,0,0.65)]">
+      <div className="flex flex-col gap-3 border-b border-slate-200 bg-white/90 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-[#151d2f]/90">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-3 h-3 shrink-0 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#4cceac]/10 text-[#4cceac] ring-1 ring-[#4cceac]/20">
+            <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#4cceac] ring-2 ring-white dark:ring-[#151d2f]" />
+          </div>
           <div className="min-w-0">
             <h2 className="font-bold text-slate-900 dark:text-white truncate">
               NovaAi · {chatProviderLabel(aiProvider)}
@@ -2861,7 +3427,7 @@ const ChatView = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
           <label htmlFor="chat-ai-provider" className="sr-only">
             AI provider
           </label>
@@ -2872,7 +3438,7 @@ const ChatView = () => {
               handleProviderChange(e.target.value as ChatAiProvider)
             }
             disabled={isLoading}
-            className="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+            className="min-h-10 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#4cceac]/45 disabled:opacity-50 sm:flex-none dark:border-white/10 dark:bg-[#1f2a40] dark:text-slate-100"
           >
             {CHAT_AI_PROVIDER_OPTIONS.map((opt) => (
               <option key={opt.id} value={opt.id}>
@@ -2893,28 +3459,98 @@ const ChatView = () => {
                 });
               }
               setMessages([]);
+              setConversationId(undefined);
               setPendingBannerSetup(null);
             }}
-            className="text-xs text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-slate-100 transition-colors"
+            disabled={messages.length === 0 && !pendingBannerSetup}
+            className="min-h-10 rounded-xl px-3 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4cceac] disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-100"
           >
-            Clear History
+            Clear
           </Button>
         </div>
       </div>
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-slate-50 dark:bg-transparent"
+        className="custom-scrollbar flex-1 space-y-5 overflow-y-auto bg-slate-50 p-4 scroll-smooth sm:p-6 dark:bg-transparent"
       >
+        {pendingApprovals.length > 0 && (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="font-bold">Pending approvals</div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => void refreshPendingApprovals()}
+              >
+                Refresh
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {pendingApprovals.map((approval) => (
+                <div
+                  key={approval.id}
+                  className="rounded-xl border border-amber-200/80 bg-white/70 p-2 dark:border-amber-400/20 dark:bg-black/20"
+                >
+                  <div className="font-semibold">{approval.toolName}</div>
+                  <div className="mt-1 leading-5">{approval.reason}</div>
+                  {approval.inputSummary && (
+                    <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-white/70 p-2 font-mono text-[11px] dark:bg-black/20">
+                      {JSON.stringify(approval.inputSummary, null, 2)}
+                    </pre>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      onClick={() =>
+                        void runPendingApprovalAction(approval.id, "approve")
+                      }
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        void runPendingApprovalAction(approval.id, "execute")
+                      }
+                    >
+                      Execute
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() =>
+                        void runPendingApprovalAction(approval.id, "reject")
+                      }
+                    >
+                      Reject
+                    </Button>
+                    <span className="font-semibold">
+                      {pendingApprovalStatus[approval.id] ?? approval.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 text-slate-500 dark:text-slate-100">
-            <ChatBubbleBottomCenterTextIcon className="w-16 h-16 mb-4" />
-            <p className="text-xl font-medium">
+          <div className="flex h-full flex-col items-center justify-center px-4 text-center text-slate-600 dark:text-slate-300">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#4cceac] ring-1 ring-slate-200 dark:bg-[#1f2a40] dark:ring-white/10">
+              <ChatBubbleBottomCenterTextIcon className="h-8 w-8" />
+            </div>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">
               Start a conversation with NovaAi
             </p>
-            <p className="text-sm">
+            <p className="mt-2 max-w-lg text-sm leading-6">
               Hỏi tài liệu nội bộ, hoặc gõ{" "}
-              <code className="text-xs px-1 rounded bg-slate-200 dark:bg-slate-800">
+              <code className="rounded-md bg-slate-200 px-1.5 py-0.5 text-xs text-slate-800 dark:bg-[#1f2a40] dark:text-slate-100">
                 web - câu hỏi
               </code>{" "}
               để tìm trên internet.
@@ -2927,29 +3563,38 @@ const ChatView = () => {
             className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[85%] p-4 rounded-2xl ${
+              className={`max-w-[min(85%,42rem)] rounded-2xl p-4 ${
                 m.role === "user"
-                  ? "bg-indigo-600 text-white rounded-tr-none shadow-indigo-200 dark:shadow-none"
-                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-700 shadow-sm"
+                  ? "rounded-tr-md bg-[#4cceac] text-[#0f172a]"
+                  : "rounded-tl-md border border-slate-200 bg-white text-slate-800 shadow-sm dark:border-white/10 dark:bg-[#1f2a40] dark:text-slate-200"
               }`}
             >
               <div className="text-sm leading-relaxed">
                 {renderColoredContent(m.content)}
               </div>
+              {m.role === "model" && <ChatDataPreview data={m.data} />}
+              {m.role === "model" && (
+                <AgentStepViewer
+                  steps={m.steps}
+                  toolCalls={m.toolCalls}
+                  approvals={m.approvals}
+                  insufficientContext={m.insufficientContext}
+                />
+              )}
             </div>
           </div>
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#1f2a40]">
               {uploadProgress ? (
-                <div className="w-72 space-y-2">
+                <div className="w-64 max-w-[70vw] space-y-2">
                   <div className="text-xs text-slate-700 dark:text-slate-200">
                     {uploadProgress.label}
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                     <div
-                      className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+                      className="h-full bg-[#4cceac] transition-all duration-300 ease-out"
                       style={{ width: `${uploadProgress.percent}%` }}
                     />
                   </div>
@@ -2958,10 +3603,10 @@ const ChatView = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
-                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                  <div className="w-1.5 h-1.5 bg-indigo-400 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                <div className="flex items-center gap-1.5" aria-label="NovaAi is replying">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4cceac]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4cceac] [animation-delay:0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4cceac] [animation-delay:0.3s]" />
                 </div>
               )}
             </div>
@@ -2978,7 +3623,7 @@ const ChatView = () => {
         onDrop={(e) => {
           void handleChatDrop(e);
         }}
-        className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+        className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#151d2f]"
       >
         <input
           ref={attachmentInputRef}
@@ -2992,26 +3637,28 @@ const ChatView = () => {
           }}
         />
         {attachments.length > 0 && (
-          <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2 space-y-1 max-h-28 overflow-auto">
+          <div className="custom-scrollbar mb-3 max-h-28 space-y-1 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-[#1f2a40]/70">
             {attachments.map((item) => (
               <div
                 key={item.id}
-                className="text-xs flex items-center justify-between gap-2 text-slate-700 dark:text-slate-200"
+                className="flex min-h-9 items-center justify-between gap-2 rounded-lg px-2 text-xs text-slate-700 dark:text-slate-200"
               >
                 <span className="font-mono truncate">{item.relativePath}</span>
                 <button
                   type="button"
+                  aria-label={`Remove ${item.relativePath}`}
                   onClick={() => removeAttachment(item.id)}
-                  className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-rose-200 dark:hover:bg-rose-800/40"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4cceac] dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
                 >
-                  remove
+                  <XMarkIcon className="h-4 w-4" />
                 </button>
               </div>
             ))}
           </div>
         )}
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800/70 p-2">
+        <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-100/80 p-2 transition-colors focus-within:border-[#4cceac]/70 focus-within:ring-2 focus-within:ring-[#4cceac]/15 dark:border-white/10 dark:bg-[#1f2a40]/80">
           <input
+            aria-label="Message NovaAi"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -3024,55 +3671,28 @@ const ChatView = () => {
               void openAttachmentPicker();
             }}
             title="Đính kèm file, zip hoặc folder demo (tự nhận diện)"
-            className="shrink-0 h-10 px-3 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors text-xs font-semibold"
+            aria-label="Attach files or demo folder"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4cceac] dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
           >
-            {attachments.length > 0
-              ? `Attachment (${attachments.length})`
-              : "Attachment"}
+            <PaperClipIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {attachments.length > 0
+                ? `Attach (${attachments.length})`
+                : "Attach"}
+            </span>
           </Button>
           <Button
             type="submit"
+            aria-label="Send message"
             disabled={!input.trim() || isLoading}
-            className="shrink-0 h-10 w-10 flex items-center justify-center bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-indigo-500/20"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#4cceac] p-0 text-[#0f172a] transition-colors hover:bg-[#45b89c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4cceac] disabled:cursor-not-allowed disabled:opacity-45"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M14 5l7 7m0 0l-7 7m7-7H3"
-              />
-            </svg>
+            <PaperAirplaneIcon className="h-5 w-5" />
           </Button>
         </div>
       </form>
     </div>
   );
 };
-
-const ChatBubbleBottomCenterTextIcon = ({
-  className,
-}: {
-  className?: string;
-}) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-    />
-  </svg>
-);
 
 export default ChatView;

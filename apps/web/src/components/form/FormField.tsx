@@ -16,7 +16,12 @@ export type FormFieldProps<T extends FieldValues> = {
   required?: boolean;
   className?: string;
   children:
-    | React.ReactElement<{ id?: string; "aria-invalid"?: boolean }>
+    | React.ReactElement<{
+        id?: string;
+        "aria-invalid"?: boolean;
+        "aria-describedby"?: string;
+        invalid?: boolean;
+      }>
     | ((
         field: ControllerRenderProps<T, FieldPath<T>>,
         meta: { invalid: boolean; fieldId: string },

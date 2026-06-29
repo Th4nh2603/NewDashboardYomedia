@@ -1,270 +1,432 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import {
-  SparklesIcon,
-  PhotoIcon,
-  ChatBubbleBottomCenterTextIcon,
-  DocumentIcon,
-  BoltIcon,
+  ArchiveBoxIcon,
+  ArrowUpTrayIcon,
+  BuildingOffice2Icon,
+  ClipboardDocumentListIcon,
+  DocumentMagnifyingGlassIcon,
+  ExclamationTriangleIcon,
+  LinkIcon,
+  QueueListIcon,
   RectangleStackIcon,
-  ChartBarIcon,
-  CpuChipIcon,
+  ServerStackIcon,
+  ShieldCheckIcon,
+  TableCellsIcon,
+  UsersIcon,
   WrenchScrewdriverIcon,
-  RocketLaunchIcon,
 } from "@heroicons/react/24/outline";
 import { useTheme } from "@/stores/ThemeContext";
-import { useLanguage } from "@/stores/LanguageContext";
+
+type SnapshotState = "ready" | "attention" | "blocked" | "neutral";
+
+type DashboardSummary = {
+  label: string;
+  value: string;
+  detail: string;
+  state: SnapshotState;
+  path: string;
+};
+
+type OperationalMetric = {
+  label: string;
+  value: string;
+  detail: string;
+  state: SnapshotState;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+};
+
+type QuickAction = {
+  label: string;
+  description: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type QuickActionGroup = {
+  title: string;
+  description: string;
+  items: QuickAction[];
+};
+
+const MOCK_OPERATIONAL_SNAPSHOT = {
+  updatedLabel: "Mock operations snapshot",
+  updatedAt: "Replace with API data",
+  summaries: [
+    {
+      label: "Demo readiness",
+      value: "7 ready",
+      detail: "2 need assets before client review",
+      state: "attention",
+      path: "/manage-demo",
+    },
+    {
+      label: "Work queue",
+      value: "11 open",
+      detail: "Uploads, indexing, and failed jobs",
+      state: "attention",
+      path: "/history",
+    },
+    {
+      label: "Team command",
+      value: "4 active areas",
+      detail: "Brands, campaigns, users, and systems",
+      state: "ready",
+      path: "/admin/users",
+    },
+  ] satisfies DashboardSummary[],
+  metrics: [
+    {
+      label: "Pending uploads",
+      value: "5",
+      detail: "Folders waiting for SFTP handoff",
+      state: "attention",
+      icon: ArrowUpTrayIcon,
+      path: "/upload",
+    },
+    {
+      label: "Indexing jobs",
+      value: "3",
+      detail: "Documents queued for search/RAG refresh",
+      state: "neutral",
+      icon: DocumentMagnifyingGlassIcon,
+      path: "/documentation",
+    },
+    {
+      label: "Failed jobs",
+      value: "1",
+      detail: "Needs operator review before retry",
+      state: "blocked",
+      icon: ExclamationTriangleIcon,
+      path: "/history",
+    },
+    {
+      label: "Active brands/campaigns",
+      value: "12",
+      detail: "Live workspaces with demo activity",
+      state: "ready",
+      icon: BuildingOffice2Icon,
+      path: "/creative",
+    },
+    {
+      label: "Client-ready links",
+      value: "18",
+      detail: "Demo links ready for sharing",
+      state: "ready",
+      icon: LinkIcon,
+      path: "/manage-demo",
+    },
+  ] satisfies OperationalMetric[],
+};
+
+const QUICK_ACTION_GROUPS: QuickActionGroup[] = [
+  {
+    title: "Demo readiness",
+    description: "Prepare and verify client-facing creative demos.",
+    items: [
+      {
+        label: "Build demo",
+        description: "Create or update a structured creative demo.",
+        path: "/build-demo",
+        icon: WrenchScrewdriverIcon,
+      },
+      {
+        label: "Manage demos",
+        description: "Review demo status, files, and shareable links.",
+        path: "/manage-demo",
+        icon: RectangleStackIcon,
+      },
+    ],
+  },
+  {
+    title: "Work queue",
+    description: "Move files, documents, and activity through daily operations.",
+    items: [
+      {
+        label: "Upload files",
+        description: "Stage folders and upload FLA/PSD assets.",
+        path: "/upload",
+        icon: ArrowUpTrayIcon,
+      },
+      {
+        label: "Activity history",
+        description: "Audit recent work and failed operations.",
+        path: "/history",
+        icon: ArchiveBoxIcon,
+      },
+      {
+        label: "Documentation",
+        description: "Find guides, indexed documents, and checklists.",
+        path: "/documentation",
+        icon: ClipboardDocumentListIcon,
+      },
+    ],
+  },
+  {
+    title: "Brand/Campaign management",
+    description: "Keep creative libraries and campaign data organized.",
+    items: [
+      {
+        label: "Creative library",
+        description: "Browse formats, assets, and reference specs.",
+        path: "/creative",
+        icon: TableCellsIcon,
+      },
+      {
+        label: "Creative demos table",
+        description: "Maintain demo metadata and campaign rows.",
+        path: "/creative-demos-edit",
+        icon: QueueListIcon,
+      },
+    ],
+  },
+  {
+    title: "System operations",
+    description: "Administer users, transport, and platform tooling.",
+    items: [
+      {
+        label: "Users & permissions",
+        description: "Review roles and route access for internal users.",
+        path: "/admin/users",
+        icon: ShieldCheckIcon,
+      },
+      {
+        label: "SFTP operations",
+        description: "Check hosts and file transport setup.",
+        path: "/manage-sftp",
+        icon: ServerStackIcon,
+      },
+      {
+        label: "Tool test",
+        description: "Validate platform banner workflows.",
+        path: "/tool/test",
+        icon: UsersIcon,
+      },
+    ],
+  },
+];
+
+const statusClass: Record<SnapshotState, string> = {
+  ready: "border-[#4cceac]/35 bg-[#4cceac]/10 text-[#4cceac]",
+  attention: "border-amber-400/35 bg-amber-400/10 text-amber-300",
+  blocked: "border-rose-400/35 bg-rose-400/10 text-rose-300",
+  neutral: "border-slate-400/25 bg-slate-400/10 text-slate-300",
+};
+
+const dotClass: Record<SnapshotState, string> = {
+  ready: "bg-[#4cceac]",
+  attention: "bg-amber-400",
+  blocked: "bg-rose-400",
+  neutral: "bg-slate-400",
+};
 
 const Dashboard: React.FC = () => {
   const { theme } = useTheme();
-  const { tDashboard } = useLanguage();
   const isDark = theme === "dark";
+  const reduceMotion = useReducedMotion();
 
   const shell = isDark
     ? "border-white/[0.08] bg-[#1a2336]/75 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"
-    : "border-slate-200/90 bg-white/80 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.12)]";
-  const muted = isDark ? "text-[#94a3b8]" : "text-slate-500";
-  const heading = isDark ? "text-white" : "text-slate-900";
-  const subCard = isDark
+    : "border-slate-200/90 bg-white/85 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.12)]";
+  const panel = isDark
     ? "border-white/[0.06] bg-[#151d2f]/90"
     : "border-slate-200/80 bg-slate-50/90";
-
-  const quickActions = React.useMemo(
-    () => [
-      {
-        name: tDashboard("quickAiChatName"),
-        desc: tDashboard("quickAiChatDesc"),
-        path: "/chat",
-        icon: ChatBubbleBottomCenterTextIcon,
-        accent: "from-indigo-500/90 to-violet-600/90",
-        iconBg: isDark ? "bg-indigo-500/15" : "bg-indigo-500/12",
-        iconClr: "text-indigo-400",
-      },
-      {
-        name: tDashboard("quickImageName"),
-        desc: tDashboard("quickImageDesc"),
-        path: "/image-generator",
-        icon: PhotoIcon,
-        accent: "from-[#4cceac]/90 to-teal-600/90",
-        iconBg: isDark ? "bg-[#4cceac]/15" : "bg-emerald-500/12",
-        iconClr: "text-[#4cceac]",
-      },
-      {
-        name: tDashboard("quickVisionName"),
-        desc: tDashboard("quickVisionDesc"),
-        path: "/vision",
-        icon: SparklesIcon,
-        accent: "from-amber-500/90 to-orange-600/85",
-        iconBg: isDark ? "bg-amber-500/15" : "bg-amber-500/12",
-        iconClr: "text-amber-400",
-      },
-      {
-        name: tDashboard("quickBuildDemoName"),
-        desc: tDashboard("quickBuildDemoDesc"),
-        path: "/build-demo",
-        icon: WrenchScrewdriverIcon,
-        accent: "from-sky-500/90 to-blue-700/85",
-        iconBg: isDark ? "bg-sky-500/15" : "bg-sky-500/12",
-        iconClr: "text-sky-400",
-      },
-      {
-        name: tDashboard("quickShowcaseName"),
-        desc: tDashboard("quickShowcaseDesc"),
-        path: "/creative",
-        icon: RectangleStackIcon,
-        accent: "from-fuchsia-500/85 to-purple-700/85",
-        iconBg: isDark ? "bg-fuchsia-500/15" : "bg-fuchsia-500/10",
-        iconClr: "text-fuchsia-400",
-      },
-      {
-        name: tDashboard("quickDocsName"),
-        desc: tDashboard("quickDocsDesc"),
-        path: "/documentation",
-        icon: DocumentIcon,
-        accent: "from-slate-500/80 to-slate-700/80",
-        iconBg: isDark ? "bg-white/10" : "bg-slate-500/10",
-        iconClr: isDark ? "text-slate-300" : "text-slate-600",
-      },
-    ],
-    [tDashboard, isDark],
-  );
-
-  const stats = React.useMemo(
-    () => [
-      {
-        label: tDashboard("statCampaignsLabel"),
-        value: "12",
-        hint: tDashboard("statCampaignsHint"),
-        icon: RocketLaunchIcon,
-        ring: "from-[#4cceac]/40 to-transparent",
-      },
-      {
-        label: tDashboard("statAssetsLabel"),
-        value: "248",
-        hint: tDashboard("statAssetsHint"),
-        icon: BoltIcon,
-        ring: "from-amber-400/35 to-transparent",
-      },
-      {
-        label: tDashboard("statBriefLabel"),
-        value: "94%",
-        hint: tDashboard("statBriefHint"),
-        icon: ChartBarIcon,
-        ring: "from-indigo-400/35 to-transparent",
-      },
-      {
-        label: tDashboard("statModelLabel"),
-        value: tDashboard("statModelValue"),
-        hint: tDashboard("statModelHint"),
-        icon: CpuChipIcon,
-        ring: "from-fuchsia-400/30 to-transparent",
-      },
-    ],
-    [tDashboard],
-  );
+  const heading = isDark ? "text-white" : "text-slate-900";
+  const muted = isDark ? "text-[#94a3b8]" : "text-slate-600";
+  const subtle = isDark ? "text-slate-400" : "text-slate-500";
+  const focusRing =
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4cceac]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141b2d]";
 
   return (
-    <div className="flex flex-col gap-10 max-w-[1600px] mx-auto w-full pb-10">
+    <div className="flex w-full max-w-[1600px] flex-col gap-8 pb-10">
       <motion.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className={`relative overflow-hidden rounded-[2rem] border p-8 md:p-10 ${shell}`}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.35 }}
+        className={`rounded-3xl border p-6 md:p-8 ${shell}`}
+        aria-labelledby="dashboard-title"
       >
-        <div
-          className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-70 bg-gradient-to-br from-[#4cceac]/30 to-indigo-600/25"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 -left-16 h-64 w-64 rounded-full blur-3xl opacity-50 bg-gradient-to-tr from-indigo-500/20 to-fuchsia-500/15"
-          aria-hidden
-        />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4 max-w-2xl">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${isDark ? "border-[#4cceac]/35 bg-[#4cceac]/10 text-[#4cceac]" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4cceac] animate-pulse" />
-              {tDashboard("workspaceBadge")}
-            </span>
-            <h1
-              className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] ${heading}`}
-            >
-              {tDashboard("heroTitleLead")}
-              <span className="bg-gradient-to-r from-[#4cceac] via-teal-300 to-indigo-400 bg-clip-text text-transparent">
-                {tDashboard("heroTitleAccent")}
-              </span>
-            </h1>
-            <p className={`text-base md:text-lg leading-relaxed ${muted}`}>
-              {tDashboard("heroSubtitle")}
-            </p>
-          </div>
-          <Link
-            to="/chat"
-            className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#4cceac]/20 bg-gradient-to-r from-[#4cceac] to-indigo-600 hover:brightness-110 transition-all shrink-0`}
-          >
-            {tDashboard("ctaChat")}
-            <SparklesIcon className="h-5 w-5 opacity-90" />
-          </Link>
-        </div>
-      </motion.section>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 * i }}
-            className={`relative rounded-2xl border p-5 overflow-hidden ${subCard}`}
-          >
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl space-y-4">
             <div
-              className={`pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl bg-gradient-to-br ${s.ring}`}
-              aria-hidden
-            />
-            <div className="relative flex items-start justify-between gap-3">
-              <div
-                className={`rounded-xl p-2 ${isDark ? "bg-white/5" : "bg-white shadow-sm border border-slate-200/60"}`}
-              >
-                <s.icon className={`h-5 w-5 ${muted}`} />
-              </div>
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${statusClass.attention}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${dotClass.attention}`} />
+              {MOCK_OPERATIONAL_SNAPSHOT.updatedLabel}
             </div>
-            <p
-              className={`relative mt-4 text-2xl font-black tabular-nums ${heading}`}
-            >
-              {s.value}
-            </p>
-            <p
-              className={`relative text-xs font-semibold uppercase tracking-wide mt-1 ${muted}`}
-            >
-              {s.label}
-            </p>
-            <p className={`relative text-[11px] mt-2 ${muted} opacity-80`}>
-              {s.hint}
-            </p>
-          </motion.div>
-        ))}
-      </div>
-
-      <div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
-          <div>
-            <h2 className={`text-xl font-black ${heading}`}>
-              {tDashboard("quickTitle")}
-            </h2>
-            <p className={`text-sm mt-1 ${muted}`}>
-              {tDashboard("quickSubtitle")}
-            </p>
+            <div className="space-y-3">
+              <h1
+                id="dashboard-title"
+                className={`max-w-3xl text-3xl font-black leading-tight tracking-tight md:text-4xl ${heading}`}
+              >
+                YoMedia operations command
+              </h1>
+              <p className={`max-w-2xl text-base leading-relaxed ${muted}`}>
+                Track demo readiness, queue pressure, and team operations from
+                one internal workspace. The data below is intentionally marked
+                as mock so it can be replaced by API-backed status later.
+              </p>
+            </div>
+          </div>
+          <div className={`text-sm ${subtle}`}>
+            Updated:{" "}
+            <span className={`font-semibold ${heading}`}>
+              {MOCK_OPERATIONAL_SNAPSHOT.updatedAt}
+            </span>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {quickActions.map((action, i) => (
-            <Link key={action.path} to={action.path}>
+
+        <div className="mt-7 grid gap-4 lg:grid-cols-3">
+          {MOCK_OPERATIONAL_SNAPSHOT.summaries.map((item, index) => (
+            <Link
+              key={item.label}
+              to={item.path}
+              className={`rounded-2xl border p-5 transition-colors hover:border-[#4cceac]/40 ${panel} ${focusRing}`}
+            >
               <motion.article
-                initial={{ opacity: 0, y: 14 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.04 * i }}
-                whileHover={{ y: -4 }}
-                whileTap={{ scale: 0.99 }}
-                className={`group h-full rounded-2xl border p-6 relative overflow-hidden ${shell}`}
+                transition={reduceMotion ? { duration: 0 } : { delay: index * 0.04 }}
               >
-                <div
-                  className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${action.accent} opacity-90`}
-                  aria-hidden
-                />
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`rounded-2xl p-3.5 shrink-0 ${action.iconBg} ring-1 ${isDark ? "ring-white/10" : "ring-black/[0.04]"}`}
-                  >
-                    <action.icon className={`w-7 h-7 ${action.iconClr}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3
-                      className={`font-bold text-lg ${heading} group-hover:text-[#4cceac] transition-colors`}
-                    >
-                      {action.name}
-                    </h3>
-                    <p className={`text-sm mt-1 leading-snug ${muted}`}>
-                      {action.desc}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className={`text-sm font-bold ${heading}`}>
+                      {item.label}
+                    </h2>
+                    <p className={`mt-1 text-xs leading-relaxed ${muted}`}>
+                      {item.detail}
                     </p>
                   </div>
-                </div>
-                <div
-                  className={`mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${muted}`}
-                >
-                  {tDashboard("quickOpenTool")}
                   <span
-                    className={`transition-transform group-hover:translate-x-1 ${heading}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] ${statusClass[item.state]}`}
                   >
-                    →
+                    <span className={`h-1.5 w-1.5 rounded-full ${dotClass[item.state]}`} />
+                    {item.state}
                   </span>
                 </div>
+                <p className={`mt-5 text-2xl font-black tabular-nums ${heading}`}>
+                  {item.value}
+                </p>
               </motion.article>
             </Link>
           ))}
         </div>
-      </div>
+      </motion.section>
+
+      <section aria-labelledby="operations-metrics">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="operations-metrics" className={`text-xl font-black ${heading}`}>
+              Operational status
+            </h2>
+            <p className={`mt-1 text-sm ${muted}`}>
+              Placeholder metrics for the status API: uploads, indexing,
+              failures, active work, and client-ready links.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {MOCK_OPERATIONAL_SNAPSHOT.metrics.map((metric, index) => (
+            <Link
+              key={metric.label}
+              to={metric.path}
+              className={`rounded-2xl border p-5 transition-colors hover:border-[#4cceac]/40 ${panel} ${focusRing}`}
+            >
+              <motion.article
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={reduceMotion ? { duration: 0 } : { delay: index * 0.035 }}
+                className="h-full"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div
+                    className={`rounded-xl border p-2 ${statusClass[metric.state]}`}
+                  >
+                    <metric.icon className="h-5 w-5" aria-hidden />
+                  </div>
+                  <span className={`h-2 w-2 rounded-full ${dotClass[metric.state]}`} />
+                </div>
+                <p className={`mt-5 text-2xl font-black tabular-nums ${heading}`}>
+                  {metric.value}
+                </p>
+                <h3 className={`mt-1 text-xs font-bold uppercase tracking-[0.08em] ${muted}`}>
+                  {metric.label}
+                </h3>
+                <p className={`mt-2 text-xs leading-relaxed ${subtle}`}>
+                  {metric.detail}
+                </p>
+              </motion.article>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="workflow-shortcuts">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="workflow-shortcuts" className={`text-xl font-black ${heading}`}>
+              Workflow shortcuts
+            </h2>
+            <p className={`mt-1 text-sm ${muted}`}>
+              Grouped by the work YoMedia operators move through each day.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          {QUICK_ACTION_GROUPS.map((group, groupIndex) => (
+            <motion.article
+              key={group.title}
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={reduceMotion ? { duration: 0 } : { delay: groupIndex * 0.04 }}
+              className={`rounded-2xl border p-5 ${shell}`}
+            >
+              <div className="mb-4">
+                <h3 className={`text-lg font-bold ${heading}`}>{group.title}</h3>
+                <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
+                  {group.description}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {group.items.map((action) => (
+                  <Link
+                    key={action.path}
+                    to={action.path}
+                    aria-label={`${action.label}: ${action.description}`}
+                    className={`group rounded-xl border p-4 transition-colors hover:border-[#4cceac]/40 ${
+                      isDark
+                        ? "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05]"
+                        : "border-slate-200/80 bg-white hover:bg-slate-50"
+                    } ${focusRing}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`rounded-lg p-2 ${
+                          isDark ? "bg-white/5 text-[#4cceac]" : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        <action.icon className="h-5 w-5" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <h4
+                          className={`text-sm font-bold transition-colors group-hover:text-[#4cceac] ${heading}`}
+                        >
+                          {action.label}
+                        </h4>
+                        <p className={`mt-1 text-xs leading-relaxed ${muted}`}>
+                          {action.description}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

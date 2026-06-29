@@ -1,8 +1,13 @@
 export type ChatIntent = "rag" | "sql" | "tool" | "general";
+export type AgentName = "RagAgent" | "SqlAgent" | "GeneralAgent" | "DemoAgent";
 
 export interface IntentResult {
   intent: ChatIntent;
+  primaryTask: string;
   confidence: number;
+  selectedAgent: AgentName;
+  neededCapabilities: string[];
+  riskLevel: "low" | "medium" | "high";
   reason: string;
 }
 
@@ -19,6 +24,7 @@ export interface ChatAgentResult {
   data?: unknown;
   sources: unknown[];
   toolCalls: unknown[];
+  approvals?: unknown[];
   steps: unknown[];
   action?: {
     tool: string;

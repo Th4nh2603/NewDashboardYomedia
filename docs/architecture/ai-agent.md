@@ -24,9 +24,11 @@ Chat requests should flow through:
 ```text
 chat.router.ts
 -> modules/chat/chat.service.ts
--> ai/agents/orchestrator
--> intent/general/rag/sql/tool agents
--> response agent
+-> AgentContextBuilder
+-> Agent Runtime Core
+-> Unified Policy Gate
+-> RAG Service / SQL Safety / Shared Tool Gate
+-> Response + Observability
 -> frontend-safe DTO
 ```
 
@@ -60,6 +62,8 @@ The router selects the smallest capable agent set for a request. Routing should 
 
 Intent classification must not grant permissions. It should label user intent, confidence, required capabilities, and whether RAG or tools may be needed.
 
+The current code keeps `tool` as an intent value for backward compatibility. In architecture terms, treat it as `tool/action` or direct action intent. Tool execution is also a shared capability: General, RAG, SQL, and direct action planners may request tools only through `ToolRegistry`. No agent should execute a tool directly or bypass name validation, input schema validation, permission checks, tenant/brand scope checks, approval gating, result sanitization, and safe logging.
+
 ## Multi-Intent Handling
 
 Multi-intent requests should be split into ordered steps when safe. Authorization must be checked per step before data access or tool execution.
@@ -80,11 +84,34 @@ query embedding -> vector search -> keyword search -> hybrid search -> metadata 
 
 Always filter retrieval by allowed knowledge-base IDs and return citation metadata suitable for frontend display. See `docs/architecture/rag.md` for detailed RAG rules.
 
+`RAG Service` queries the `Vector DB / Knowledge Store` for documents, chunks, embeddings, metadata, and citation references. If the implementation uses PostgreSQL with `pgvector`, document it as a knowledge store/vector index boundary; do not blur it with the main application database.
+
 ## SQL Agent
 
-SQL agent output must be read-only. Backend code must validate SQL and inject tenant/brand scope before execution. Do not let generated SQL decide tenant, brand, permission, or data visibility.
+SQL agent output must be read-only unless a future explicitly approved mutation path adds policy, HITL approval, and audit controls. Backend code must validate SQL and inject tenant/brand scope before execution. Do not let generated SQL decide tenant, brand, permission, or data visibility.
+
+`SqlAgent` must not query databases directly. The allowed path is:
+
+```text
+SqlAgent
+-> Agent Runtime Core
+-> Unified Policy Gate
+-> SQL Safety
+-> Business / Report Database
+```
+
+The `Business / Report Database` is for report, crawl, business, and dashboard data and should not be treated as the same boundary as the `Application Database` unless an explicit architecture decision says they share one physical backend with separate schemas and policy controls.
 
 TODO: Verify against implementation whether SQL execution is currently implemented or only scaffolded in `apps/api/src/ai/agents/sql`.
+
+## Data Layer And Persistence
+
+- `Application Database`: users, tenants, brands, roles, permissions, sessions, configs, chat sessions/messages, agent runs, tool runs, pending approvals, approval history, and memory summaries.
+- `Vector DB / Knowledge Store`: documents, chunks, embeddings, metadata, and citations for RAG.
+- `Business / Report Database`: read-only SQL/report data behind `SQL Safety`, allowlists, row limits, timeouts, and tenant/brand filters.
+- `Log / Audit Store`: sanitized step logs, audit logs, tool runs, policy decisions, result-sanitization records, and safe errors.
+
+Frontend code must not hold database credentials or SFTP credentials. SFTP remote demo storage is an external file/demo storage service, not the application database.
 
 ## Tool Registry
 
@@ -118,6 +145,8 @@ Memory must be scoped by user, tenant, brand, and policy. Do not reuse private m
 Trace intent detection, agent selection, retrieval, tool calls, generation, and validation using sanitized summaries, durations, status, and error summaries.
 
 Agent step logs should align with the shared observability contract in `packages/observability`.
+
+Durable observability records should be written to the `Log / Audit Store`. Do not rely on process memory for audit trails, policy decisions, tool execution records, or approval history.
 
 ## Validation
 

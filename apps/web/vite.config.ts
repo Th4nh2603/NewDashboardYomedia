@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (url) => url.replace(/^\/api\/trpc/, "/trpc"),
         },
+        "/api/sftp": {
+          target: env.VITE_SERVER_URL || "http://localhost:4000",
+          changeOrigin: true,
+        },
       },
     },
     plugins: [react()],

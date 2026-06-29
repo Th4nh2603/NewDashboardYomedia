@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Merged Agent Core Architecture - Overview With Data Layer</title>
+    <style>
+      :root {
+        --bg: #fbfcff;
+        --ink: #0f172a;
+        --muted: #334155;
+        --line: #14213d;
+        --green: #15803d;
+        --green-soft: #f2fff6;
+        --purple: #6d28d9;
+        --purple-soft: #f8f3ff;
+        --blue: #2563eb;
+        --blue-soft: #f3f7ff;
+        --orange: #f97316;
+        --orange-soft: #fff8f0;
+        --teal: #0f766e;
+        --teal-soft: #effefd;
+        --rose: #e11d48;
+        --rose-soft: #fff4f6;
+        --slate: #475569;
+        --slate-soft: #f8fafc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1880px;
+        background:
+          radial-gradient(circle at 50% 35%, #ffffff 0 40%, transparent 70%),
+          var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      .page {
+        padding: 18px 32px 28px;
+      }
+
+      .title {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 44px;
+        line-height: 1.05;
+        letter-spacing: 0;
+        font-weight: 850;
+      }
+
+      .title p {
+        margin: 8px 0 0;
+        color: #111827;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .diagram {
+        position: relative;
+        width: 1816px;
+        height: 1030px;
+        margin: 0 auto;
+      }
+
+      .backend {
+        position: absolute;
+        left: 285px;
+        top: 0;
+        width: 1498px;
+        height: 1010px;
+        border: 2px solid var(--green);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .backend-title {
+        position: absolute;
+        left: 0;
+        top: 14px;
+        width: 100%;
+        color: #087522;
+        text-align: center;
+        font-size: 25px;
+        font-weight: 850;
+      }
+
+      .node {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 7px;
+        min-height: 76px;
+        padding: 14px 16px;
+        border: 2px solid var(--slate);
+        border-radius: 9px;
+        background: #ffffff;
+        color: var(--ink);
+        text-align: center;
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+      }
+
+      .node .label {
+        font-size: 16px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .node .small {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 600;
+      }
+
+      .node .list {
+        display: grid;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .mini {
+        padding: 8px 10px;
+        border: 1.5px solid currentColor;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.78);
+        font-size: 12px;
+        line-height: 1.25;
+        font-weight: 650;
+      }
+
+      .user,
+      .frontend {
+        border-color: var(--purple);
+        background: var(--purple-soft);
+        color: #3b0a83;
+      }
+
+      .trusted {
+        border-color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .branches,
+      .tools {
+        border-color: var(--orange);
+        background: var(--orange-soft);
+      }
+
+      .core {
+        border-color: var(--purple);
+        background: var(--purple-soft);
+        color: #471a9b;
+      }
+
+      .policy,
+      .rag,
+      .sql {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .storage,
+      .secret {
+        border-color: var(--teal);
+        background: var(--teal-soft);
+        color: #075d5a;
+      }
+
+      .approval {
+        border-color: var(--rose);
+        background: var(--rose-soft);
+      }
+
+      .obs,
+      .data {
+        border-color: var(--slate);
+        background: var(--slate-soft);
+      }
+
+      .group {
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+
+      .group .label {
+        margin-bottom: 4px;
+      }
+
+      .data {
+        text-align: left;
+      }
+
+      .data .label {
+        text-align: center;
+      }
+
+      .db-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      .db {
+        min-height: 96px;
+        padding: 10px;
+        border: 1.5px solid var(--slate);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .db strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        color: #0f172a;
+      }
+
+      .db span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+        font-weight: 600;
+      }
+
+      .arrow {
+        position: absolute;
+        height: 2px;
+        background: var(--line);
+        transform-origin: left center;
+      }
+
+      .arrow::after {
+        content: "";
+        position: absolute;
+        right: -1px;
+        top: -5px;
+        width: 0;
+        height: 0;
+        border-left: 10px solid var(--line);
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+      }
+
+      .arrow.down,
+      .arrow.up {
+        width: 2px;
+        height: var(--h);
+      }
+
+      .arrow.down::after,
+      .arrow.up::after {
+        left: -5px;
+        right: auto;
+        top: auto;
+        bottom: -1px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 10px solid var(--line);
+        border-bottom: 0;
+      }
+
+      .arrow.up::after {
+        top: -1px;
+        bottom: auto;
+        border-top: 0;
+        border-bottom: 10px solid var(--line);
+      }
+
+      .arrow.dashed {
+        background: repeating-linear-gradient(
+          to right,
+          var(--line) 0 8px,
+          transparent 8px 14px
+        );
+      }
+
+      .arrow.down.dashed,
+      .arrow.up.dashed {
+        background: repeating-linear-gradient(
+          to bottom,
+          var(--line) 0 8px,
+          transparent 8px 14px
+        );
+      }
+
+      .callout {
+        border-style: dashed;
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 650;
+      }
+
+      .footnote {
+        position: absolute;
+        left: 360px;
+        bottom: 54px;
+        color: #0f172a;
+        font-size: 14px;
+        line-height: 1.35;
+        font-weight: 650;
+      }
+
+      .icon {
+        display: inline-grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 2px;
+        border: 2px solid currentColor;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      @media print {
+        body {
+          min-width: auto;
+        }
+
+        .page {
+          padding: 8mm;
+        }
+
+        .diagram {
+          transform: scale(0.55);
+          transform-origin: top left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="title">
+        <h1>MERGED AGENT CORE ARCHITECTURE - OVERVIEW</h1>
+        <p>
+          Backend Trusted Scope + Agent Runtime Core + Unified Policy Gate +
+          Shared Tool Gate + Data Layer
+        </p>
+      </header>
+
+      <main class="diagram" aria-label="Merged Agent Core architecture overview with data layer">
+        <div class="backend">
+          <div class="backend-title">Backend API / Trusted Scope</div>
+        </div>
+
+        <section class="node user" style="left: 12px; top: 36px; width: 168px; height: 98px">
+          <div class="icon">U</div>
+          <div class="label">User</div>
+        </section>
+
+        <section class="node frontend" style="left: 0; top: 200px; width: 208px; height: 148px">
+          <div class="label">Manage Demo<br />+ SFTP Model</div>
+          <div class="small">Frontend UI only<br />no SFTP credentials</div>
+        </section>
+
+        <section class="node frontend" style="left: 0; top: 382px; width: 208px; height: 226px">
+          <div class="label">Frontend Chat UI</div>
+          <div class="mini">chat</div>
+          <div class="mini">step viewer</div>
+          <div class="mini">pending approvals</div>
+        </section>
+
+        <section class="node trusted" style="left: 312px; top: 66px; width: 214px; height: 84px">
+          <div class="icon">OK</div>
+          <div class="label">Chat API /<br />Protected Procedure</div>
+        </section>
+
+        <section class="node trusted" style="left: 574px; top: 66px; width: 214px; height: 94px">
+          <div class="label">Agent Context Builder</div>
+          <div class="small">user / tenant / brand /<br />KB / tool scope</div>
+        </section>
+
+        <section class="node group branches" style="left: 302px; top: 228px; width: 184px; height: 376px">
+          <div class="label">Agent Branches</div>
+          <div class="list">
+            <div class="mini">RagAgent<br /><span class="small">answer from documents</span></div>
+            <div class="mini">SqlAgent<br /><span class="small">read/report query</span></div>
+            <div class="mini">GeneralAgent<br /><span class="small">LLM answer</span></div>
+            <div class="mini">DemoAgent<br /><span class="small">preview / SFTP ops</span></div>
+          </div>
+        </section>
+
+        <section class="node group core" style="left: 524px; top: 200px; width: 236px; height: 398px">
+          <div class="label">Agent Runtime Core</div>
+          <div class="list">
+            <div class="mini">orchestrator</div>
+            <div class="mini">scoped memory</div>
+            <div class="mini">intent detect</div>
+            <div class="mini">skill catalog</div>
+            <div class="mini">build system</div>
+            <div class="mini">agent loop</div>
+          </div>
+        </section>
+
+        <section class="node policy" style="left: 800px; top: 200px; width: 230px; height: 398px">
+          <div class="label">Unified Policy Gate</div>
+          <div class="list">
+            <div class="mini">validate args</div>
+            <div class="mini">permission / approval</div>
+            <div class="mini">tenant / brand / KB scope</div>
+            <div class="mini">safety envelope</div>
+          </div>
+          <div class="small">common policy path for<br />RAG, SQL, and tools</div>
+        </section>
+
+        <section class="node rag" style="left: 1072px; top: 178px; width: 174px; height: 100px">
+          <div class="label">RAG Service</div>
+          <div class="small">grounded answer<br />+ citations</div>
+        </section>
+
+        <section class="node sql" style="left: 1072px; top: 300px; width: 174px; height: 108px">
+          <div class="label">SQL Safety</div>
+          <div class="small">read-only / allowlist /<br />timeout / row limit</div>
+        </section>
+
+        <section class="node group tools" style="left: 1072px; top: 430px; width: 174px; height: 220px">
+          <div class="label">Shared Tool Gate</div>
+          <div class="list">
+            <div class="mini">tool registry</div>
+            <div class="mini">validate schema</div>
+            <div class="mini">permission + scope</div>
+            <div class="mini">approval check</div>
+            <div class="mini">result sanitation</div>
+          </div>
+        </section>
+
+        <section class="node tools" style="left: 1290px; top: 448px; width: 142px; height: 142px">
+          <div class="label">Tool Executor /<br />Tool Runner</div>
+          <div class="small">timeout / retry /<br />abort / error mapping</div>
+        </section>
+
+        <section class="node group tools" style="left: 1478px; top: 330px; width: 152px; height: 318px">
+          <div class="label">SFTP Tool Groups</div>
+          <div class="list">
+            <div class="mini">Read Tools<br /><span class="small">list / read / exists / download</span></div>
+            <div class="mini">Write Tools<br /><span class="small">write / mkdir / setup demo media</span></div>
+            <div class="mini">Destructive Tools<br /><span class="small">delete / rename / overwrite</span></div>
+          </div>
+        </section>
+
+        <section class="node storage" style="left: 1668px; top: 438px; width: 136px; height: 170px">
+          <div class="label">SFTP Service /<br />Remote Demo<br />Storage</div>
+          <div class="small">remote file/demo<br />storage only</div>
+          <div class="icon">DB</div>
+        </section>
+
+        <section class="node secret" style="left: 1652px; top: 96px; width: 180px; height: 102px">
+          <div class="label">Secrets Manager /<br />Backend Credentials</div>
+          <div class="small">backend only</div>
+        </section>
+
+        <section class="node approval" style="left: 1264px; top: 664px; width: 160px; height: 104px">
+          <div class="label">HITL Approval</div>
+          <div class="small">review risky actions<br />(approve / reject)</div>
+        </section>
+
+        <section class="node approval callout" style="left: 1242px; top: 786px; width: 206px; height: 78px">
+          Destructive actions may require approval. Read operations usually do not.
+        </section>
+
+        <section class="node obs" style="left: 548px; top: 786px; width: 484px; height: 130px">
+          <div class="label">Response + Observability</div>
+          <div class="db-grid" style="grid-template-columns: repeat(4, 1fr)">
+            <div class="mini">response normalize</div>
+            <div class="mini">step logs</div>
+            <div class="mini">audit logs</div>
+            <div class="mini">memory summary</div>
+          </div>
+        </section>
+
+        <section class="node data" style="left: 548px; top: 642px; width: 675px; height: 122px">
+          <div class="label">Data Layer / Persistence</div>
+          <div class="db-grid">
+            <div class="db">
+              <strong>Application Database</strong>
+              <span>PostgreSQL / MySQL<br />users / tenants / brands / roles / permissions / sessions / configs</span>
+            </div>
+            <div class="db">
+              <strong>Vector DB / Knowledge Store</strong>
+              <span>pgvector / Qdrant / Pinecone / Chroma<br />documents / chunks / embeddings / metadata / citations</span>
+            </div>
+            <div class="db">
+              <strong>Business / Report Database</strong>
+              <span>read-only / allowlist / row limit / timeout<br />report / crawl / dashboard data</span>
+            </div>
+            <div class="db">
+              <strong>Log / Audit Store</strong>
+              <span>step logs / audit logs / tool runs / policy decisions / errors</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="footnote">final answer<br />+ step summary</div>
+
+        <div class="arrow down" style="left: 96px; top: 134px; --h: 66px"></div>
+        <div class="arrow down" style="left: 104px; top: 348px; --h: 34px"></div>
+        <div class="arrow" style="left: 208px; top: 276px; width: 104px"></div>
+        <div class="arrow" style="left: 526px; top: 108px; width: 48px"></div>
+        <div class="arrow down" style="left: 681px; top: 160px; --h: 40px"></div>
+        <div class="arrow" style="left: 486px; top: 414px; width: 38px"></div>
+        <div class="arrow" style="left: 760px; top: 408px; width: 40px"></div>
+        <div class="arrow down" style="left: 876px; top: 160px; --h: 40px"></div>
+        <div class="arrow" style="left: 1030px; top: 246px; width: 42px"></div>
+        <div class="arrow" style="left: 1030px; top: 354px; width: 42px"></div>
+        <div class="arrow" style="left: 1030px; top: 528px; width: 42px"></div>
+        <div class="arrow" style="left: 1246px; top: 520px; width: 44px"></div>
+        <div class="arrow" style="left: 1432px; top: 520px; width: 46px"></div>
+        <div class="arrow" style="left: 1630px; top: 520px; width: 38px"></div>
+        <div class="arrow down dashed" style="left: 1790px; top: 198px; --h: 240px"></div>
+        <div class="arrow down" style="left: 1332px; top: 590px; --h: 74px"></div>
+        <div class="arrow up" style="left: 1388px; top: 590px; --h: 74px"></div>
+        <div class="arrow down" style="left: 1158px; top: 650px; --h: 136px"></div>
+        <div class="arrow down" style="left: 920px; top: 598px; --h: 44px"></div>
+        <div class="arrow up" style="left: 650px; top: 598px; --h: 44px"></div>
+        <div class="arrow down" style="left: 840px; top: 598px; --h: 188px"></div>
+        <div class="arrow" style="left: 1032px; top: 850px; width: 210px; transform: rotate(180deg)"></div>
+        <div class="arrow" style="left: 350px; top: 850px; width: 198px; transform: rotate(180deg)"></div>
+        <div class="arrow up" style="left: 96px; top: 608px; --h: 242px"></div>
+      </main>
+    </div>
+  </body>
+</html>

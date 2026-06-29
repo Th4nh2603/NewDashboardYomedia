@@ -17,7 +17,14 @@ docs/
     frontend.md
     backend.md
     ai-agent.md
+    agent-core.md
+    approval.md
+    audit-log.md
+    policy-gate.md
+    tool-gate.md
     rag.md
+    manage-demo-sftp.md
+    sftp-demo.md
   standards/
     coding.md
     security.md
@@ -39,7 +46,14 @@ docs/
 - `architecture/frontend.md`: React + Vite frontend structure and UI-only rules.
 - `architecture/backend.md`: Express + tRPC backend structure, services, repositories, policies, and API rules.
 - `architecture/ai-agent.md`: AI agent orchestration, routing, MCP, SQL, context, traces, and response contracts.
+- `architecture/agent-core.md`: merged agent core architecture, backend trusted scope, stable agent branches, and runtime flow.
+- `architecture/approval.md`: durable HITL approval lifecycle and approved execution flow.
+- `architecture/audit-log.md`: durable sanitized audit record fields and restrictions.
+- `architecture/policy-gate.md`: unified validation, permission, scope, safety envelope, and approval decision guidance.
+- `architecture/tool-gate.md`: shared tool registry, gateway, executor, approval handoff, and result sanitization guidance.
 - `architecture/rag.md`: RAG ingestion, retrieval, metadata, citations, insufficient-context handling, and eval metrics.
+- `architecture/manage-demo-sftp.md`: Manage Demo and SFTP ownership, path, permission, operation, preview, and audit model.
+- `architecture/sftp-demo.md`: backend-owned SFTP tool groups, credential boundaries, and read/write/destructive action rules.
 
 ## Standards
 
@@ -83,10 +97,23 @@ Database migration work:
 
 AI agent work:
 
+- `architecture/agent-core.md`
+- `architecture/approval.md`
+- `architecture/audit-log.md`
+- `architecture/policy-gate.md`
+- `architecture/tool-gate.md`
 - `architecture/ai-agent.md`
 - `architecture/rag.md`
 - `standards/security.md`
 - `standards/testing.md`
+
+Demo SFTP work:
+
+- `architecture/sftp-demo.md`
+- `architecture/manage-demo-sftp.md`
+- `architecture/policy-gate.md`
+- `architecture/tool-gate.md`
+- `standards/security.md`
 
 RAG work:
 

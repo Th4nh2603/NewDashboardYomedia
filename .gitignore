@@ -7,3 +7,8 @@ dist
 .env
 .env.*
 *.env.local
+
+.codex/
+skills-lock.json
+apps/api/data/approvals.json
+apps/api/data/audit-log.json

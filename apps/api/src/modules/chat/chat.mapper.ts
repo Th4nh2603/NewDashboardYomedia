@@ -26,6 +26,7 @@ export function mapChatResultToDto(result: ChatInternalResult): ChatResponseDto 
     ...(result.agent ? { agent: result.agent } : {}),
     ...(result.sources ? { sources: result.sources } : {}),
     ...(result.toolCalls ? { toolCalls: result.toolCalls } : {}),
+    ...(result.approvals ? { approvals: result.approvals } : {}),
     ...(result.steps ? { steps: result.steps } : {}),
     ...(result.data === undefined ? {} : { data: result.data }),
     ...(result.action ? { action: mapAction(result.action) } : {}),

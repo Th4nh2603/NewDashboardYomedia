@@ -14,6 +14,8 @@ This directory owns backend-only RAG ingestion, parsing, chunking, embedding, re
 
 ## Rules
 
+- RAG is a stable agent branch. It must answer from authorized documents, preserve metadata/citations, and stay behind backend tenant, brand, and KB scope.
+- RAG retrieval and generation must use the unified policy/scope boundary when invoked from chat or agents.
 - Apply tenant and brand filtering before retrieval, reranking, and generation.
 - Preserve document metadata through ingestion, chunking, retrieval, and citation building.
 - Generated answers must cite retrieved source chunks or report insufficient context.

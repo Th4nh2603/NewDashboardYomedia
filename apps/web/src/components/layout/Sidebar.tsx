@@ -12,7 +12,7 @@ import {
   canShowNavRoute,
 } from "@/utils/access";
 import { useUser } from "@clerk/react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   HomeIcon,
   UsersIcon,
@@ -32,11 +32,14 @@ import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   SignalSlashIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 function SidebarAdminOfflineToggle({
@@ -97,11 +100,18 @@ function SidebarApiLine() {
   );
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  isCollapsed,
+  setIsCollapsed,
+  isMobileOpen = false,
+  onMobileClose,
+}) => {
   const location = useLocation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { tNav, tLayout } = useLanguage();
+  const reduceMotion = useReducedMotion();
+  const isVisuallyCollapsed = isCollapsed && !isMobileOpen;
   const { user } = useAuth();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const displayUser = user
@@ -119,12 +129,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           roleTitle: "Clerk User",
         }
       : null;
-  React.useEffect(() => {
-    if (displayUser?.email) {
-      console.log("Logged in email:", displayUser.email);
-    }
-  }, [displayUser?.email]);
-
   if (!displayUser && isClerkLoaded) return null;
 
   const roleTitleFromServer =
@@ -258,10 +262,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     <motion.nav
       initial={false}
       animate={{
-        width: isCollapsed ? 84 : 280,
-        transition: { type: "spring", stiffness: 400, damping: 40 },
+        width: isVisuallyCollapsed ? 84 : 280,
+        transition: reduceMotion
+          ? { duration: 0 }
+          : { type: "spring", stiffness: 400, damping: 40 },
       }}
-      className={`flex flex-col h-screen fixed top-0 left-0 z-40 backdrop-blur-2xl overflow-hidden border-r ${
+      className={`flex flex-col h-screen fixed top-0 left-0 z-40 backdrop-blur-2xl overflow-hidden border-r transition-transform duration-300 md:translate-x-0 ${
+        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      } ${
         isDark
           ? "bg-[#0f172a]/80 border-white/5 shadow-[20px_0_50px_rgba(0,0,0,0.3)]"
           : "bg-white/95 border-slate-200/80 shadow-lg"
@@ -269,9 +277,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     >
       {/* Header / Logo */}
       <div
-        className={`h-20 flex items-center mb-4 shrink-0 ${isCollapsed ? "justify-center px-2" : "justify-between px-6 pr-4"}`}
+        className={`h-20 flex items-center mb-4 shrink-0 ${isVisuallyCollapsed ? "justify-center px-2" : "justify-between px-6 pr-4"}`}
       >
-        {isCollapsed ? (
+        {isVisuallyCollapsed ? (
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-[#4cceac] via-[#45b89c] to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-[#4cceac]/25 ring-1 ring-white/15 shrink-0">
               <CommandLineIcon className="w-6 h-6 text-white" />
@@ -315,7 +323,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               onClick={() => setIsCollapsed(true)}
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-xl shrink-0 transition-colors ${
+              className={`hidden md:inline-flex p-2 rounded-xl shrink-0 transition-colors ${
                 isDark
                   ? "text-slate-500 hover:text-[#4cceac] hover:bg-white/10"
                   : "text-slate-400 hover:text-indigo-600 hover:bg-slate-100"
@@ -323,12 +331,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             >
               <ChevronDoubleLeftIcon className="w-5 h-5" />
             </motion.button>
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={onMobileClose}
+              className={`inline-flex p-2 rounded-xl shrink-0 transition-colors md:hidden ${
+                isDark
+                  ? "text-slate-400 hover:text-white hover:bg-white/10"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              }`}
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
           </>
         )}
       </div>
 
       {/* Profile Section */}
-      {!isCollapsed && (
+      {!isVisuallyCollapsed && (
         <motion.div
           key="profile"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -381,7 +401,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       <div className="flex-1 px-4 pb-10 overflow-y-auto custom-scrollbar">
         {visibleSections.map((section, idx) => (
           <div key={idx} className="mb-8">
-            {section.titleKey && !isCollapsed && (
+            {section.titleKey && !isVisuallyCollapsed && (
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.4 }}
@@ -401,12 +421,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     key={item.path + item.nameKey}
                     to={item.path}
                     className="relative block"
-                    title={isCollapsed ? label : ""}
+                    title={isVisuallyCollapsed ? label : ""}
+                    onClick={onMobileClose}
                   >
                     <motion.div
-                      whileHover={{ x: isCollapsed ? 0 : 4 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex items-center ${isCollapsed ? "justify-center" : "gap-4 px-4"} py-3 rounded-2xl transition-all duration-300 group relative ${
+                      whileHover={reduceMotion ? undefined : { x: isVisuallyCollapsed ? 0 : 4 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                      className={`flex items-center ${isVisuallyCollapsed ? "justify-center" : "gap-4 px-4"} py-3 rounded-2xl transition-all duration-300 group relative ${
                         isActive
                           ? "text-[#4cceac] bg-[#4cceac]/10 shadow-[inset_0_0_20px_rgba(76,206,172,0.05)]"
                           : isDark
@@ -414,7 +435,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                       }`}
                     >
-                      {isActive && !isCollapsed && (
+                      {isActive && !isVisuallyCollapsed && (
                         <motion.div
                           layoutId="activeIndicator"
                           className="absolute left-0 w-1 h-6 bg-[#4cceac] rounded-r-full shadow-[0_0_15px_rgba(76,206,172,0.5)]"
@@ -423,14 +444,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                       <item.icon
                         className={`w-5 h-5 shrink-0 transition-all duration-300 ${isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(76,206,172,0.5)]" : isDark ? "group-hover:scale-110 group-hover:text-white" : "group-hover:scale-110 group-hover:text-slate-900"}`}
                       />
-                      {!isCollapsed && (
+                      {!isVisuallyCollapsed && (
                         <span className="text-sm font-semibold tracking-tight whitespace-nowrap">
                           {label}
                         </span>
                       )}
 
                       {/* Tooltip for collapsed state */}
-                      {isCollapsed && (
+                      {isVisuallyCollapsed && (
                         <div className="absolute left-full ml-4 px-3 py-2 bg-[#1e293b] text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-white/5 shadow-2xl z-[60]">
                           {label}
                         </div>
@@ -445,17 +466,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </div>
 
       {/* Footer: admin offline toggle — admin only; version row when sidebar expanded */}
-      {(isAdmin || !isCollapsed) && (
+      {(isAdmin || !isVisuallyCollapsed) && (
         <div
           className={`p-6 border-t ${isDark ? "border-white/5" : "border-slate-200/80"}`}
         >
           {isAdmin && (
             <SidebarAdminOfflineToggle
-              isCollapsed={isCollapsed}
+              isCollapsed={isVisuallyCollapsed}
               isDark={isDark}
             />
           )}
-          {!isCollapsed && (
+          {!isVisuallyCollapsed && (
             <div
               className={`flex items-center justify-between text-[10px] font-bold uppercase tracking-widest ${
                 isDark ? "text-[#475569]" : "text-slate-500"

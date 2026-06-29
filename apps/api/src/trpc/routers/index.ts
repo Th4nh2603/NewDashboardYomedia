@@ -13,6 +13,7 @@ import { agentRouter } from "./agent.router.js";
 import { mcpRouter } from "./mcp.router.js";
 import { healthRouter } from "./health.router.js";
 import { activityLogRouter } from "./activity-log.router.js";
+import { approvalRouter } from "./approval.router.js";
 
 export const appRouter = router({
   health: healthRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   agent: agentRouter,
   mcp: mcpRouter,
   activityLog: activityLogRouter,
+  approval: approvalRouter,
 });
 
 export type AppRouter = typeof appRouter;

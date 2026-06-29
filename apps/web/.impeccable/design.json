@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-23T00:00:00+07:00",
+  "title": "Design System: NewDashboardYomedia Web",
+  "extensions": {
+    "colorMeta": {
+      "bg-main": {
+        "role": "neutral",
+        "displayName": "Main Slate",
+        "canonical": "#141b2d",
+        "tonalRamp": ["#05070c", "#0b0f1a", "#141b2d", "#1d2842", "#2d3a5a", "#53607b", "#8791a8", "#d7dce8"]
+      },
+      "bg-deep": {
+        "role": "neutral",
+        "displayName": "Deep Slate",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#03050a", "#080d18", "#0f172a", "#18233c", "#293650", "#4d5b74", "#8490a4", "#d5dae4"]
+      },
+      "bg-panel": {
+        "role": "neutral",
+        "displayName": "Panel Slate",
+        "canonical": "#1f2a40",
+        "tonalRamp": ["#070a10", "#111724", "#1f2a40", "#2d3a55", "#40506d", "#68758d", "#9ba4b4", "#e0e3ea"]
+      },
+      "accent-teal": {
+        "role": "primary",
+        "displayName": "Studio Teal",
+        "canonical": "#4cceac",
+        "tonalRamp": ["#062018", "#0e3d30", "#17614d", "#23866d", "#32ab8d", "#4cceac", "#8ae2cc", "#d8f7ef"]
+      },
+      "border-muted": {
+        "role": "neutral",
+        "displayName": "Muted Border Slate",
+        "canonical": "#3d465d",
+        "tonalRamp": ["#090b10", "#171b25", "#2b3346", "#3d465d", "#596277", "#7d8495", "#aeb4c0", "#e4e6eb"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Primary Text",
+        "canonical": "#e0e0e0",
+        "tonalRamp": ["#1a1a1a", "#3d3d3d", "#666666", "#8f8f8f", "#b8b8b8", "#d0d0d0", "#e0e0e0", "#f5f5f5"]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "#a3a3a3",
+        "tonalRamp": ["#141414", "#303030", "#525252", "#737373", "#8f8f8f", "#a3a3a3", "#c7c7c7", "#ededed"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Dashboard-scale route introductions and hero-level product surfaces only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Primary page sections and workflow headers."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Cards, modals, forms, and tool names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Operational copy, table cells, chat content, and form help text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Section labels, status badges, table headers, and compact metadata."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sidebar-rail",
+        "value": "20px 0 50px rgba(0,0,0,0.3)",
+        "purpose": "Separates fixed navigation from the working surface."
+      },
+      {
+        "name": "dashboard-ambient-card",
+        "value": "0 24px 80px -24px rgba(0,0,0,0.55)",
+        "purpose": "Large dashboard containers and important panels in dark mode."
+      },
+      {
+        "name": "modal-lift",
+        "value": "0 28px 80px rgba(0,0,0,0.55)",
+        "purpose": "Blocking dialogs and critical overlays."
+      },
+      {
+        "name": "teal-glow",
+        "value": "0 0 15px rgba(76,206,172,0.5)",
+        "purpose": "Active navigation indicator and rare selected-state emphasis."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "150ms ease-out",
+        "purpose": "Hover, focus, and small control feedback."
+      },
+      {
+        "name": "panel-enter",
+        "value": "200ms-450ms opacity/scale/y transition",
+        "purpose": "Dialogs, route panels, dashboard cards, and workflow reveals."
+      },
+      {
+        "name": "shell-spring",
+        "value": "spring stiffness 400 damping 40",
+        "purpose": "Sidebar collapse and shell layout transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Committed action for upload, create, save, continue, or send.",
+      "html": "<button class=\"ds-btn-primary\">Upload demo</button>",
+      "css": ".ds-btn-primary { background: #4cceac; color: #141b2d; border: 0; border-radius: 16px; padding: 12px 24px; font: 900 10px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; transition: background-color 180ms ease-out, transform 180ms ease-out, box-shadow 180ms ease-out; } .ds-btn-primary:hover { background: #45b89c; transform: translateY(-1px); box-shadow: 0 8px 18px rgba(76,206,172,0.2); } .ds-btn-primary:focus-visible { outline: 2px solid rgba(76,206,172,0.75); outline-offset: 3px; } .ds-btn-primary:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Utility action in dense forms, popovers, and admin panels.",
+      "html": "<button class=\"ds-btn-secondary\">Clear history</button>",
+      "css": ".ds-btn-secondary { background: rgba(255,255,255,0.05); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 8px 16px; font: 800 10px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; transition: background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out; } .ds-btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.14); color: #ffffff; } .ds-btn-secondary:focus-visible { outline: 2px solid rgba(76,206,172,0.65); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Top-bar search/input treatment with panel slate background and teal focus.",
+      "html": "<label class=\"ds-search\"><span class=\"ds-search-icon\">⌕</span><input placeholder=\"Search assets\" /></label>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 10px; width: 320px; max-width: 100%; background: rgba(31,42,64,0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 8px 16px; color: #e0e0e0; transition: border-color 180ms ease-out, background-color 180ms ease-out; } .ds-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #e0e0e0; font: 500 14px/1.4 ui-sans-serif, system-ui, sans-serif; } .ds-search input::placeholder { color: #a3a3a3; } .ds-search-icon { color: #a3a3a3; font-size: 16px; line-height: 1; } .ds-search:focus-within { border-color: rgba(76,206,172,0.5); } .ds-search:focus-within .ds-search-icon { color: #4cceac; }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Selected sidebar route with teal text, tint, and leading active indicator.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-marker\"></span><span class=\"ds-nav-icon\">◆</span><span>Dashboard</span></a>",
+      "css": ".ds-nav-active { position: relative; display: flex; align-items: center; gap: 16px; border-radius: 16px; padding: 12px 16px; background: rgba(76,206,172,0.1); color: #4cceac; text-decoration: none; font: 700 14px/1.2 ui-sans-serif, system-ui, sans-serif; transition: background-color 180ms ease-out, transform 180ms ease-out; } .ds-nav-active:hover { transform: translateX(4px); background: rgba(76,206,172,0.14); } .ds-nav-active:focus-visible { outline: 2px solid rgba(76,206,172,0.7); outline-offset: 3px; } .ds-nav-marker { position: absolute; left: 0; width: 4px; height: 24px; border-radius: 0 999px 999px 0; background: #4cceac; box-shadow: 0 0 15px rgba(76,206,172,0.5); } .ds-nav-icon { width: 20px; text-align: center; filter: drop-shadow(0 0 8px rgba(76,206,172,0.35)); }"
+    },
+    {
+      "name": "Panel Card",
+      "kind": "card",
+      "refersTo": "card-panel",
+      "description": "Standard dashboard panel for route sections, summaries, and grouped workflow controls.",
+      "html": "<article class=\"ds-panel\"><p class=\"ds-panel-label\">Creative ops</p><h3>Demo workspace</h3><p>Manage files, previews, documents, and AI-assisted workflow support from one focused surface.</p></article>",
+      "css": ".ds-panel { width: min(420px, 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; background: rgba(26,35,54,0.75); color: #e0e0e0; padding: 24px; box-shadow: 0 24px 80px -24px rgba(0,0,0,0.55); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-panel-label { margin: 0 0 10px; color: #4cceac; font-size: 10px; line-height: 1.2; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; } .ds-panel h3 { margin: 0; color: #ffffff; font-size: 18px; line-height: 1.35; font-weight: 800; } .ds-panel p:last-child { margin: 8px 0 0; color: #a3a3a3; font-size: 14px; line-height: 1.55; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-status",
+      "description": "Compact state indicator for online, role, permission, or workflow status.",
+      "html": "<span class=\"ds-chip-status\"><span></span>System online</span>",
+      "css": ".ds-chip-status { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(76,206,172,0.35); border-radius: 999px; background: rgba(76,206,172,0.1); color: #4cceac; padding: 4px 10px; font: 800 10px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; } .ds-chip-status span { width: 6px; height: 6px; border-radius: 999px; background: #4cceac; box-shadow: 0 0 10px rgba(76,206,172,0.55); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Operations Studio",
+    "overview": "NewDashboardYomedia is a dark-first internal product system for YoMedia teams who manage creative, demo, document, AI, and admin work throughout the day. The visual language should feel like a focused operations studio: composed, fast, and practical, with enough creative polish to match the ad-creative domain without turning the interface into a marketing surface.\n\nThe current system uses a slate-blue workspace, a restrained teal operational accent, system sans typography, rounded product containers, light tonal borders, and motion/react feedback. Future design work should preserve this identity while tightening consistency: the product should not become a generic SaaS admin template, a flashy AI toy, a chatbot-first playground, a dense enterprise back-office system, an overly colorful marketing website, or a complicated dashboard overloaded with widgets.",
+    "keyCharacteristics": [
+      "Dark-first slate workspace with a light theme fallback.",
+      "Teal accent for primary actions, active navigation, focus, status, and meaningful confirmation.",
+      "Dense but readable product UI for daily internal work.",
+      "Rounded, bordered panels with tonal layering rather than heavy decorative shadows.",
+      "Motion used for state, hierarchy, and feedback, not page-load choreography."
+    ],
+    "rules": [
+      {
+        "name": "The Signal Scarcity Rule",
+        "body": "Studio Teal is a signal, not decoration. Use it for action, selection, focus, and operational status; avoid spraying it across inactive cards.",
+        "section": "colors"
+      },
+      {
+        "name": "The Slate Layer Rule",
+        "body": "Depth starts with tonal slate layers and borders. Reach for shadows only when a surface floats above the app or needs hover feedback.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Sans Rule",
+        "body": "Do not introduce display fonts for labels, buttons, data, tables, or admin controls. One tuned system sans family is the product default.",
+        "section": "typography"
+      },
+      {
+        "name": "The Label Restraint Rule",
+        "body": "Uppercase tracked labels are useful in dense admin UI, but they must mark structure or status. Do not add tiny uppercase eyebrow text above every content block.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal-First Rule",
+        "body": "Use background layer, border, and state color before adding a shadow. If every card floats, no card is important.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Ghost-Card Rule",
+        "body": "Do not pair a decorative 1px border with a broad soft shadow on ordinary controls. For product surfaces, choose a quiet border or a purposeful lift.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve the product-register feel: a clean internal creative operations dashboard for daily YoMedia work.",
+      "Do use Studio Teal for primary actions, active navigation, focus, selected states, and meaningful status.",
+      "Do keep AI/RAG surfaces practical and workflow-supportive rather than chatbot-first.",
+      "Do support both dark and light theme behavior when changing shared components.",
+      "Do keep table, file, document, brand, user, and admin workflows dense enough for operators while maintaining readable spacing.",
+      "Do include loading, empty, error, disabled, hover, focus, and active states for interactive components.",
+      "Do use system sans typography for product UI and font-mono only for paths, code, IDs, and technical values."
+    ],
+    "donts": [
+      "Don't make the interface feel like a generic SaaS admin template.",
+      "Don't make it feel like a flashy AI toy or chatbot-first playground.",
+      "Don't make it feel like a dense enterprise back-office system.",
+      "Don't turn the product into an overly colorful marketing website.",
+      "Don't overload the dashboard with too many widgets.",
+      "Don't use gradient text; the current dashboard accent headline should be treated as legacy, not a pattern to repeat.",
+      "Don't use colored side-stripe borders greater than 1px as card accents.",
+      "Don't use decorative glassmorphism as the default surface treatment.",
+      "Don't invent custom affordances for standard controls when native buttons, inputs, select menus, tabs, or tables are clearer."
+    ]
+  }
+}

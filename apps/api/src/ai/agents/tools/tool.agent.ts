@@ -64,6 +64,32 @@ export class ToolAgent {
     }
 
     if (
+      normalized.includes("setup banner") ||
+      normalized.includes("create banner") ||
+      normalized.includes("tao banner") ||
+      normalized.includes("banner setup")
+    ) {
+      return {
+        agent: "tool",
+        output: {
+          answer: "Preparing a banner setup workflow.",
+          action: {
+            tool: "banner_setup",
+            brand: extractField(context.message, ["brand", "advertiser"]),
+            format: extractField(context.message, ["format", "size"]),
+          },
+        },
+        steps: [
+          {
+            name: "tool.select",
+            status: "success",
+            summary: "Selected banner_setup action.",
+          },
+        ],
+      };
+    }
+
+    if (
       normalized.includes("upload demo") ||
       normalized.includes("build demo") ||
       (context.attachments?.length ?? 0) > 0

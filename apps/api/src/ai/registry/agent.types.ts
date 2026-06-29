@@ -1,4 +1,5 @@
 export interface RegisteredAgent {
-  name: string;
+  name: "RagAgent" | "SqlAgent" | "GeneralAgent" | "DemoAgent";
   description: string;
+  capabilities: string[];
 }

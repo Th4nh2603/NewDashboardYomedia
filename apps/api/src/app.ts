@@ -6,6 +6,7 @@ import { appRouter } from "./trpc/routers/index.js";
 import { corsMiddleware } from "./middleware/cors.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { requestIdMiddleware } from "./middleware/request-id.middleware.js";
+import { sftpRouter } from "./modules/sftp/sftp.router.js";
 import { handleTrpcError } from "./trpc/error-handler.js";
 
 export function createApp() {
@@ -18,6 +19,8 @@ export function createApp() {
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
   });
+
+  app.use("/api/sftp", sftpRouter);
 
   app.use(
     "/trpc",

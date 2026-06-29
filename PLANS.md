@@ -137,3 +137,64 @@ Only mark commands as passed after running them.
 - [ ] `git status --short` inspected.
 - [ ] `git diff --check` inspected.
 - [ ] `git diff` inspected.
+
+---
+
+# Active Plan: Chat Orchestrator Refactor
+
+## Objective
+
+- Preserve the existing ChatView -> api.chat.sendMessage -> chat.router.ts -> chat.service.ts flow while adding a backend agent orchestrator loop with tool and skill registries.
+- Move ToolAgent away from frontend-only action DTOs toward backend tool-calling with approval metadata for dangerous workflows.
+- Keep RAG authorization, citations, and insufficient-context behavior intact.
+
+## Current Behavior
+
+- `chat.router.ts` already uses `protectedProcedure`, validates `chatMessageSchema`, and passes auth from `ctx.user` into `chat.service.ts`.
+- `chatPolicy.buildExecutionScope` is the backend permission and scope authority.
+- `OrchestratorAgent` currently routes once by intent to General/RAG/SQL/Tool and normalizes via ResponseAgent.
+- `ToolAgent` currently returns `action` DTOs such as `delete_uploaded_demo` and `build_demo_convert_upload` for ChatView to execute.
+- `ChatView` does not persist the returned `conversationId` into subsequent `sendMessage` calls.
+
+## Scope
+
+- Backend:
+  - Add `Orchestrator.run(agent, userQuery, context)` loop with `maxSteps`.
+  - Add `ToolRegistry`, `SkillRegistry`, LLM provider adapter abstraction, and HITL approval gate.
+  - Register backend-safe tool wrappers for demo/SFTP/preview/banner workflows with `requiresApproval` where appropriate.
+  - Return sanitized step logs, tool calls, and approval DTOs in `ChatResponseDto`.
+- Frontend:
+  - Store backend `conversationId` and send it with subsequent chat messages in the same UI session.
+  - Render returned agent steps in a compact Agent Step Viewer.
+- Docs/tests:
+  - Add a mock/unit test for the orchestrator loop.
+  - Update `docs/architecture/chat-flow.md` with new flowchart, sequence diagram, frontend/backend boundaries, HITL, and SkillRegistry behavior.
+
+## Follow-Up Scope
+
+- Full binary upload, SFTP mutation, banner creation, send-message, and SQL execution remain approval-gated until concrete backend services and audit persistence are available.
+- Existing frontend demo/banner workflow helpers remain in place for compatibility during migration.
+
+## Security Considerations
+
+- Client-provided tenant, brand, role, permission, and tool scope remain untrusted hints.
+- Dangerous tools return an approval-required DTO instead of executing.
+- Tool execution checks backend-derived permissions and allowed MCP/tool scope.
+- Step logs and tool results are sanitized and do not include secrets, raw prompts, private document bodies, SQL internals, or credentials.
+
+## Testing Strategy
+
+- Add a deterministic orchestrator loop test using mock LLM and mock tools.
+- Run backend TypeScript build after API/AI changes.
+- Run frontend TypeScript check after ChatView changes.
+- Run architecture checks if feasible.
+
+## Progress Checklist
+
+- [x] Read applicable `AGENTS.md` files.
+- [x] Inspected existing package scripts and chat/RAG/tool code.
+- [x] Implement backend orchestrator, registries, HITL, DTO updates.
+- [x] Update ChatView conversation state and Agent Step Viewer.
+- [x] Add orchestrator mock test.
+- [x] Update chat-flow documentation.
+- [x] Run targeted verification and inspect diffs.

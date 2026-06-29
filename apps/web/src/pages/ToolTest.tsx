@@ -516,7 +516,7 @@ const ToolTest: React.FC = () => {
         ...templateSettings,
         ...(sizeField?.width ? { width: sizeField.width } : {}),
         ...(sizeField?.height ? { height: sizeField.height } : {}),
-      });
+      }) as Record<string, string | number>;
 
       const mapped = mapFormFieldsToPayload(formFields, {
         bannerSettings: settings,

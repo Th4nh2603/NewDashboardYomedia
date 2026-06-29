@@ -1,7 +1,7 @@
 import { TRPCClientError } from "@trpc/client";
 import { BackendRequestError } from "@/api/apiError";
 
-function trpcClientMessage(err: TRPCClientError): string {
+function trpcClientMessage(err: TRPCClientError<never>): string {
   const zodError = (err.data as { zodError?: { fieldErrors?: Record<string, string[]> } } | undefined)
     ?.zodError;
   if (zodError?.fieldErrors) {

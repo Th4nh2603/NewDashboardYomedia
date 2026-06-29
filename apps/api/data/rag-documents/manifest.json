@@ -1,0 +1,17 @@
+{
+  "documents": [
+    {
+      "documentId": "11218-nguoi-hobbit-thuviensach-vn",
+      "title": "Nguoi Hobbit",
+      "source": "thuviensach.vn",
+      "filePath": "pending/11218-nguoi-hobbit.pdf",
+      "textPath": "extracted/11218-nguoi-hobbit.txt",
+      "contentType": "application/pdf",
+      "status": "indexed",
+      "tenantId": "default",
+      "brandId": "default",
+      "knowledgeBaseId": "default",
+      "notes": "Added as a local source PDF for RAG. Text is extracted and indexed by the local RAG keyword/vector fallback store."
+    }
+  ]
+}

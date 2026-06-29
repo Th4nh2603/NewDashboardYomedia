@@ -15,6 +15,8 @@ These rules apply to `apps/web`.
 
 The frontend must not contain backend business logic, database access, AI provider access, MCP clients, RAG execution, SQL execution, server secrets, tenant authorization decisions, or brand authorization decisions.
 
+For merged agent core work, the frontend owns UI only: chat input/output, agent step viewer, pending approval display, demo SFTP browser, and activity log. It must not contain SFTP credentials, direct SFTP connections, PolicyGate decisions, ToolGateway execution, approval lifecycle decisions, or backend secrets.
+
 ## Structure
 
 - `src/app`: app entry, route tree, providers, auth route guards, and app-level bridges.

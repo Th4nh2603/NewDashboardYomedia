@@ -56,6 +56,12 @@ function buildFilters(request: RagRequest): RagRetrievalFilters {
 }
 
 function insufficient(steps: RagStep[]): RagChatResponseDto {
+  pushStep(steps, {
+    name: "rag.insufficient_context",
+    status: "skipped",
+    summary:
+      "Insufficient authorized context or valid citations for a grounded answer.",
+  });
   return {
     answer: insufficientContextAnswer,
     sources: [],
@@ -87,7 +93,7 @@ export class RagService {
       return insufficient(steps);
     }
 
-    let queryEmbedding: number[];
+    let queryEmbedding: number[] | undefined;
     try {
       const startedAt = now();
       queryEmbedding = await embedQuery(request.query, this.dependencies.textEmbedder);
@@ -100,30 +106,37 @@ export class RagService {
     } catch {
       pushStep(steps, {
         name: "rag.query.embed",
-        status: "error",
-        summary: "Query embedding provider is not configured.",
+        status: "skipped",
+        summary: "Query embedding provider is not configured; using keyword retrieval only.",
       });
-      return insufficient(steps);
     }
 
     const activeVectorSearch = this.dependencies.vectorSearch ?? vectorSearch;
     const activeKeywordSearch = this.dependencies.keywordSearch ?? keywordSearch;
 
     let vectorResults: RagChunkCandidate[] = [];
-    try {
-      const startedAt = now();
-      vectorResults = await activeVectorSearch.search({ embedding: queryEmbedding, filters, topK });
+    if (queryEmbedding) {
+      try {
+        const startedAt = now();
+        vectorResults = await activeVectorSearch.search({ embedding: queryEmbedding, filters, topK });
+        pushStep(steps, {
+          name: "rag.retrieve.vector",
+          status: "success",
+          durationMs: durationSince(startedAt),
+          summary: `Retrieved ${vectorResults.length} vector candidates inside authorized scope.`,
+        });
+      } catch {
+        pushStep(steps, {
+          name: "rag.retrieve.vector",
+          status: "error",
+          summary: "Vector search is not configured.",
+        });
+      }
+    } else {
       pushStep(steps, {
         name: "rag.retrieve.vector",
-        status: "success",
-        durationMs: durationSince(startedAt),
-        summary: `Retrieved ${vectorResults.length} vector candidates inside authorized scope.`,
-      });
-    } catch {
-      pushStep(steps, {
-        name: "rag.retrieve.vector",
-        status: "error",
-        summary: "Vector search is not configured.",
+        status: "skipped",
+        summary: "Skipped vector search because query embedding is unavailable.",
       });
     }
 

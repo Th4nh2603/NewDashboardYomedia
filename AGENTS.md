@@ -94,6 +94,20 @@ Do not document or rely on commands that are not present in `package.json` or th
 
 ## Architecture Constraints
 
+- The project architecture source of truth for agent work is:
+  Backend Trusted Scope -> Agent Runtime Core -> Unified Policy Gate -> RAG Service / SQL Safety / Shared Tool Gate -> Tool Executor -> HITL Approval -> Response + Observability -> Data Layer / Persistence.
+- Chat flow must go through Chat API, AgentContextBuilder, Agent Runtime Core, PolicyGate, ToolGateway, ToolExecutor, and response normalization.
+- Agents must not call backend tools directly. They request tool calls through the shared ToolGateway only.
+- The Application Database is the primary app persistence boundary for users, tenants, brands, roles, permissions, sessions, configs, chat sessions/messages, agent runs, tool runs, pending approvals, approval history, and persisted memory summaries.
+- RAG must query a Vector DB / Knowledge Store for documents, chunks, embeddings, metadata, and citations. If implemented with PostgreSQL and `pgvector`, still treat it as a knowledge store/vector index boundary.
+- SqlAgent must never query databases directly. SQL access must flow through Agent Runtime Core, Unified Policy Gate, SQL Safety, then the Business / Report Database with read-only controls, allowlists, row limits, timeouts, and tenant/brand filters.
+- Sanitized step logs, audit logs, tool runs, policy decisions, result sanitation records, and errors must be persisted to a Log / Audit Store.
+- SFTP Service / Remote Demo Storage is backend-only remote file/demo storage, not the Application Database, Knowledge Store, Business / Report Database, or Log / Audit Store.
+- Do not introduce MCP for the merged agent core refactor. Keep existing MCP code isolated until a future explicit migration.
+- Do not delete `scoring.ts` if it exists; keep it for backward compatibility or comparison.
+- Destructive SFTP tools require HITL approval by default. Read-only SFTP tools usually do not require approval.
+- HITL approval state and audit records must be durable and sanitized; do not use in-memory-only approval state for production flows.
+- Approved execution must revalidate `PolicyGate` before `ToolExecutor`.
 - Frontend components must not contain business logic.
 - Business logic belongs in backend services.
 - Express controllers and tRPC procedures must remain thin.
@@ -117,6 +131,30 @@ Do not document or rely on commands that are not present in `package.json` or th
 - Use parameterized database access through repositories.
 - Apply rate limits and tool authorization for external system calls.
 - RAG retrieval must filter by tenant and brand before ranking or answer generation.
+
+## Merged Agent Core Ownership
+
+- Chat API owns request validation and the `ChatResponseDto` boundary.
+- AgentContextBuilder owns trusted runtime context: user, tenant, brand, KB, tool scope, permissions, and session context.
+- Agent Runtime Core owns orchestration, intent detection, scoped memory, skill catalog loading, registry checks, system prompt construction, agent loop, and final answer assembly.
+- Agent Registry owns the allowlist for `RagAgent`, `SqlAgent`, `GeneralAgent`, and `DemoAgent`.
+- Unified Policy Gate owns argument validation, permission checks, tenant/brand/KB scope checks, safety envelope checks, and approval decisions.
+- Shared Tool Gate owns tool registry lookup, tool name validation, input schema validation, policy invocation, approval handoff, and result sanitization.
+- Tool Executor owns timeout, retry, abort-signal-ready execution, rate-limit/idempotency hooks, and error mapping.
+- SFTP Service owns remote demo storage access and backend-only credentials.
+- Approval module owns pending, approved, rejected, expired, executed, and failed lifecycle states.
+- Observability owns sanitized step logs, durable audit logs, and memory summaries.
+- Frontend owns UI only: chat input/output, step viewer, pending approval display, demo SFTP browser, and activity log.
+
+## Before Changing Code Checklist
+
+- Identify whether the change touches frontend, backend, tools, policy, approval, RAG, SQL, SFTP, or docs.
+- Check tenant, brand, and KB scope before data access or retrieval.
+- Check whether the action needs HITL approval.
+- Check whether logs, traces, tool results, and approval summaries need sanitizing.
+- Check whether approval and audit state must be persisted durably.
+- Check whether `AGENTS.md` or architecture docs need updates.
+- Run the relevant tests, typecheck, build, and architecture checks that match the touched area.
 
 ## Definition Of Done
 

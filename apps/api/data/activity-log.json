@@ -1,0 +1,249 @@
+{
+  "records": [
+    {
+      "id": "94217ff2-1dc5-469d-bbde-c306c882a7a9",
+      "createdAt": "2026-06-26T07:24:20.425Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "enchanteur-crosscate của tháng 3 năm 2025",
+      "metadata": {
+        "inputPreview": "enchanteur-crosscate của tháng 3 năm 2025",
+        "responseLength": 155,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "aa55ad84-9b0a-4090-8aad-7207aeaa12f1",
+      "createdAt": "2026-06-26T07:23:41.204Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "danh sách sftp tháng 3 năm 2025",
+      "metadata": {
+        "inputPreview": "danh sách sftp tháng 3 năm 2025",
+        "responseLength": 271,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "892e609e-a323-42b7-ab2a-e0b161a7918a",
+      "createdAt": "2026-06-26T07:06:57.605Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hiển thị danh sách sftp tháng 3 năm 2026",
+      "metadata": {
+        "inputPreview": "hiển thị danh sách sftp tháng 3 năm 2026",
+        "responseLength": 136,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "dbf8ef98-6892-495b-bce0-a72afceafe38",
+      "createdAt": "2026-06-26T04:30:59.842Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hiển thị danh sách sftp tháng 5 năm 2026",
+      "metadata": {
+        "inputPreview": "hiển thị danh sách sftp tháng 5 năm 2026",
+        "responseLength": 136,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "c2f68c75-d9f2-4976-a092-3691655cb1e2",
+      "createdAt": "2026-06-26T04:15:54.247Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hello",
+      "metadata": {
+        "inputPreview": "hello",
+        "responseLength": 37,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "4443328c-5960-429e-b9ac-c38b060d47a8",
+      "createdAt": "2026-06-25T11:11:39.455Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "Bilbo Baggins hobbit là ai",
+      "metadata": {
+        "inputPreview": "Bilbo Baggins hobbit là ai",
+        "responseLength": 325,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "56f9c851-1012-40ed-88b1-381bf69ffa96",
+      "createdAt": "2026-06-25T10:25:59.052Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "tài liệu",
+      "metadata": {
+        "inputPreview": "tài liệu",
+        "responseLength": 85,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "28170ddf-23e7-4587-b3b7-94d673d977fd",
+      "createdAt": "2026-06-25T10:25:45.446Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hello",
+      "metadata": {
+        "inputPreview": "hello",
+        "responseLength": 34,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "c1a794c7-699a-42f4-828b-ed52efbd8137",
+      "createdAt": "2026-06-25T10:25:31.933Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "login",
+      "area": "Auth",
+      "description": "Signed in",
+      "target": "/login"
+    },
+    {
+      "id": "2cc291fa-2e05-4ab2-be0d-118bcd4ef2d4",
+      "createdAt": "2026-06-24T09:33:55.678Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "hi",
+      "metadata": {
+        "inputPreview": "hi",
+        "responseLength": 37,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "6d804cf9-1036-4cf2-9c98-4da02acfc773",
+      "createdAt": "2026-06-24T09:33:38.572Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "yes",
+      "metadata": {
+        "inputPreview": "yes",
+        "responseLength": 37,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "a9cffe32-8f04-4c93-8825-796cfc0c3048",
+      "createdAt": "2026-06-24T03:12:39.110Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "tỉ số bồ đào nha",
+      "metadata": {
+        "inputPreview": "tỉ số bồ đào nha",
+        "responseLength": 103,
+        "aiProvider": "openai"
+      }
+    },
+    {
+      "id": "2496399c-3035-413c-a1be-6fddcd800449",
+      "createdAt": "2026-06-24T03:12:15.751Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_clear_history",
+      "area": "AI Chat",
+      "description": "Cleared chat conversation",
+      "target": "conversation",
+      "metadata": {
+        "clearedMessages": 2
+      }
+    },
+    {
+      "id": "eed2af3e-9d61-4527-aed2-bf076b27d296",
+      "createdAt": "2026-06-24T03:10:13.160Z",
+      "tenantId": "default",
+      "userId": "user_3CRd6Y9CzhfbfenTZduZ4gzlxgJ",
+      "userName": "Thanh Minh",
+      "userEmail": "thanh26031994@gmail.com",
+      "userRole": "admin",
+      "action": "chat_prompt",
+      "area": "AI Chat",
+      "description": "Sent AI chat prompt",
+      "target": "HI",
+      "metadata": {
+        "inputPreview": "HI",
+        "responseLength": 37,
+        "aiProvider": "openai"
+      }
+    }
+  ]
+}

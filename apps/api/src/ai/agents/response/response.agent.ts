@@ -41,7 +41,7 @@ export class ResponseAgent {
           ...input.steps,
           ...ragResult.output.steps,
           {
-            name: "response.normalize",
+            name: "response.normalized",
             status: "success",
             summary: "Normalized RAG agent output for chat response.",
           },
@@ -73,11 +73,14 @@ export class ResponseAgent {
       toolCalls: Array.isArray(primaryOutput.toolCalls)
         ? primaryOutput.toolCalls
         : [],
+      approvals: Array.isArray(primaryOutput.approvals)
+        ? primaryOutput.approvals
+        : [],
       steps: [
         ...input.steps,
         ...agentSteps,
         {
-          name: "response.normalize",
+          name: "response.normalized",
           status: "success",
           summary: "Normalized agent output for chat response.",
         },

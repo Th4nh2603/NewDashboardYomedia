@@ -12,6 +12,6 @@ export interface VectorSearch {
 
 export const vectorSearch: VectorSearch = {
   async search(_input: VectorSearchInput): Promise<RagChunkCandidate[]> {
-    throw new Error("RAG vector search is not configured.");
+    return [];
   },
 };

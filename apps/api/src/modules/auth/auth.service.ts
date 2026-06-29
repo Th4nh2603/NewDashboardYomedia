@@ -179,6 +179,10 @@ export async function resolveAuthenticatedUser(
       "allowedKnowledgeBaseIds",
     ),
     allowedMcpTools: metadataStringArray(publicMetadata, "allowedMcpTools"),
+    allowedToolCapabilities:
+      metadataStringArray(publicMetadata, "allowedToolCapabilities").length > 0
+        ? metadataStringArray(publicMetadata, "allowedToolCapabilities")
+        : metadataStringArray(publicMetadata, "allowedMcpTools"),
     allowedBuildDemoBrands: metadataNullableStringArray(
       publicMetadata,
       "allowedBuildDemoBrands",

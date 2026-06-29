@@ -28,6 +28,9 @@ export const chatRouter = router({
             allowedBrandIds: ctx.user.allowedBrandIds,
             allowedKnowledgeBaseIds: ctx.user.allowedKnowledgeBaseIds,
             allowedMcpTools: ctx.user.allowedMcpTools,
+            allowedToolCapabilities:
+              ctx.user.allowedToolCapabilities ?? ctx.user.allowedMcpTools,
+            allowedBuildDemoBrands: ctx.user.allowedBuildDemoBrands,
           },
         });
       } catch (error) {

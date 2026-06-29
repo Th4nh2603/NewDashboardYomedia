@@ -16,13 +16,25 @@ export interface DashboardChatResponse {
   toolCalls: Array<{
     serverName: string;
     toolName: string;
-    status: "success" | "failed";
+    status: "success" | "failed" | "skipped" | "approval_required";
     durationMs: number;
+    requiresApproval?: boolean;
+    approvalId?: string;
+    summary?: string;
+  }>;
+  approvals?: Array<{
+    id: string;
+    status: "pending";
+    toolName: string;
+    reason: string;
+    inputSummary: Record<string, unknown>;
   }>;
   steps: Array<{
-    agent: string;
-    action: string;
-    status: "running" | "success" | "failed";
+    agent?: string;
+    action?: string;
+    name?: string;
+    summary?: string;
+    status: "running" | "success" | "failed" | "skipped" | "approval_required" | "error";
     durationMs?: number;
   }>;
 }

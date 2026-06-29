@@ -37,6 +37,13 @@ These rules apply to `apps/api`.
 
 ## Layering Rules
 
+- Backend trusted scope must be built by server-side context builders and policies, never by trusting client hints.
+- Agent branches must remain stable: `RagAgent` answers from documents, `SqlAgent` reads/reports queries, `GeneralAgent` handles normal LLM answers, and `DemoAgent` handles demo/SFTP/preview workflows through ToolGateway.
+- Do not bypass `PolicyGate`, `ToolGateway`, or `ToolExecutor` for agent tool execution.
+- Do not add MCP to the merged agent core path until explicitly requested.
+- Destructive SFTP operations require HITL approval and policy revalidation before execution.
+- Approval lifecycle and audit logs must be durable. In-memory-only approval state is not acceptable for production agent/tool flows.
+- Agents must not call SFTP services directly; SFTP access belongs behind ToolGateway, approved execution, ToolExecutor, SFTP service, and durable audit.
 - Express middleware, controllers, and tRPC procedures must stay thin.
 - tRPC procedures validate input, derive authenticated context, call services, and return DTOs.
 - Services own business workflows and must not depend directly on Express `Request` or `Response`.

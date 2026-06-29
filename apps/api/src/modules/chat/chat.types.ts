@@ -9,30 +9,57 @@ export interface AuthenticatedChatContext {
   permissions: string[];
   allowedBrandIds: string[];
   allowedKnowledgeBaseIds: string[];
+  /** Legacy name retained for compatibility. MCP is not enabled in Agent Core. */
   allowedMcpTools: string[];
+  allowedToolCapabilities?: string[];
+  allowedBuildDemoBrands?: string[] | null;
 }
 
-export interface ChatSourceDto {
+export interface RagCitationDto {
   documentId: string;
-  documentName: string;
   chunkId: string;
-  content: string;
-  score: number;
+  title: string;
+  source?: string;
+  page?: number;
+  section?: string;
+  score?: number;
 }
 
-export interface ChatToolCallDto {
+export type ChatSourceDto = RagCitationDto;
+
+export interface ToolCallDto {
   serverName: string;
   toolName: string;
-  status: "success" | "failed";
+  status: "success" | "failed" | "skipped" | "approval_required";
   durationMs: number;
+  requiresApproval?: boolean;
+  approvalId?: string;
+  summary?: string;
 }
 
-export interface ChatStepDto {
-  agent: string;
-  action: string;
-  status: "running" | "success" | "failed";
-  durationMs?: number;
+export type ChatToolCallDto = ToolCallDto;
+
+export interface ApprovalDto {
+  approvalId: string;
+  id: string;
+  status: "pending";
+  toolName: string;
+  reason: string;
+  inputSummary: Record<string, unknown>;
+  createdAt: string;
 }
+
+export interface AgentStep {
+  agent?: string;
+  action?: string;
+  name?: string;
+  summary?: string;
+  status: "running" | "success" | "failed" | "skipped" | "approval_required" | "error";
+  durationMs?: number;
+  data?: Record<string, unknown>;
+}
+
+export type ChatStepDto = AgentStep;
 
 export interface ChatResponseDataDto {
   type: "table" | "chart" | "metric" | "text";
@@ -45,9 +72,10 @@ export interface ChatResponseDto {
   answer: string;
   intent?: string;
   agent?: string;
-  sources?: unknown[];
-  toolCalls?: unknown[];
-  steps?: unknown[];
+  sources?: RagCitationDto[];
+  toolCalls?: ToolCallDto[];
+  approvals?: ApprovalDto[];
+  steps?: AgentStep[];
   data?: unknown;
   action?: {
     tool: string;
@@ -68,7 +96,10 @@ export interface ChatExecutionScope {
   permissions: string[];
   allowedBrandIds: string[];
   allowedKnowledgeBaseIds: string[];
+  /** Legacy name retained for compatibility. MCP is not enabled in Agent Core. */
   allowedMcpTools: string[];
+  allowedToolCapabilities?: string[];
+  allowedBuildDemoBrands?: string[] | null;
   requestedBrandId?: string;
   requestedKnowledgeBaseId?: string;
 }
@@ -80,9 +111,10 @@ export interface ChatInternalResult {
   intent?: string;
   agent?: string;
   data?: unknown;
-  sources?: unknown[];
-  toolCalls?: unknown[];
-  steps?: unknown[];
+  sources?: RagCitationDto[];
+  toolCalls?: ToolCallDto[];
+  approvals?: ApprovalDto[];
+  steps?: AgentStep[];
   action?: {
     tool: string;
     [key: string]: unknown;

@@ -697,7 +697,7 @@ const ManageDemo: React.FC = () => {
       }
       return lower.includes(kw);
     });
-    return match?.className || "text-[#e5e7eb]";
+    return match?.className || "text-slate-900 dark:text-[#e5e7eb]";
   };
 
   const formatSizeInMb = React.useCallback((bytes: number) => {
@@ -1193,45 +1193,118 @@ const ManageDemo: React.FC = () => {
     [canDropUpload, handleDropFiles],
   );
 
+  const folderCount = React.useMemo(
+    () => listEntries.filter((entry) => entry.type === "d").length,
+    [listEntries],
+  );
+  const fileCount = Math.max(0, listEntries.length - folderCount);
+  const editableFileCount = React.useMemo(
+    () =>
+      listEntries.filter(
+        (entry) => entry.type !== "d" && isEditableFileName(entry.name),
+      ).length,
+    [isEditableFileName, listEntries],
+  );
+  const selectedFormatLabel = React.useMemo(() => {
+    if (!config.formatValue) return "Auto";
+    return (
+      formatSelectOptions.find((option) => option.value === config.formatValue)
+        ?.label ?? config.formatValue
+    );
+  }, [config.formatValue, formatSelectOptions]);
+  const workflowSteps = [
+    {
+      label: "Context",
+      value: `${getItemLabelById(manageYearOptions, config.quality)}/${demoPaths.month}`,
+      active: true,
+    },
+    {
+      label: "Browse",
+      value: listBusy ? "Loading" : `${folderCount} folders, ${fileCount} files`,
+      active: listEntries.length > 0 || listBusy,
+    },
+    {
+      label: "Preview",
+      value: previewUrl ? config.category : "Unavailable",
+      active: Boolean(previewUrl),
+    },
+  ];
+
   return (
-    <div className="w-full px-4 sm:px-5 space-y-4 sm:space-y-5">
-      <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730] dark:via-[#0b1730]/95 dark:to-[#102449] dark:shadow-[0_18px_36px_rgba(2,6,23,0.42)]">
-        <div className="pointer-events-none absolute -right-16 -top-14 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-indigo-400/10 blur-3xl" />
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-5">
-          <div className="min-w-0 space-y-1.5 sm:max-w-xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.34em] text-cyan-700 dark:text-cyan-300/80">
-              SFTP demo manager
-            </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight dark:text-[#e0e0e0]">
-              Manage Demo
-            </h1>
-            <p className="text-xs text-slate-600 dark:text-slate-300/80">
-              Browse demo assets, preview quickly, and edit production files
-              with stronger visual clarity.
-            </p>
+    <div className="w-full space-y-4 px-4 sm:space-y-5 sm:px-5">
+      <header className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#0b1730]/90">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${sftpListChrome.hostBadge}`}
+              >
+                {sftpScope === "media" ? "SFTP Media" : "SFTP Demo"}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                {config.category}
+              </span>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+                Manage Demo
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                Select the demo context, browse the SFTP folder, preview the
+                result, then edit or upload files without leaving the workflow.
+              </p>
+            </div>
           </div>
           <div className="w-full sm:w-auto sm:shrink-0">
-            <div
-              className={`grid gap-2.5 sm:gap-3 ${canShowSftpHostSwitch ? "grid-cols-2 sm:min-w-[19rem]" : "grid-cols-1 sm:min-w-[10.5rem]"}`}
-            >
-              <div
-                className={`flex min-w-0 flex-col justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-3 py-2.5 text-left shadow-inner shadow-slate-200/60 dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${canShowSftpHostSwitch ? "min-h-[5.25rem]" : ""}`}
-              >
-                <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                  Current month
-                </p>
-                <p className="text-lg font-semibold tabular-nums tracking-tight text-slate-900 dark:text-white">
-                  {getItemLabelById(manageYearOptions, config.quality)}
-                  <span className="text-slate-400 dark:text-white/35">/</span>
-                  {demoPaths.month}
+            <div className="mb-3 grid gap-2 sm:grid-cols-3 sm:min-w-[32rem]">
+              {workflowSteps.map((step, index) => (
+                <div
+                  key={step.label}
+                  className={`rounded-xl border px-3 py-2.5 ${
+                    step.active
+                      ? "border-[#4cceac]/40 bg-[#4cceac]/10 text-slate-950 dark:text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                        step.active
+                          ? "bg-[#4cceac] text-[#0f172a]"
+                          : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em]">
+                      {step.label}
+                    </span>
+                  </div>
+                  <p className="mt-2 truncate text-sm font-semibold">
+                    {step.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(560px,760px)_minmax(0,1fr)] gap-5 items-start">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#0b1730]/80">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-white">
+                  Demo setup
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
+                  Choose the month and creative context before browsing. Keep
+                  format on auto when the folder already maps to the catalogue.
                 </p>
               </div>
-              {canShowSftpHostSwitch && (
-                <div className="flex min-h-[5.25rem] min-w-0 flex-col justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-3 py-2.5 shadow-inner shadow-slate-200/60 dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    SFTP · switch host
-                  </p>
+              <div className="flex flex-wrap items-start justify-end gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                {canShowSftpHostSwitch && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -1243,21 +1316,27 @@ const ManageDemo: React.FC = () => {
                       )
                     }
                     title="Admin: switch between demo (SFTP_*) and media (SFTP_*_MEDIA)"
-                    className="w-full justify-center gap-1.5 py-2 text-[11px] font-semibold normal-case tracking-normal"
+                    className="inline-flex items-center justify-center gap-1.5 border border-slate-200 bg-slate-900 text-white hover:bg-slate-800 dark:border-white/10 dark:bg-white/5"
                   >
-                    <ArrowsRightLeftIcon className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                    {manageSftpTarget === "demo" ? "Demo host" : "Media host"}
+                    <ArrowsRightLeftIcon className="h-3.5 w-3.5 shrink-0" />
+                    {manageSftpTarget === "demo" ? "SFTP Demo" : "SFTP Media"}
                   </Button>
-                </div>
-              )}
+                )}
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/[0.05]">
+                  Format:{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {selectedFormatLabel}
+                  </span>
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/[0.05]">
+                  Editable:{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {editableFileCount}
+                  </span>
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(560px,760px)_minmax(0,1fr)] gap-5 items-start">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2 rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-sm dark:border-white/10 dark:bg-gradient-to-br dark:from-[#0b1730]/80 dark:to-[#0e203f]/75 dark:shadow-[0_12px_28px_rgba(2,6,23,0.38)]">
               <div className="flex items-center gap-2 ml-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
@@ -1410,6 +1489,7 @@ const ManageDemo: React.FC = () => {
                 </select>
               </div>
             </div>
+            </div>
           </div>
 
           <div className="space-y-2.5 pb-4 sm:pb-6">
@@ -1426,7 +1506,7 @@ const ManageDemo: React.FC = () => {
                 <span
                   className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] ${sftpListChrome.hostBadge}`}
                 >
-                  {sftpScope === "media" ? "Media host" : "Demo host"}
+                  {sftpScope === "media" ? "SFTP Media" : "SFTP Demo"}
                 </span>
               </div>
               <div className="flex items-center gap-2">

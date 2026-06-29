@@ -1,0 +1,137 @@
+flowchart LR
+  User[User]
+
+  subgraph Frontend[Frontend]
+    Manage[Manage Demo + SFTP Model<br/>preview panel / folder browser / activity log<br/>frontend UI only]
+    ChatUI[Frontend Chat UI<br/>chat / agent step viewer / pending approvals]
+    Rpc[API Client / RPC]
+  end
+
+  subgraph Backend[Backend API / Trusted Scope]
+    ChatAPI[Chat API / Protected Procedure<br/>schema validation<br/>auth / access checks]
+    Context[Agent Context Builder<br/>trusted user / tenant / brand / KB / tool scope<br/>permissions / session context]
+
+    subgraph Branches[Agent Branches]
+      RagAgent[RagAgent<br/>answer from documents]
+      SqlAgent[SqlAgent<br/>read/report query]
+      GeneralAgent[GeneralAgent<br/>LLM answer]
+      DemoAgent[DemoAgent<br/>browse demo / preview / SFTP ops]
+    end
+
+    subgraph Runtime[Agent Runtime Core]
+      Orchestrator[Orchestrator.execute<br/>control loop / max steps / retry / abort]
+      Skills[Skill Catalog<br/>preload metadata only]
+      Memory[Scoped Memory<br/>session / user / conversation / tenant scope]
+      Intent[IntentAgent.detect<br/>primary task / confidence / capabilities]
+      Registry[AgentRegistry<br/>allow-listed subagents]
+      SystemPrompt[buildSystem()<br/>instructions + skill catalog + memory + policy envelope]
+      Loop[Agent Loop<br/>LLM response -> tool calls -> validate -> execute -> reassemble]
+    end
+
+    subgraph Policy[Unified Policy Gate]
+      Validate[validateArgs<br/>schema + inputs]
+      Permission[permission<br/>allow / deny / approval]
+      Scope[tenant / brand / KB scope]
+      Envelope[safety envelope]
+    end
+
+    subgraph RAG[RAG Boundary]
+      RagService[RAG Service<br/>retriever / filters / optional reranker<br/>grounded answer + citations]
+      Knowledge[Vector DB / Knowledge Store<br/>pgvector / Qdrant / Pinecone / Chroma<br/>documents / chunks / embeddings / metadata / citations]
+    end
+
+    subgraph SQL[SQL Boundary]
+      SqlSafety[SQL Safety<br/>read-only query / allowlisted tables/views<br/>row-level tenant-brand filter / timeout + row limit]
+      ReportDB[Business / Report Database<br/>read-only / allowlist / row limit / timeout<br/>report / crawl / business / dashboard data]
+    end
+
+    subgraph ToolCapability[Shared Tool Capability / Safety Gate]
+      ToolRegistry[ToolRegistry / Single Execution Gateway]
+      ToolName[validate toolName]
+      LoadSkill[load_skill(name)<br/>read-only on demand]
+      ToolInput[validate input schema]
+      ToolPerm[check permission<br/>allow / deny / approval]
+      ToolScope[enforce tenant / brand / tool scope]
+      ApprovalCheck{requiresApproval?}
+      Sanitizer[Result Sanitizer<br/>remove secrets / hide paths / limit preview / normalize errors]
+    end
+
+    subgraph Execution[Tool Execution + External Storage]
+      Executor[Tool Executor / Tool Runner<br/>timeout / retry / abort signal / rate limit / idempotency key / error mapping]
+      SftpTools[SFTP Tool Groups<br/>read: list/read/exists/download<br/>write: write/writeBinary/mkdir/setup demo media<br/>destructive: delete/rename/overwrite]
+      SftpService[SFTP Service / Remote Demo Storage<br/>POSIX path normalize + root checks<br/>demo scope / media scope<br/>remote file/demo storage only]
+      Secrets[Secrets Manager / Backend Credentials<br/>backend only]
+    end
+
+    subgraph Approval[HITL Approval]
+      HITL[ApprovalHandler<br/>request approval for risky action]
+      ApprovalDto[Pending Approval DTO<br/>approval / status / toolName / reason]
+      ApprovalState[Approval State Machine<br/>pending / approved / rejected / expired / executed / failed]
+    end
+
+    subgraph ResponseObs[Response + Observability]
+      ResponseAgent[ResponseAgent.normalize]
+      StepLogs[Sanitized step logs<br/>step-by-step audit trail]
+      AuditLog[Audit Log<br/>userId / tenantId / toolName / approval / result status]
+      MemorySummary[Memory Summarizer<br/>last run / useful facts / scoped summary]
+      ChatDto[ChatResponse DTO<br/>answer + steps + toolCalls + approvals]
+    end
+
+    subgraph Data[Data Layer / Persistence]
+      AppDB[Application Database<br/>PostgreSQL / MySQL<br/>users / tenants / brands / roles / permissions / sessions / configs<br/>chat sessions/messages / agent runs / tool runs / approvals / memory summaries]
+      LogStore[Log / Audit Store<br/>step logs / audit logs / tool runs / policy decisions / errors / sanitation records]
+    end
+  end
+
+  User --> Manage --> ChatUI --> Rpc --> ChatAPI --> Context
+  ChatAPI --> AppDB
+  Context --> AppDB
+  Context --> Orchestrator
+
+  RagAgent -. request .-> Orchestrator
+  SqlAgent -. request .-> Orchestrator
+  GeneralAgent -. request .-> Orchestrator
+  DemoAgent -. request .-> Orchestrator
+  Orchestrator --> Skills --> Memory --> Intent --> Registry --> SystemPrompt --> Loop --> Validate --> Permission --> Scope --> Envelope
+
+  Envelope --> RagService --> Knowledge
+  Envelope --> SqlSafety --> ReportDB
+  Envelope --> ToolRegistry --> ToolName --> LoadSkill --> ToolInput --> ToolPerm --> ToolScope --> ApprovalCheck
+  ApprovalCheck -->|yes| HITL --> ApprovalDto --> ApprovalState --> AppDB
+  ApprovalCheck -->|no| Sanitizer --> Executor --> SftpTools --> SftpService
+  Secrets -. backend credentials .-> SftpService
+
+  Executor -. approval result .-> HITL
+  Executor --> Sanitizer
+  Sanitizer --> ResponseAgent
+  Loop --> ResponseAgent
+  RagService --> ResponseAgent
+  SqlSafety --> ResponseAgent
+  ResponseAgent --> StepLogs --> AuditLog --> MemorySummary --> ChatDto --> Rpc --> ChatUI
+
+  Orchestrator --> AppDB
+  Permission --> AppDB
+  ResponseAgent --> AppDB
+  Orchestrator --> LogStore
+  Permission --> LogStore
+  ToolRegistry --> LogStore
+  Executor --> LogStore
+  ResponseAgent --> LogStore
+
+  classDef frontend fill:#f6f0ff,stroke:#6d28d9,color:#2e1065;
+  classDef backend fill:#f7fff9,stroke:#15803d,color:#052e16;
+  classDef core fill:#faf5ff,stroke:#7c3aed,color:#3b0764;
+  classDef policy fill:#eff6ff,stroke:#2563eb,color:#172554;
+  classDef tool fill:#fff7ed,stroke:#f97316,color:#431407;
+  classDef data fill:#f8fafc,stroke:#475569,color:#0f172a;
+  classDef storage fill:#ecfeff,stroke:#0891b2,color:#164e63;
+  classDef approval fill:#fff1f2,stroke:#e11d48,color:#4c0519;
+
+  class Manage,ChatUI,Rpc frontend;
+  class ChatAPI,Context,Branches backend;
+  class Runtime,Orchestrator,Skills,Memory,Intent,Registry,SystemPrompt,Loop core;
+  class Policy,Validate,Permission,Scope,Envelope,RAG,RagService,SQL,SqlSafety policy;
+  class ToolCapability,ToolRegistry,ToolName,LoadSkill,ToolInput,ToolPerm,ToolScope,ApprovalCheck,Sanitizer,Execution,Executor,SftpTools tool;
+  class AppDB,Knowledge,ReportDB,LogStore,Data data;
+  class SftpService,Secrets storage;
+  class Approval,HITL,ApprovalDto,ApprovalState approval;

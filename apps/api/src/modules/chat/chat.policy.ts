@@ -73,6 +73,9 @@ export const chatPolicy = {
       allowedBrandIds: auth.allowedBrandIds,
       allowedKnowledgeBaseIds: auth.allowedKnowledgeBaseIds,
       allowedMcpTools: auth.allowedMcpTools,
+      allowedToolCapabilities:
+        auth.allowedToolCapabilities ?? auth.allowedMcpTools,
+      allowedBuildDemoBrands: auth.allowedBuildDemoBrands,
       requestedBrandId: this.resolveBrandScope(auth, input),
       requestedKnowledgeBaseId: this.resolveKnowledgeBaseScope(auth, input),
     };

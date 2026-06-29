@@ -14,7 +14,9 @@ export interface AuthenticatedUser {
   allowedRoutes: string[];
   allowedBrandIds: string[];
   allowedKnowledgeBaseIds: string[];
+  /** Legacy name retained for compatibility. MCP is not enabled in Agent Core. */
   allowedMcpTools: string[];
+  allowedToolCapabilities?: string[];
   allowedBuildDemoBrands?: string[] | null;
 }
 

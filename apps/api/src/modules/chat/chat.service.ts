@@ -1,6 +1,8 @@
 import type { AgentContext } from "../../ai/runtime/agent-context.js";
+import { AgentContextBuilder } from "../../ai/runtime/agent-context-builder.js";
 import type { ChatAgentResult } from "../../ai/agents/orchestrator/orchestrator.types.js";
 import { GeneralAgent } from "../../ai/agents/general/general.agent.js";
+import { PlaceholderApprovalHandler } from "../../ai/hitl/approval-handler.js";
 import { IntentAgent } from "../../ai/agents/intent/intent.agent.js";
 import { OrchestratorAgent } from "../../ai/agents/orchestrator/orchestrator.agent.js";
 import { RagAgent } from "../../ai/agents/rag/rag.agent.js";
@@ -8,109 +10,57 @@ import { ResponseAgent } from "../../ai/agents/response/response.agent.js";
 import { SqlAgent } from "../../ai/agents/sql/sql.agent.js";
 import { ToolAgent } from "../../ai/agents/tools/tool.agent.js";
 import { GeminiProvider } from "../../ai/providers/gemini.provider.js";
+import type { LlmProvider } from "../../ai/providers/llm-provider.interface.js";
 import { OpenAiProvider } from "../../ai/providers/openai.provider.js";
+import { SkillRegistry } from "../../ai/skills/skill-registry.js";
+import { createDefaultToolRegistry } from "../../ai/tools/tool-registry.js";
 import { aiConfig } from "../../config/ai.js";
+import { logSteps } from "../../observability/step-logger.js";
+import {
+  normalizeApprovals,
+  normalizeSources,
+  normalizeSteps,
+  normalizeToolCalls,
+} from "../../response/response-normalizer.js";
 import { logger } from "../../shared/logger/logger.js";
 import { mapChatResultToDto } from "./chat.mapper.js";
-import { chatPolicy } from "./chat.policy.js";
 import type {
   ChatInternalResult,
   ChatResponseDto,
   ChatServiceInput,
 } from "./chat.types.js";
+import { fileURLToPath } from "node:url";
 
 export interface ChatOrchestrator {
   execute(context: AgentContext): Promise<ChatAgentResult>;
 }
 
-interface ChatFlowLogMeta {
-  conversationId: string;
-  messageId: string;
-  requestId?: string;
-}
-
-function asStepRecord(step: unknown): Record<string, unknown> {
-  return typeof step === "object" && step !== null
-    ? (step as Record<string, unknown>)
-    : {};
-}
-
-function asOptionalString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function truncateSummary(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  return value.length > 240 ? `${value.slice(0, 237)}...` : value;
-}
-
-function getStepName(step: Record<string, unknown>): string {
-  const name = asOptionalString(step.name);
-  if (name) return name;
-
-  const agent = asOptionalString(step.agent);
-  const action = asOptionalString(step.action);
-  if (agent && action) return `${agent}.${action}`;
-  if (agent) return agent;
-  return "chat.step";
-}
-
-function logChatFlowStep(
-  meta: ChatFlowLogMeta,
-  step: unknown,
-  stepIndex: number,
-): void {
-  const stepRecord = asStepRecord(step);
-  logger.info("[chat.flow.step]", {
-    event: "chat.flow.step",
-    requestId: meta.requestId,
-    conversationId: meta.conversationId,
-    messageId: meta.messageId,
-    stepIndex,
-    stepName: getStepName(stepRecord),
-    status: asOptionalString(stepRecord.status),
-    summary: truncateSummary(stepRecord.summary),
-    durationMs:
-      typeof stepRecord.durationMs === "number" ? stepRecord.durationMs : undefined,
-  });
-}
-
-function logChatFlowSteps(meta: ChatFlowLogMeta, steps: unknown[]): void {
-  steps.forEach((step, index) => logChatFlowStep(meta, step, index + 1));
-}
+type ProviderName = "gemini" | "openai";
 
 function getErrorSummary(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown chat flow error.";
 }
 
 export class ChatService {
-  constructor(private readonly orchestrator?: ChatOrchestrator) {}
+  constructor(
+    private readonly orchestrator?: ChatOrchestrator,
+    private readonly contextBuilder = new AgentContextBuilder(),
+  ) {}
 
   async sendMessage({
     input,
     auth,
     requestId,
   }: ChatServiceInput): Promise<ChatResponseDto> {
-    const scope = chatPolicy.buildExecutionScope(auth, input);
-    const conversationId = input.conversationId ?? crypto.randomUUID();
+    const builtContext = this.contextBuilder.build({
+      auth,
+      request: input,
+      requestId,
+    });
+    const agentContext = builtContext.context;
+    const conversationId = builtContext.conversationId;
     const messageId = crypto.randomUUID();
     const flowLogMeta = { conversationId, messageId, requestId };
-    const agentContext: AgentContext = {
-      userId: scope.userId,
-      tenantId: scope.tenantId,
-      permissions: scope.permissions,
-      allowedBrandIds: scope.allowedBrandIds,
-      allowedKnowledgeBaseIds: scope.allowedKnowledgeBaseIds,
-      allowedMcpTools: scope.allowedMcpTools,
-      conversationId,
-      requestId,
-      message: input.message,
-      requestedBrandId: scope.requestedBrandId,
-      requestedKnowledgeBaseId: scope.requestedKnowledgeBaseId,
-      pageContext: input.pageContext,
-      provider: input.provider,
-      attachments: input.attachments,
-    };
 
     logger.info("[chat.flow.start]", {
       event: "chat.flow.start",
@@ -138,7 +88,7 @@ export class ChatService {
           },
         ],
       });
-      logChatFlowSteps(flowLogMeta, result.steps ?? []);
+      logSteps(flowLogMeta, result.steps ?? []);
       return result;
     }
 
@@ -159,16 +109,28 @@ export class ChatService {
 
     const steps = [
       {
-        name: "chat.request.received",
+        name: "request.received",
         status: "success",
         summary: "Received chat.sendMessage request.",
       },
       {
-        name: "auth.scope.resolve",
+        name: "scope.resolved",
         status: "success",
         summary: "Built backend execution scope for chat orchestration.",
       },
+      {
+        name: "conversation.resolved",
+        status: "success",
+        summary: input.conversationId
+          ? "Reused frontend-provided conversationId after backend scope resolution."
+          : "Created a new backend conversationId for this chat session.",
+      },
       ...result.steps,
+      {
+        name: "chat.flow.complete",
+        status: "success",
+        summary: "Completed chat flow and prepared ChatResponseDto.",
+      },
     ];
     const internalResult: ChatInternalResult = {
       conversationId,
@@ -177,14 +139,15 @@ export class ChatService {
       intent: result.intent,
       agent: result.agent,
       data: result.data,
-      sources: result.sources,
-      toolCalls: result.toolCalls,
-      steps,
+      sources: normalizeSources(result.sources),
+      toolCalls: normalizeToolCalls(result.toolCalls),
+      approvals: normalizeApprovals(result.approvals),
+      steps: normalizeSteps(steps),
       action: result.action,
       insufficientContext: result.insufficientContext,
     };
 
-    logChatFlowSteps(flowLogMeta, steps);
+    logSteps(flowLogMeta, steps);
     logger.info("[chat.flow.complete]", {
       event: "chat.flow.complete",
       requestId,
@@ -202,16 +165,29 @@ export class ChatService {
   }
 }
 
+const providerMap: Partial<Record<ProviderName, LlmProvider>> = {
+  gemini: new GeminiProvider(aiConfig.geminiApiKey, aiConfig.geminiModel),
+  openai: new OpenAiProvider(aiConfig.openaiApiKey, aiConfig.openaiModel),
+};
+
+const skillRoot = fileURLToPath(
+  new URL("../../../../../skills", import.meta.url),
+);
+
 export const chatService = new ChatService(
   new OrchestratorAgent(
     new IntentAgent(),
-    new GeneralAgent({
-      gemini: new GeminiProvider(aiConfig.geminiApiKey, aiConfig.geminiModel),
-      openai: new OpenAiProvider(aiConfig.openaiApiKey, aiConfig.openaiModel),
-    }),
+    new GeneralAgent(providerMap),
     new RagAgent(),
     new SqlAgent(),
     new ToolAgent(),
     new ResponseAgent(),
+    {
+      toolRegistry: createDefaultToolRegistry(),
+      skillRegistry: new SkillRegistry(skillRoot),
+      approvalHandler: new PlaceholderApprovalHandler(),
+      maxSteps: 6,
+      getLlmProvider: (context) => providerMap[context.provider ?? "gemini"],
+    },
   ),
 );

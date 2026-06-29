@@ -1,0 +1,76 @@
+flowchart LR
+  User[User]
+
+  subgraph Frontend[Frontend UI only]
+    Manage[Manage Demo + SFTP Model<br/>no SFTP or DB credentials]
+    ChatUI[Frontend Chat UI<br/>chat / step viewer / approvals]
+  end
+
+  subgraph Backend[Backend API / Trusted Scope]
+    ChatAPI[Chat API / Protected Procedure<br/>schema + auth checks]
+    Context[Agent Context Builder<br/>user / tenant / brand / KB / tool scope]
+    Branches[Agent Branches<br/>RagAgent / SqlAgent / GeneralAgent / DemoAgent]
+    Runtime[Agent Runtime Core<br/>orchestrator / memory / intent / skill catalog / agent loop]
+    Policy[Unified Policy Gate<br/>args / permission / tenant-brand-KB scope / safety envelope]
+    RAG[RAG Service<br/>grounded answer + citations]
+    SQL[SQL Safety<br/>read-only / allowlist / row limit / timeout]
+    ToolGate[Shared Tool Gate<br/>tool registry / schema / permission / approval / sanitization]
+    Executor[Tool Executor / Tool Runner<br/>timeout / retry / abort / error mapping]
+    SftpTools[SFTP Tool Groups<br/>read / write / destructive tools]
+    SftpService[SFTP Service / Remote Demo Storage<br/>remote file/demo storage only]
+    HITL[HITL Approval<br/>pending / approve / reject / history]
+    Response[Response + Observability<br/>response normalize / step logs / audit logs / memory summary]
+    Secrets[Secrets Manager / Backend Credentials<br/>backend only]
+
+    subgraph Data[Data Layer / Persistence]
+      AppDB[Application Database<br/>PostgreSQL / MySQL<br/>users / tenants / brands / roles / permissions / sessions / configs]
+      VectorDB[Vector DB / Knowledge Store<br/>pgvector / Qdrant / Pinecone / Chroma<br/>documents / chunks / embeddings / metadata / citations]
+      BusinessDB[Business / Report Database<br/>read-only / allowlist / row limit / timeout<br/>report / crawl / dashboard data]
+      LogStore[Log / Audit Store<br/>step logs / audit logs / tool runs / policy decisions / errors]
+    end
+  end
+
+  User --> Manage --> ChatUI --> ChatAPI --> Context --> Runtime --> Policy
+  Branches --> Runtime
+  ChatAPI --> AppDB
+  Context --> AppDB
+  Runtime --> AppDB
+  Policy --> AppDB
+
+  Policy --> RAG --> VectorDB
+  Policy --> SQL --> BusinessDB
+  Policy --> ToolGate --> Executor --> SftpTools --> SftpService
+  Secrets -. backend credentials .-> SftpService
+
+  ToolGate --> HITL
+  Executor --> HITL
+  HITL --> AppDB
+
+  Runtime --> Response
+  Policy --> Response
+  ToolGate --> Response
+  Executor --> Response
+  Response --> ChatUI
+  Response --> AppDB
+  Response --> LogStore
+  Policy --> LogStore
+  ToolGate --> LogStore
+  Executor --> LogStore
+
+  classDef frontend fill:#f6f0ff,stroke:#6d28d9,color:#2e1065;
+  classDef backend fill:#f7fff9,stroke:#15803d,color:#052e16;
+  classDef core fill:#faf5ff,stroke:#7c3aed,color:#3b0764;
+  classDef policy fill:#eff6ff,stroke:#2563eb,color:#172554;
+  classDef tool fill:#fff7ed,stroke:#f97316,color:#431407;
+  classDef data fill:#f8fafc,stroke:#475569,color:#0f172a;
+  classDef storage fill:#ecfeff,stroke:#0891b2,color:#164e63;
+  classDef approval fill:#fff1f2,stroke:#e11d48,color:#4c0519;
+
+  class Manage,ChatUI frontend;
+  class ChatAPI,Context,Branches backend;
+  class Runtime core;
+  class Policy,RAG,SQL policy;
+  class ToolGate,Executor,SftpTools tool;
+  class AppDB,VectorDB,BusinessDB,LogStore data;
+  class SftpService,Secrets storage;
+  class HITL approval;

@@ -11,7 +11,10 @@ export interface AgentContext {
   permissions: string[];
   allowedBrandIds: string[];
   allowedKnowledgeBaseIds: string[];
+  /** Legacy name retained for compatibility. MCP is not enabled in Agent Core. */
   allowedMcpTools: string[];
+  allowedToolCapabilities?: string[];
+  allowedBuildDemoBrands?: string[] | null;
   conversationId: string;
   requestId?: string;
   message: string;
